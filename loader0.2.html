@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tha Trenches RP - Master Loader</title>
+    <style>
+        :root {
+            --accent: #7b5cff;
+            --bg: #050816;
+            --success: #00ff95;
+            --danger: #ff4b4b;
+        }
+
+        body, html {
+            margin: 0; padding: 0;
+            width: 100%; height: 100%;
+            background-color: #000;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Inter', sans-serif;
+            color: white;
+        }
+
+        /* 1080p FIXED RESOLUTION CONTAINER */
+        #game-container {
+            position: relative;
+            width: 1920px;
+            height: 1080px;
+            background: #000;
+            transform-origin: center;
+            display: none; /* Hidden until safeLaunch completes */
+            align-items: center;
+            justify-content: center;
+            filter: contrast(1.1) saturate(1.3) brightness(1.05);
+            transition: filter 0.3s ease;
+        }
+
+        .game-blurred {
+            filter: contrast(1.1) saturate(1.3) brightness(0.3) blur(15px) !important;
+        }
+
+        #game-frame {
+            width: 100%; height: 100%;
+            border: none;
+        }
+
+        /* HUD WITH FULLSCREEN BUTTON & FPS */
+        #stats-hud {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px 18px;
+            border-radius: 12px;
+            font-family: monospace;
+            z-index: 5000;
+            border: 1px solid rgba(123, 92, 255, 0.4);
+            display: none; /* Hidden until game starts */
+            align-items: center;
+            gap: 15px;
+            backdrop-filter: blur(5px);
+        }
+
+        .btn-hud-fs {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 800;
+            font-size: 11px;
+            text-transform: uppercase;
+        }
+
+        /* ESCAPE MENU */
+        #esc-menu {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            backdrop-filter: blur(10px);
+        }
+
+        .menu-card {
+            background: var(--bg);
+            padding: 40px;
+            border-radius: 30px;
+            border: 2px solid var(--accent);
+            text-align: center;
+            width: 350px;
+            box-shadow: 0 0 60px rgba(123, 92, 255, 0.3);
+        }
+
+        .menu-btn {
+            display: block; width: 100%; padding: 15px; margin: 12px 0;
+            border-radius: 50px; border: none; cursor: pointer; font-weight: 800;
+            text-transform: uppercase; transition: 0.2s;
+        }
+
+        .btn-resume { background: var(--accent); color: white; }
+        .btn-exit { background: transparent; color: var(--danger); border: 2px solid var(--danger); }
+
+        #start-screen {
+            position: absolute; inset: 0; background: var(--bg);
+            display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 6000;
+            transition: opacity 0.5s ease;
+        }
+
+        .btn-start {
+            padding: 20px 50px; font-size: 1.3rem; font-weight: 900;
+            background: linear-gradient(135deg, var(--accent), #22d3ee);
+            color: white; border: none; border-radius: 60px; cursor: pointer;
+            box-shadow: 0 0 30px rgba(123, 92, 255, 0.4);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="stats-hud">
+        <div style="text-align: right;">
+            <div id="fps-val" style="color: var(--success); font-size: 14px;">FPS: --</div>
+            <div style="font-size: 9px; color: #9ca3af;">220Hz MODE</div>
+        </div>
+        <button id="hud-fs-btn" class="btn-hud-fs" onclick="toggleFullscreen(true)">⛶ Fullscreen</button>
+    </div>
+
+    <div id="esc-menu">
+        <div class="menu-card">
+            <h2 style="margin-bottom: 10px; letter-spacing: 2px;">PAUSED</h2>
+            <button class="menu-btn btn-resume" onclick="handleMenu('resume')">Back to Fullscreen</button>
+            <button class="menu-btn btn-exit" onclick="handleMenu('exit')">Quit to Menu</button>
+        </div>
+    </div>
+
+    <div id="start-screen">
+        <h1 style="letter-spacing: 10px; margin-bottom: 30px; text-align: center;">THA TRENCHES</h1>
+        <button id="play-btn" class="btn-start" onclick="safeLaunch()">START GAME</button>
+        <div id="load-status" style="margin-top: 20px; color: var(--accent); display: none;">OPTIMIZING ENGINE...</div>
+    </div>
+
+    <div id="game-container">
+        <iframe id="game-frame" allow="autoplay; fullscreen"></iframe>
+    </div>
+
+    <script>
+        const container = document.getElementById('game-container');
+        const frame = document.getElementById('game-frame');
+        const escMenu = document.getElementById('esc-menu');
+        const startScreen = document.getElementById('start-screen');
+        const fpsVal = document.getElementById('fps-val');
+        const hudFsBtn = document.getElementById('hud-fs-btn');
+
+        let lastTimestamp = 0;
+        let frameCount = 0;
+        let lastFpsUpdate = 0;
+
+        function handleResize() {
+            const scale = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+            container.style.transform = `scale(${scale})`;
+        }
+
+        function ultraLoop(timestamp) {
+            frameCount++;
+            if (timestamp - lastFpsUpdate >= 1000) {
+                fpsVal.innerText = `FPS: ${frameCount}`;
+                frameCount = 0;
+                lastFpsUpdate = timestamp;
+            }
+            requestAnimationFrame(ultraLoop);
+        }
+
+        async function safeLaunch() {
+            document.getElementById('play-btn').disabled = true;
+            document.getElementById('load-status').style.display = "block";
+
+            // 1. Enter Fullscreen
+            try {
+                const doc = document.documentElement;
+                if (doc.requestFullscreen) await doc.requestFullscreen();
+                else if (doc.webkitRequestFullscreen) await doc.webkitRequestFullscreen();
+            } catch (e) { console.log("Fullscreen request skipped."); }
+
+            // 2. Short Delay for browser stability
+            setTimeout(() => {
+                handleResize();
+                // 3. Lazy Load Asset
+                frame.src = "game_multiplayer.html";
+
+                frame.onload = () => {
+                    startScreen.style.opacity = "0";
+                    setTimeout(() => {
+                        startScreen.style.display = "none";
+                        container.style.display = "flex";
+                        document.getElementById('stats-hud').style.display = "flex";
+                        requestAnimationFrame(ultraLoop);
+                    }, 500);
+                };
+            }, 400);
+        }
+
+        function toggleFullscreen(goFull) {
+            if (goFull) {
+                const doc = document.documentElement;
+                if (doc.requestFullscreen) doc.requestFullscreen();
+                else if (doc.webkitRequestFullscreen) doc.webkitRequestFullscreen();
+            }
+        }
+
+        // FULLSCREEN CHANGE DETECTOR (Handles Esc key naturally)
+        function onFullscreenChange() {
+            const isFull = document.fullscreenElement || document.webkitFullscreenElement;
+            
+            // Toggle HUD button
+            hudFsBtn.style.display = isFull ? "none" : "block";
+
+            // Trigger Pause Menu if exiting fullscreen while game is active
+            if (!isFull && startScreen.style.display === 'none') {
+                escMenu.style.display = 'flex';
+                container.classList.add('game-blurred');
+            } else {
+                escMenu.style.display = 'none';
+                container.classList.remove('game-blurred');
+            }
+        }
+
+        document.addEventListener('fullscreenchange', onFullscreenChange);
+        document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+
+        function handleMenu(action) {
+            if (action === 'resume') {
+                toggleFullscreen(true);
+            } else if (action === 'exit') {
+                window.location.href = "index.html";
+            }
+        }
+
+        window.addEventListener('resize', handleResize);
+        document.addEventListener('contextmenu', e => e.preventDefault());
+    </script>
+</body>
+</html>
