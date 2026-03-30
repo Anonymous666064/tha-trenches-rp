@@ -3771,14 +3771,14 @@
                 // Authenticate with Supabase
                 try {
                     const { data, error } = await window.supabase.auth.signInWithPassword({
-                        email: username + '@gangturf.local',
+                        email: username + '@example.com',
                         password: password
                     });
                     if (error) {
                         // If user doesn't exist in Supabase yet, create them
                         if (error.message.includes('Invalid login credentials')) {
                             const { data: signUpData, error: signUpError } = await window.supabase.auth.signUp({
-                                email: username + '@gangturf.local',
+                                email: username + '@example.com',
                                 password: password
                             });
                             if (signUpError) throw signUpError;
@@ -3824,7 +3824,7 @@
             // Create Supabase user
             try {
                 const { data, error } = await window.supabase.auth.signUp({
-                    email: username + '@gangturf.local',
+                    email: username + '@example.com',
                     password: password
                 });
                 if (error) throw error;
