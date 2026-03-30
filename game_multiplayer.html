@@ -3,60 +3,79 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>3D Multiplayer Test</title>
+<title>3D Multiplayer Sessions</title>
 
 <style>
 body { margin:0; overflow:hidden; background:black; }
+
+#menu {
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    background:#111;
+    color:white;
+    padding:20px;
+    border-radius:10px;
+    text-align:center;
+    z-index:100;
+}
+
+input, button {
+    padding:10px;
+    margin:5px;
+    width:200px;
+}
 
 #ui {
     position:absolute;
     top:10px;
     left:10px;
     color:white;
-    font-family:monospace;
     z-index:10;
 }
 </style>
 </head>
 <body>
 
-<div id="ui">
-🌐 MULTIPLAYER TEST<br>
-WASD = Move | Click = Look
+<div id="menu">
+    <h3>Enter Server Code</h3>
+    <input id="code" maxlength="6" placeholder="6 digit code">
+    <br>
+    <button id="start">JOIN</button>
 </div>
+
+<div id="ui">Not connected</div>
 
 <script type="module">
 import * as THREE from 'https://unpkg.com/three@0.128.0/build/three.module.js';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-// ================= SUPABASE =================
 const supabase = createClient(
     "https://hcvewiwhtxqpbogcrukk.supabase.co",
     "sb_publishable_aOPgE3PvcNPiVyaIEK1evQ_NBi_TXHw"
 );
 
-// ================= SCENE =================
+let sessionCode = null;
+const playerId = crypto.randomUUID();
+
+// ===== SCENE SETUP =====
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87CEEB);
 
-// ================= CAMERA =================
 const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
 camera.position.set(0,5,10);
 
-// ================= RENDERER =================
-const renderer = new THREE.WebGLRenderer({ antialias:true });
+const renderer = new THREE.WebGLRenderer({antialias:true});
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(innerWidth, innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// ================= LIGHT =================
-const light = new THREE.DirectionalLight(0xffffff,1);
-light.position.set(10,20,10);
-scene.add(light);
-
+// LIGHT
+scene.add(new THREE.DirectionalLight(0xffffff,1).position.set(10,20,10));
 scene.add(new THREE.AmbientLight(0x404040,0.6));
 
-// ================= GROUND =================
+// GROUND
 const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(200,200),
     new THREE.MeshStandardMaterial({color:0x3a8c3a})
@@ -64,8 +83,8 @@ const ground = new THREE.Mesh(
 ground.rotation.x = -Math.PI/2;
 scene.add(ground);
 
-// ================= PLAYER =================
-function createPlayer(color=0x4ec9e0){
+// PLAYER
+function createPlayer(color){
     const g = new THREE.Group();
 
     const body = new THREE.Mesh(
@@ -85,138 +104,121 @@ function createPlayer(color=0x4ec9e0){
     return g;
 }
 
-// ================= LOCAL PLAYER =================
-const playerId = crypto.randomUUID();
-const player = createPlayer();
+const player = createPlayer(0x4ec9e0);
 scene.add(player);
 
-// ================= OTHER PLAYERS =================
 const others = new Map();
 
-// ================= CONTROLS =================
-let keys = {};
-let yaw = 0, pitch = 0;
+// ===== CONTROLS =====
+let keys = {}, yaw = 0, pitch = 0;
 
-window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
-window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+window.addEventListener('keydown', e=>keys[e.key.toLowerCase()]=true);
+window.addEventListener('keyup', e=>keys[e.key.toLowerCase()]=false);
 
-document.body.addEventListener('click', () => {
-    document.body.requestPointerLock();
+document.body.onclick = ()=>document.body.requestPointerLock();
+
+document.addEventListener('mousemove', e=>{
+    if(document.pointerLockElement!==document.body) return;
+    yaw -= e.movementX*0.002;
+    pitch -= e.movementY*0.002;
+    pitch = Math.max(-1, Math.min(1, pitch));
+
+    camera.rotation.order="YXZ";
+    camera.rotation.y=yaw;
+    camera.rotation.x=pitch;
 });
 
-document.addEventListener('mousemove', e => {
-    if (document.pointerLockElement !== document.body) return;
-
-    yaw -= e.movementX * 0.002;
-    pitch -= e.movementY * 0.002;
-    pitch = Math.max(-Math.PI/3, Math.min(Math.PI/3, pitch));
-
-    camera.rotation.order = "YXZ";
-    camera.rotation.y = yaw;
-    camera.rotation.x = pitch;
-});
-
-// ================= MOVEMENT =================
-function move(delta){
-    const speed = 5;
-    const dir = new THREE.Vector3();
-
-    if(keys.w) dir.z -= 1;
-    if(keys.s) dir.z += 1;
-    if(keys.a) dir.x -= 1;
-    if(keys.d) dir.x += 1;
+// MOVE
+function move(dt){
+    const dir=new THREE.Vector3();
+    if(keys.w) dir.z--;
+    if(keys.s) dir.z++;
+    if(keys.a) dir.x--;
+    if(keys.d) dir.x++;
 
     if(dir.length()>0) dir.normalize();
 
-    const forward = new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));
-    const right = new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
+    const forward=new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));
+    const right=new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
 
-    player.position.x += (dir.x*right.x + dir.z*forward.x)*speed*delta;
-    player.position.z += (dir.x*right.z + dir.z*forward.z)*speed*delta;
+    player.position.x+=(dir.x*right.x+dir.z*forward.x)*5*dt;
+    player.position.z+=(dir.x*right.z+dir.z*forward.z)*5*dt;
 }
 
-// ================= SUPABASE SYNC =================
-
-// SEND POSITION
-setInterval(async () => {
-    await supabase.from("players").upsert({
-        id: playerId,
-        x: player.position.x,
-        y: player.position.y,
-        z: player.position.z,
-        rotation: yaw,
-        updated_at: new Date().toISOString()
-    });
-}, 100);
-
-// LISTEN FOR PLAYERS
-supabase.channel("players")
-.on("postgres_changes", {
-    event: "*",
-    schema: "public",
-    table: "players"
-}, payload => {
-
-    const p = payload.new;
-    if(!p || p.id === playerId) return;
-
-    // CREATE PLAYER IF NOT EXISTS
-    if(!others.has(p.id)){
-        const mesh = createPlayer(Math.random()*0xffffff);
-        scene.add(mesh);
-        others.set(p.id, mesh);
+// ===== START BUTTON =====
+document.getElementById("start").onclick = () => {
+    sessionCode = document.getElementById("code").value.toUpperCase();
+    if(sessionCode.length !== 6){
+        alert("Enter 6 digit code");
+        return;
     }
 
-    // UPDATE POSITION
-    const mesh = others.get(p.id);
-    mesh.position.lerp(
-        new THREE.Vector3(p.x, p.y, p.z),
-        0.3
-    );
-})
-.subscribe();
+    document.getElementById("menu").style.display = "none";
+    document.getElementById("ui").textContent = "Server: " + sessionCode;
 
-// CLEAN OLD PLAYERS
-setInterval(async () => {
-    const cutoff = new Date(Date.now() - 10000).toISOString();
-    await supabase.from("players").delete().lt("updated_at", cutoff);
-}, 5000);
+    startMultiplayer();
+};
 
-// ================= RESIZE =================
-window.addEventListener('resize', () => {
-    camera.aspect = innerWidth/innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(innerWidth, innerHeight);
-});
+// ===== MULTIPLAYER =====
+function startMultiplayer(){
 
-// ================= LOOP =================
-let last = performance.now();
+    // SEND DATA
+    setInterval(async ()=>{
+        await supabase.from("players").upsert({
+            id: playerId,
+            session: sessionCode,
+            x: player.position.x,
+            y: player.position.y,
+            z: player.position.z,
+            rotation: yaw,
+            updated_at: new Date().toISOString()
+        });
+    },100);
+
+    // LISTEN
+    supabase.channel("room-"+sessionCode)
+    .on("postgres_changes", {
+        event:"*",
+        schema:"public",
+        table:"players",
+        filter:`session=eq.${sessionCode}`
+    }, payload=>{
+        const p = payload.new;
+        if(!p || p.id===playerId) return;
+
+        if(!others.has(p.id)){
+            const mesh = createPlayer(Math.random()*0xffffff);
+            scene.add(mesh);
+            others.set(p.id, mesh);
+        }
+
+        const mesh = others.get(p.id);
+        mesh.position.lerp(new THREE.Vector3(p.x,p.y,p.z),0.3);
+    })
+    .subscribe();
+}
+
+// ===== LOOP =====
+let last=performance.now();
 
 function animate(){
-    const now = performance.now();
-    const delta = (now-last)/1000;
-    last = now;
+    const now=performance.now();
+    const dt=(now-last)/1000;
+    last=now;
 
-    move(delta);
+    move(dt);
 
     camera.position.lerp(
-        new THREE.Vector3(
-            player.position.x,
-            5,
-            player.position.z+8
-        ),
+        new THREE.Vector3(player.position.x,5,player.position.z+8),
         0.1
     );
-
     camera.lookAt(player.position);
 
     renderer.render(scene,camera);
     requestAnimationFrame(animate);
 }
-
 animate();
 
-console.log("✅ Multiplayer running");
 </script>
 </body>
 </html>
