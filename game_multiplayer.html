@@ -3,85 +3,133 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multiplayer Game</title>
+    <title>Multiplayer Game - Simple & Fun</title>
     <style>
-        body { margin: 0; overflow: hidden; font-family: Arial; }
+        * {
+            user-select: none;
+        }
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
         #ui {
             position: absolute;
             top: 20px;
             left: 20px;
-            background: rgba(0,0,0,0.85);
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
             padding: 20px;
-            border-radius: 10px;
+            border-radius: 15px;
             color: white;
             z-index: 100;
-            backdrop-filter: blur(5px);
-            border: 1px solid #0f0;
-            min-width: 250px;
+            border: 1px solid #00ff88;
+            box-shadow: 0 0 20px rgba(0,255,136,0.3);
+            min-width: 280px;
+        }
+        h3 {
+            margin: 0 0 15px 0;
+            color: #00ff88;
         }
         button {
-            background: #0f0;
+            background: linear-gradient(135deg, #00ff88, #00cc66);
             border: none;
             padding: 10px 20px;
             margin: 5px;
             cursor: pointer;
-            border-radius: 5px;
+            border-radius: 8px;
             font-weight: bold;
+            font-size: 14px;
+            transition: transform 0.2s;
         }
-        button:hover { background: #0c0; }
+        button:hover {
+            transform: scale(1.02);
+            background: linear-gradient(135deg, #00ff99, #00dd77);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
         input {
             padding: 10px;
             margin: 5px;
-            border-radius: 5px;
-            border: 1px solid #0f0;
-            background: #333;
+            border-radius: 8px;
+            border: 1px solid #00ff88;
+            background: #222;
             color: white;
+            font-size: 14px;
+            text-align: center;
         }
-        .status { margin-top: 10px; font-size: 12px; color: #0f0; }
-        .error { color: #f44; }
+        .status {
+            margin-top: 12px;
+            font-size: 12px;
+            padding: 8px;
+            border-radius: 5px;
+            background: rgba(0,0,0,0.5);
+        }
+        .success { color: #00ff88; }
+        .error { color: #ff4444; }
+        .info { color: #ffaa44; }
         #playersList {
             position: absolute;
             top: 20px;
             right: 20px;
-            background: rgba(0,0,0,0.85);
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
             padding: 15px;
-            border-radius: 10px;
+            border-radius: 15px;
             color: white;
             font-size: 12px;
-            border: 1px solid #0f0;
-            min-width: 150px;
+            border: 1px solid #00ff88;
+            min-width: 180px;
+            z-index: 100;
         }
         .controls {
             position: absolute;
             bottom: 20px;
             left: 20px;
             background: rgba(0,0,0,0.7);
-            padding: 10px;
-            border-radius: 5px;
+            padding: 10px 15px;
+            border-radius: 10px;
             color: white;
             font-size: 12px;
+            font-family: monospace;
+            z-index: 100;
+        }
+        .code-badge {
+            font-size: 24px;
+            font-weight: bold;
+            letter-spacing: 3px;
+            background: #000;
+            padding: 5px 15px;
+            border-radius: 10px;
+            display: inline-block;
+            margin-top: 10px;
         }
     </style>
 </head>
 <body>
     <div id="ui">
-        <h3>🎮 Multiplayer Game</h3>
+        <h3>🎮 3D Multiplayer Arena</h3>
         <div>
             <button id="hostBtn">🌟 Create Game</button>
-            <input type="text" id="customCode" placeholder="Custom code (6 digits)" maxlength="6" style="width: 100px;">
+            <input type="text" id="customCode" placeholder="6-digit code" maxlength="6" style="width: 100px; text-transform: uppercase;">
         </div>
         <div style="margin-top: 10px;">
-            <input type="text" id="joinCode" placeholder="Enter 6-digit code" maxlength="6">
+            <input type="text" id="joinCode" placeholder="Enter 6-digit code" maxlength="6" style="width: 120px; text-transform: uppercase;">
             <button id="joinBtn">🔗 Join Game</button>
         </div>
-        <div id="gameInfo" class="status"></div>
+        <div id="gameInfo" class="status info">⚡ Ready to play</div>
+        <div id="activeCode" style="margin-top: 10px; text-align: center;"></div>
     </div>
     <div id="playersList">
-        <strong>👥 Players</strong>
+        <strong>👥 Players Online</strong>
+        <hr style="margin: 8px 0; border-color: #00ff88;">
         <div id="players"></div>
     </div>
     <div class="controls">
-        🎮 Move with <strong>W A S D</strong>
+        🎮 WASD to move | 🏃‍♂️ Explore the arena
     </div>
 
     <script type="importmap">
@@ -96,8 +144,8 @@
     <script type="module">
         import * as THREE from 'three';
 
-        // ========== SUPABASE SETUP ==========
-        // REPLACE WITH YOUR CREDENTIALS:
+        // ========== SUPABASE CONFIG ==========
+        // REPLACE WITH YOUR ACTUAL CREDENTIALS:
         const SUPABASE_URL = 'https://hcvewiwhtxqpbogcrukk.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjdmV3aXdodHhxcGJvZ2NydWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTQ4MzMsImV4cCI6MjA5MDQ3MDgzM30.UsdvDyrGl4OhmbDjonyOagknHf--Zhe-fhCi0LFVoQw';
         
@@ -111,59 +159,63 @@
         let scene, camera, renderer;
         let keys = { w: false, s: false, a: false, d: false };
         let subscription = null;
+        let lastUpdateTime = 0;
         
-        // ========== 3D SETUP ==========
+        // ========== 3D WORLD ==========
         function setup3D() {
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x1a1a2e);
-            scene.fog = new THREE.Fog(0x1a1a2e, 20, 40);
+            scene.background = new THREE.Color(0x0a0a2a);
+            scene.fog = new THREE.FogExp2(0x0a0a2a, 0.02);
             
             camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.set(0, 8, 12);
             
-            renderer = new THREE.WebGLRenderer();
+            renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
             document.body.appendChild(renderer.domElement);
             
-            // Ground
-            const ground = new THREE.Mesh(
-                new THREE.PlaneGeometry(25, 25),
-                new THREE.MeshStandardMaterial({ color: 0x2c3e50 })
-            );
+            // Ground with checker pattern
+            const gridHelper = new THREE.GridHelper(30, 20, 0x88aaff, 0x335588);
+            gridHelper.position.y = -0.5;
+            scene.add(gridHelper);
+            
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0x1a4d3a, roughness: 0.8 });
+            const ground = new THREE.Mesh(new THREE.PlaneGeometry(28, 28), groundMat);
             ground.rotation.x = -Math.PI / 2;
+            ground.position.y = -0.5;
             ground.receiveShadow = true;
             scene.add(ground);
             
-            // Grid
-            const grid = new THREE.GridHelper(25, 20, 0x3498db, 0x2980b9);
-            grid.position.y = 0.01;
-            scene.add(grid);
-            
-            // Simple trees
-            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
-            const leafMat = new THREE.MeshStandardMaterial({ color: 0x27ae60 });
-            
-            for (let i = -10; i <= 10; i += 5) {
-                for (let j = -10; j <= 10; j += 5) {
-                    if (Math.abs(i) < 3 && Math.abs(j) < 3) continue;
-                    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 1, 6), trunkMat);
-                    trunk.position.set(i, 0.5, j);
-                    trunk.castShadow = true;
-                    scene.add(trunk);
-                    
-                    const leaves = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.8, 8), leafMat);
-                    leaves.position.set(i, 1, j);
-                    leaves.castShadow = true;
-                    scene.add(leaves);
-                }
+            // Decorative orbs
+            const orbMat = new THREE.MeshStandardMaterial({ color: 0xff66ff, emissive: 0x331133 });
+            for (let i = 0; i < 30; i++) {
+                const orb = new THREE.Mesh(new THREE.SphereGeometry(0.15, 8, 8), orbMat);
+                const angle = (i / 30) * Math.PI * 2;
+                const radius = 12;
+                orb.position.x = Math.cos(angle) * radius;
+                orb.position.z = Math.sin(angle) * radius;
+                orb.position.y = 0.5;
+                scene.add(orb);
             }
             
             // Lighting
-            const light = new THREE.DirectionalLight(0xffffff, 1);
-            light.position.set(10, 20, 5);
-            light.castShadow = true;
-            scene.add(light);
-            scene.add(new THREE.AmbientLight(0x404060));
+            const ambientLight = new THREE.AmbientLight(0x404060);
+            scene.add(ambientLight);
+            
+            const mainLight = new THREE.DirectionalLight(0xffffff, 1);
+            mainLight.position.set(10, 20, 5);
+            mainLight.castShadow = true;
+            mainLight.receiveShadow = true;
+            scene.add(mainLight);
+            
+            const fillLight = new THREE.PointLight(0x4466ff, 0.3);
+            fillLight.position.set(-5, 5, 5);
+            scene.add(fillLight);
+            
+            const backLight = new THREE.PointLight(0xffaa66, 0.2);
+            backLight.position.set(0, 5, -8);
+            scene.add(backLight);
             
             animate();
         }
@@ -172,70 +224,92 @@
             const group = new THREE.Group();
             
             // Body
-            const body = new THREE.Mesh(
-                new THREE.BoxGeometry(0.7, 1, 0.7),
-                new THREE.MeshStandardMaterial({ color: color })
-            );
+            const bodyMat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.3 });
+            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 1, 8), bodyMat);
             body.position.y = 0.5;
             body.castShadow = true;
             group.add(body);
             
             // Head
-            const head = new THREE.Mesh(
-                new THREE.SphereGeometry(0.45, 16, 16),
-                new THREE.MeshStandardMaterial({ color: 0xffccaa })
-            );
+            const headMat = new THREE.MeshStandardMaterial({ color: 0xffccaa });
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.45, 24, 24), headMat);
             head.position.y = 1.1;
             head.castShadow = true;
             group.add(head);
             
             // Eyes
-            const eyeMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-            const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), eyeMat);
-            leftEye.position.set(-0.18, 1.22, 0.45);
+            const eyeWhite = new THREE.MeshStandardMaterial({ color: 0xffffff });
+            const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), eyeWhite);
+            leftEye.position.set(-0.18, 1.22, 0.48);
             group.add(leftEye);
             
-            const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), eyeMat);
-            rightEye.position.set(0.18, 1.22, 0.45);
+            const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), eyeWhite);
+            rightEye.position.set(0.18, 1.22, 0.48);
             group.add(rightEye);
             
-            // Hat for local player
+            const pupilMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
+            const leftPupil = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 16), pupilMat);
+            leftPupil.position.set(0, 0, 0.05);
+            leftEye.add(leftPupil);
+            
+            const rightPupil = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 16), pupilMat);
+            rightPupil.position.set(0, 0, 0.05);
+            rightEye.add(rightPupil);
+            
+            // Hat/Crown for local player
             if (isLocal) {
-                const hat = new THREE.Mesh(
-                    new THREE.ConeGeometry(0.4, 0.5, 8),
-                    new THREE.MeshStandardMaterial({ color: 0xff4444 })
-                );
-                hat.position.y = 1.45;
-                group.add(hat);
+                const crownMat = new THREE.MeshStandardMaterial({ color: 0xffaa44, emissive: 0x442200 });
+                const crown = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.5, 8), crownMat);
+                crown.position.y = 1.48;
+                group.add(crown);
+                
+                const gem = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), new THREE.MeshStandardMaterial({ color: 0xff3366 }));
+                gem.position.y = 1.75;
+                group.add(gem);
             }
             
             return group;
         }
         
         function addPlayer(playerId, x, z, isLocal = false) {
-            const color = isLocal ? 0x44ff44 : 0xff6644;
+            const color = isLocal ? 0x44ff88 : 0xff8844;
             const playerMesh = createPlayer(color, isLocal);
             playerMesh.position.set(x, 0, z);
             scene.add(playerMesh);
             
-            players.set(playerId, { mesh: playerMesh, x, z });
+            players.set(playerId, { mesh: playerMesh, x, z, name: playerId.slice(0, 6) });
             
             if (isLocal) {
                 localPlayer = playerMesh;
-                camera.position.set(x, 8, x + 12);
+                camera.position.set(x, 8, x + 10);
             }
             
             updatePlayersList();
             return playerMesh;
         }
         
+        function removePlayer(playerId) {
+            const player = players.get(playerId);
+            if (player) {
+                scene.remove(player.mesh);
+                players.delete(playerId);
+                updatePlayersList();
+            }
+        }
+        
         function updatePlayersList() {
             const listDiv = document.getElementById('players');
+            if (players.size === 0) {
+                listDiv.innerHTML = 'Waiting for players...';
+                return;
+            }
+            
             let html = '';
             for (let [id, player] of players) {
-                html += `🎮 ${id.slice(0, 6)}<br>`;
+                const isMe = id === myPlayerId;
+                html += `🎮 ${player.name}${isMe ? ' (YOU)' : ''}<br>`;
             }
-            listDiv.innerHTML = html || 'Waiting for players...';
+            listDiv.innerHTML = html;
         }
         
         function handleMovement() {
@@ -244,32 +318,45 @@
             let moved = false;
             let newX = localPlayer.position.x;
             let newZ = localPlayer.position.z;
-            const speed = 0.2;
+            const speed = 0.22;
             
             if (keys.w) { newZ -= speed; moved = true; }
             if (keys.s) { newZ += speed; moved = true; }
             if (keys.a) { newX -= speed; moved = true; }
             if (keys.d) { newX += speed; moved = true; }
             
-            newX = Math.max(-11, Math.min(11, newX));
-            newZ = Math.max(-11, Math.min(11, newZ));
+            // Boundaries
+            newX = Math.max(-12, Math.min(12, newX));
+            newZ = Math.max(-12, Math.min(12, newZ));
             
             if (moved) {
                 localPlayer.position.set(newX, 0, newZ);
-                camera.position.x = newX;
-                camera.position.z = newZ + 8;
-                camera.lookAt(newX, 2, newZ);
                 
-                updatePositionInDB(newX, newZ);
+                // Smooth camera follow
+                camera.position.x += (newX - camera.position.x) * 0.1;
+                camera.position.z = newZ + 9;
+                camera.position.y = 7;
+                camera.lookAt(newX, 1.5, newZ);
+                
+                // Throttle updates to 15 per second
+                const now = Date.now();
+                if (now - lastUpdateTime > 66) {
+                    updatePositionInDB(newX, newZ);
+                    lastUpdateTime = now;
+                }
             }
         }
         
         async function updatePositionInDB(x, z) {
             if (!currentSession || !myPlayerId) return;
-            await supabase
-                .from('players')
-                .update({ pos_x: x, pos_z: z, last_seen: new Date() })
-                .eq('player_id', myPlayerId);
+            try {
+                await supabase
+                    .from('players')
+                    .update({ pos_x: x, pos_z: z, last_seen: new Date() })
+                    .eq('player_id', myPlayerId);
+            } catch (e) {
+                console.warn('Update failed:', e);
+            }
         }
         
         // ========== DATABASE FUNCTIONS ==========
@@ -279,13 +366,14 @@
                 code = Math.random().toString(36).substring(2, 8).toUpperCase();
             }
             
+            // Check if code exists
             const { data: existing } = await supabase
                 .from('game_sessions')
                 .select('session_code')
                 .eq('session_code', code);
             
-            if (existing?.length > 0) {
-                throw new Error('Code taken, try another');
+            if (existing && existing.length > 0) {
+                throw new Error('Code already taken! Try another.');
             }
             
             const { error } = await supabase
@@ -301,16 +389,16 @@
                 .from('game_sessions')
                 .select('session_code')
                 .eq('session_code', code.toUpperCase())
-                .single();
+                .maybeSingle();
             
-            if (error || !data) throw new Error('Game not found');
+            if (error || !data) throw new Error('Game not found! Check the code.');
             return code.toUpperCase();
         }
         
         async function addPlayerToGame(sessionCode) {
-            myPlayerId = Math.random().toString(36).substring(2, 15);
-            const startX = (Math.random() - 0.5) * 8;
-            const startZ = (Math.random() - 0.5) * 8;
+            myPlayerId = 'p_' + Math.random().toString(36).substring(2, 15);
+            const startX = (Math.random() - 0.5) * 10;
+            const startZ = (Math.random() - 0.5) * 10;
             
             const { error } = await supabase
                 .from('players')
@@ -322,7 +410,10 @@
                     last_seen: new Date()
                 });
             
-            if (error) throw error;
+            if (error) {
+                console.error('Insert error:', error);
+                throw new Error('Failed to join game');
+            }
             
             addPlayer(myPlayerId, startX, startZ, true);
             await loadPlayers(sessionCode);
@@ -343,16 +434,19 @@
                 if (p.player_id !== myPlayerId && !players.has(p.player_id)) {
                     addPlayer(p.player_id, p.pos_x, p.pos_z, false);
                 } else if (p.player_id !== myPlayerId && players.has(p.player_id)) {
-                    players.get(p.player_id).mesh.position.set(p.pos_x, 0, p.pos_z);
+                    const player = players.get(p.player_id);
+                    player.mesh.position.set(p.pos_x, 0, p.pos_z);
                 }
             }
         }
         
         function subscribeToPlayers(sessionCode) {
-            if (subscription) subscription.unsubscribe();
+            if (subscription) {
+                supabase.removeChannel(subscription);
+            }
             
             subscription = supabase
-                .channel('players-channel')
+                .channel(`players:${sessionCode}`)
                 .on('postgres_changes', {
                     event: '*',
                     schema: 'public',
@@ -367,54 +461,76 @@
                             player.mesh.position.set(payload.new.pos_x, 0, payload.new.pos_z);
                         }
                     } else if (payload.eventType === 'DELETE' && payload.old.player_id !== myPlayerId) {
-                        const player = players.get(payload.old.player_id);
-                        if (player) {
-                            scene.remove(player.mesh);
-                            players.delete(payload.old.player_id);
-                            updatePlayersList();
-                        }
+                        removePlayer(payload.old.player_id);
                     }
                 })
                 .subscribe();
         }
         
-        // ========== UI ==========
+        // ========== UI HANDLERS ==========
+        let isConnecting = false;
+        
         document.getElementById('hostBtn').onclick = async () => {
+            if (isConnecting) return;
+            isConnecting = true;
             const customCode = document.getElementById('customCode').value;
+            const infoDiv = document.getElementById('gameInfo');
+            
             try {
                 const code = await createSession(customCode);
                 currentSession = code;
                 await addPlayerToGame(code);
-                document.getElementById('gameInfo').innerHTML = `✅ Game: ${code}<br>Share this code!`;
-                document.getElementById('gameInfo').style.color = '#0f0';
+                
+                infoDiv.innerHTML = `✅ Game Created! Code: <strong style="font-size:18px">${code}</strong><br>Share this code with friends!`;
+                infoDiv.className = 'status success';
+                document.getElementById('activeCode').innerHTML = `<div class="code-badge">🔑 ${code}</div>`;
                 document.getElementById('hostBtn').disabled = true;
                 document.getElementById('joinBtn').disabled = true;
             } catch (err) {
-                document.getElementById('gameInfo').innerHTML = `❌ ${err.message}`;
-                document.getElementById('gameInfo').style.color = '#f44';
+                infoDiv.innerHTML = `❌ ${err.message}`;
+                infoDiv.className = 'status error';
+            } finally {
+                isConnecting = false;
             }
         };
         
         document.getElementById('joinBtn').onclick = async () => {
+            if (isConnecting) return;
+            isConnecting = true;
             const code = document.getElementById('joinCode').value;
-            if (!code) return alert('Enter code');
+            const infoDiv = document.getElementById('gameInfo');
+            
+            if (!code) {
+                infoDiv.innerHTML = '❌ Please enter a game code';
+                infoDiv.className = 'status error';
+                isConnecting = false;
+                return;
+            }
+            
             try {
                 currentSession = await joinSession(code);
                 await addPlayerToGame(currentSession);
-                document.getElementById('gameInfo').innerHTML = `✅ Joined: ${currentSession}`;
-                document.getElementById('gameInfo').style.color = '#0f0';
+                
+                infoDiv.innerHTML = `✅ Joined game: <strong>${currentSession}</strong>`;
+                infoDiv.className = 'status success';
+                document.getElementById('activeCode').innerHTML = `<div class="code-badge">🎮 ${currentSession}</div>`;
                 document.getElementById('hostBtn').disabled = true;
                 document.getElementById('joinBtn').disabled = true;
             } catch (err) {
-                document.getElementById('gameInfo').innerHTML = `❌ ${err.message}`;
-                document.getElementById('gameInfo').style.color = '#f44';
+                infoDiv.innerHTML = `❌ ${err.message}`;
+                infoDiv.className = 'status error';
+            } finally {
+                isConnecting = false;
             }
         };
         
-        // Keyboard
+        // Keyboard controls
         window.addEventListener('keydown', (e) => {
             const key = e.key.toLowerCase();
-            if (keys.hasOwnProperty(key)) keys[key] = true;
+            if (keys.hasOwnProperty(key)) {
+                keys[key] = true;
+                e.preventDefault();
+            }
         });
         
         window.addEventListener('keyup', (e) => {
@@ -422,25 +538,27 @@
             if (keys.hasOwnProperty(key)) keys[key] = false;
         });
         
-        // Cleanup
+        // Cleanup on page close
         window.addEventListener('beforeunload', async () => {
             if (myPlayerId) {
                 await supabase.from('players').delete().eq('player_id', myPlayerId);
             }
         });
         
+        // Animation loop
         function animate() {
             requestAnimationFrame(animate);
             handleMovement();
             renderer.render(scene, camera);
         }
         
+        // Start the game
         setup3D();
         
-        // Config check
+        // Check if Supabase is configured
         if (SUPABASE_URL.includes('YOUR_PROJECT')) {
-            document.getElementById('gameInfo').innerHTML = '⚠️ Configure Supabase first!';
-            document.getElementById('gameInfo').style.color = '#ff0';
+            document.getElementById('gameInfo').innerHTML = '⚠️ Please configure Supabase URL and Key in the HTML code!';
+            document.getElementById('gameInfo').className = 'status error';
         }
     </script>
 </body>
