@@ -5,6 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Multiplayer 3D Game - Join Friends!</title>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
         body {
             margin: 0;
             overflow: hidden;
@@ -83,6 +88,10 @@
             z-index: 100;
             pointer-events: none;
         }
+        #playersList strong {
+            display: block;
+            margin-bottom: 8px;
+        }
         .controls {
             position: absolute;
             bottom: 20px;
@@ -130,7 +139,7 @@
     <div id="playersList">
         <strong>👥 Players Online</strong>
         <hr style="margin: 8px 0; border-color: #00ff88;">
-        <div id="players"></div>
+        <div id="players">Waiting for players...</div>
     </div>
     <div class="controls">
         🎮 WASD to move | 🏃‍♂️ Explore with friends!
@@ -153,7 +162,6 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjdmV3aXdodHhxcGJvZ2NydWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTQ4MzMsImV4cCI6MjA5MDQ3MDgzM30.UsdvDyrGl4OhmbDjonyOagknHf--Zhe-fhCi0LFVoQw';
         
         console.log('🎮 Game starting...');
-        console.log('Supabase URL:', SUPABASE_URL);
         
         // Initialize Supabase
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -315,6 +323,8 @@
         }
         
         function addPlayer(playerId, x, z, isLocal = false) {
+            if (!scene) return null;
+            
             const color = isLocal ? 0x44ff88 : 0xff8844;
             const playerMesh = createPlayer(color, isLocal);
             playerMesh.position.set(x, 0, z);
@@ -334,7 +344,7 @@
         
         function removePlayer(playerId) {
             const player = players.get(playerId);
-            if (player) {
+            if (player && scene) {
                 scene.remove(player.mesh);
                 players.delete(playerId);
                 updatePlayersList();
@@ -342,11 +352,11 @@
         }
         
         function updatePlayersList() {
-            const listDiv = document.getElementById('players');
-            if (!listDiv) return;
+            const playersDiv = document.getElementById('players');
+            if (!playersDiv) return;
             
             if (players.size === 0) {
-                listDiv.innerHTML = 'Waiting for players...';
+                playersDiv.innerHTML = 'Waiting for players...';
                 return;
             }
             
@@ -355,7 +365,7 @@
                 const isMe = id === myPlayerId;
                 html += `🎮 ${player.name}${isMe ? ' (YOU)' : ''}<br>`;
             }
-            listDiv.innerHTML = html;
+            playersDiv.innerHTML = html;
         }
         
         function handleMovement() {
@@ -518,61 +528,84 @@
         // ========== UI ==========
         let isConnecting = false;
         
-        document.getElementById('hostBtn').onclick = async () => {
-            if (isConnecting) return;
-            isConnecting = true;
-            const customCode = document.getElementById('customCode').value;
-            const infoDiv = document.getElementById('gameInfo');
-            
-            try {
-                const code = await createSession(customCode);
-                currentSession = code;
-                await addPlayerToGame(code);
-                
-                infoDiv.innerHTML = `✅ Game Created! Code: <strong style="font-size:18px">${code}</strong><br>Share this code with friends!`;
-                infoDiv.className = 'status success';
-                document.getElementById('activeCode').innerHTML = `<div class="code-badge">🔑 ${code}</div>`;
-                document.getElementById('hostBtn').disabled = true;
-                document.getElementById('joinBtn').disabled = true;
-            } catch (err) {
-                infoDiv.innerHTML = `❌ ${err.message}`;
-                infoDiv.className = 'status error';
-                console.error(err);
-            } finally {
-                isConnecting = false;
-            }
-        };
+        const hostBtn = document.getElementById('hostBtn');
+        const joinBtn = document.getElementById('joinBtn');
+        const gameInfo = document.getElementById('gameInfo');
+        const customCodeInput = document.getElementById('customCode');
+        const joinCodeInput = document.getElementById('joinCode');
+        const activeCodeDiv = document.getElementById('activeCode');
         
-        document.getElementById('joinBtn').onclick = async () => {
-            if (isConnecting) return;
-            isConnecting = true;
-            const code = document.getElementById('joinCode').value;
-            const infoDiv = document.getElementById('gameInfo');
-            
-            if (!code) {
-                infoDiv.innerHTML = '❌ Please enter a game code';
-                infoDiv.className = 'status error';
-                isConnecting = false;
-                return;
-            }
-            
-            try {
-                currentSession = await joinSession(code);
-                await addPlayerToGame(currentSession);
+        if (hostBtn) {
+            hostBtn.onclick = async () => {
+                if (isConnecting) return;
+                isConnecting = true;
+                const customCode = customCodeInput ? customCodeInput.value : '';
                 
-                infoDiv.innerHTML = `✅ Joined game: <strong>${currentSession}</strong>`;
-                infoDiv.className = 'status success';
-                document.getElementById('activeCode').innerHTML = `<div class="code-badge">🎮 ${currentSession}</div>`;
-                document.getElementById('hostBtn').disabled = true;
-                document.getElementById('joinBtn').disabled = true;
-            } catch (err) {
-                infoDiv.innerHTML = `❌ ${err.message}`;
-                infoDiv.className = 'status error';
-                console.error(err);
-            } finally {
-                isConnecting = false;
-            }
-        };
+                try {
+                    const code = await createSession(customCode);
+                    currentSession = code;
+                    await addPlayerToGame(code);
+                    
+                    if (gameInfo) {
+                        gameInfo.innerHTML = `✅ Game Created! Code: <strong style="font-size:18px">${code}</strong><br>Share this code with friends!`;
+                        gameInfo.className = 'status success';
+                    }
+                    if (activeCodeDiv) {
+                        activeCodeDiv.innerHTML = `<div class="code-badge">🔑 ${code}</div>`;
+                    }
+                    if (hostBtn) hostBtn.disabled = true;
+                    if (joinBtn) joinBtn.disabled = true;
+                } catch (err) {
+                    if (gameInfo) {
+                        gameInfo.innerHTML = `❌ ${err.message}`;
+                        gameInfo.className = 'status error';
+                    }
+                    console.error(err);
+                } finally {
+                    isConnecting = false;
+                }
+            };
+        }
+        
+        if (joinBtn) {
+            joinBtn.onclick = async () => {
+                if (isConnecting) return;
+                isConnecting = true;
+                const code = joinCodeInput ? joinCodeInput.value : '';
+                
+                if (!code) {
+                    if (gameInfo) {
+                        gameInfo.innerHTML = '❌ Please enter a game code';
+                        gameInfo.className = 'status error';
+                    }
+                    isConnecting = false;
+                    return;
+                }
+                
+                try {
+                    currentSession = await joinSession(code);
+                    await addPlayerToGame(currentSession);
+                    
+                    if (gameInfo) {
+                        gameInfo.innerHTML = `✅ Joined game: <strong>${currentSession}</strong>`;
+                        gameInfo.className = 'status success';
+                    }
+                    if (activeCodeDiv) {
+                        activeCodeDiv.innerHTML = `<div class="code-badge">🎮 ${currentSession}</div>`;
+                    }
+                    if (hostBtn) hostBtn.disabled = true;
+                    if (joinBtn) joinBtn.disabled = true;
+                } catch (err) {
+                    if (gameInfo) {
+                        gameInfo.innerHTML = `❌ ${err.message}`;
+                        gameInfo.className = 'status error';
+                    }
+                    console.error(err);
+                } finally {
+                    isConnecting = false;
+                }
+            };
+        }
         
         // Keyboard controls
         window.addEventListener('keydown', (e) => {
