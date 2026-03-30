@@ -3,108 +3,103 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>3D Test World</title>
+<title>3D Multiplayer Test</title>
 
 <style>
-    body {
-        margin: 0;
-        overflow: hidden;
-        background: black;
-    }
+body { margin:0; overflow:hidden; background:black; }
 
-    #ui {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        color: white;
-        font-family: monospace;
-        z-index: 10;
-    }
+#ui {
+    position:absolute;
+    top:10px;
+    left:10px;
+    color:white;
+    font-family:monospace;
+    z-index:10;
+}
 </style>
 </head>
 <body>
 
 <div id="ui">
-    ✅ 3D TEST RUNNING<br>
-    WASD = Move<br>
-    Click = Look Around
+🌐 MULTIPLAYER TEST<br>
+WASD = Move | Click = Look
 </div>
 
 <script type="module">
 import * as THREE from 'https://unpkg.com/three@0.128.0/build/three.module.js';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+// ================= SUPABASE =================
+const supabase = createClient(
+    "https://hcvewiwhtxqpbogcrukk.supabase.co",
+    "sb_publishable_aOPgE3PvcNPiVyaIEK1evQ_NBi_TXHw"
+);
 
 // ================= SCENE =================
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x87CEEB);
 
 // ================= CAMERA =================
-const camera = new THREE.PerspectiveCamera(
-    75,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    1000
-);
-camera.position.set(0, 5, 10);
+const camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
+camera.position.set(0,5,10);
 
 // ================= RENDERER =================
-const renderer = new THREE.WebGLRenderer({ antialias: true });
+const renderer = new THREE.WebGLRenderer({ antialias:true });
 renderer.setPixelRatio(window.devicePixelRatio);
-renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setSize(innerWidth, innerHeight);
 document.body.appendChild(renderer.domElement);
 
-// ================= LIGHTING =================
-const light = new THREE.DirectionalLight(0xffffff, 1);
-light.position.set(10, 20, 10);
+// ================= LIGHT =================
+const light = new THREE.DirectionalLight(0xffffff,1);
+light.position.set(10,20,10);
 scene.add(light);
 
-scene.add(new THREE.AmbientLight(0x404040, 0.6));
+scene.add(new THREE.AmbientLight(0x404040,0.6));
 
 // ================= GROUND =================
 const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(200, 200),
-    new THREE.MeshStandardMaterial({ color: 0x3a8c3a })
+    new THREE.PlaneGeometry(200,200),
+    new THREE.MeshStandardMaterial({color:0x3a8c3a})
 );
-ground.rotation.x = -Math.PI / 2;
+ground.rotation.x = -Math.PI/2;
 scene.add(ground);
 
 // ================= PLAYER =================
-const player = new THREE.Group();
+function createPlayer(color=0x4ec9e0){
+    const g = new THREE.Group();
 
-// Body
-const body = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.5, 0.5, 1.2, 16),
-    new THREE.MeshStandardMaterial({ color: 0x4ec9e0 })
-);
-body.position.y = 0.6;
-player.add(body);
+    const body = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.5,0.5,1.2,16),
+        new THREE.MeshStandardMaterial({color})
+    );
+    body.position.y = 0.6;
+    g.add(body);
 
-// Head
-const head = new THREE.Mesh(
-    new THREE.SphereGeometry(0.4, 16, 16),
-    new THREE.MeshStandardMaterial({ color: 0xffccaa })
-);
-head.position.y = 1.4;
-player.add(head);
+    const head = new THREE.Mesh(
+        new THREE.SphereGeometry(0.4,16,16),
+        new THREE.MeshStandardMaterial({color:0xffccaa})
+    );
+    head.position.y = 1.4;
+    g.add(head);
 
+    return g;
+}
+
+// ================= LOCAL PLAYER =================
+const playerId = crypto.randomUUID();
+const player = createPlayer();
 scene.add(player);
 
-// ================= TEST CUBE =================
-const cube = new THREE.Mesh(
-    new THREE.BoxGeometry(),
-    new THREE.MeshStandardMaterial({ color: 0xff0000 })
-);
-cube.position.set(3, 1, 0);
-scene.add(cube);
+// ================= OTHER PLAYERS =================
+const others = new Map();
 
 // ================= CONTROLS =================
 let keys = {};
-let yaw = 0;
-let pitch = 0;
+let yaw = 0, pitch = 0;
 
 window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
 window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
 
-// Mouse look
 document.body.addEventListener('click', () => {
     document.body.requestPointerLock();
 });
@@ -114,7 +109,6 @@ document.addEventListener('mousemove', e => {
 
     yaw -= e.movementX * 0.002;
     pitch -= e.movementY * 0.002;
-
     pitch = Math.max(-Math.PI/3, Math.min(Math.PI/3, pitch));
 
     camera.rotation.order = "YXZ";
@@ -123,73 +117,106 @@ document.addEventListener('mousemove', e => {
 });
 
 // ================= MOVEMENT =================
-function movePlayer(delta) {
+function move(delta){
     const speed = 5;
     const dir = new THREE.Vector3();
 
-    if (keys.w) dir.z -= 1;
-    if (keys.s) dir.z += 1;
-    if (keys.a) dir.x -= 1;
-    if (keys.d) dir.x += 1;
+    if(keys.w) dir.z -= 1;
+    if(keys.s) dir.z += 1;
+    if(keys.a) dir.x -= 1;
+    if(keys.d) dir.x += 1;
 
-    if (dir.length() > 0) dir.normalize();
+    if(dir.length()>0) dir.normalize();
 
-    const forward = new THREE.Vector3(
-        -Math.sin(yaw),
-        0,
-        -Math.cos(yaw)
-    );
+    const forward = new THREE.Vector3(-Math.sin(yaw),0,-Math.cos(yaw));
+    const right = new THREE.Vector3(Math.cos(yaw),0,-Math.sin(yaw));
 
-    const right = new THREE.Vector3(
-        Math.cos(yaw),
-        0,
-        -Math.sin(yaw)
-    );
-
-    player.position.x += (dir.x * right.x + dir.z * forward.x) * speed * delta;
-    player.position.z += (dir.x * right.z + dir.z * forward.z) * speed * delta;
+    player.position.x += (dir.x*right.x + dir.z*forward.x)*speed*delta;
+    player.position.z += (dir.x*right.z + dir.z*forward.z)*speed*delta;
 }
+
+// ================= SUPABASE SYNC =================
+
+// SEND POSITION
+setInterval(async () => {
+    await supabase.from("players").upsert({
+        id: playerId,
+        x: player.position.x,
+        y: player.position.y,
+        z: player.position.z,
+        rotation: yaw,
+        updated_at: new Date().toISOString()
+    });
+}, 100);
+
+// LISTEN FOR PLAYERS
+supabase.channel("players")
+.on("postgres_changes", {
+    event: "*",
+    schema: "public",
+    table: "players"
+}, payload => {
+
+    const p = payload.new;
+    if(!p || p.id === playerId) return;
+
+    // CREATE PLAYER IF NOT EXISTS
+    if(!others.has(p.id)){
+        const mesh = createPlayer(Math.random()*0xffffff);
+        scene.add(mesh);
+        others.set(p.id, mesh);
+    }
+
+    // UPDATE POSITION
+    const mesh = others.get(p.id);
+    mesh.position.lerp(
+        new THREE.Vector3(p.x, p.y, p.z),
+        0.3
+    );
+})
+.subscribe();
+
+// CLEAN OLD PLAYERS
+setInterval(async () => {
+    const cutoff = new Date(Date.now() - 10000).toISOString();
+    await supabase.from("players").delete().lt("updated_at", cutoff);
+}, 5000);
 
 // ================= RESIZE =================
 window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.aspect = innerWidth/innerHeight;
     camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(innerWidth, innerHeight);
 });
 
 // ================= LOOP =================
 let last = performance.now();
 
-function animate() {
+function animate(){
     const now = performance.now();
-    const delta = (now - last) / 1000;
+    const delta = (now-last)/1000;
     last = now;
 
-    movePlayer(delta);
+    move(delta);
 
-    // Camera follow
     camera.position.lerp(
         new THREE.Vector3(
             player.position.x,
             5,
-            player.position.z + 8
+            player.position.z+8
         ),
         0.1
     );
 
     camera.lookAt(player.position);
 
-    // Spin cube
-    cube.rotation.x += 0.01;
-    cube.rotation.y += 0.02;
-
-    renderer.render(scene, camera);
+    renderer.render(scene,camera);
     requestAnimationFrame(animate);
 }
 
 animate();
 
-console.log("✅ 3D WORLD LOADED");
+console.log("✅ Multiplayer running");
 </script>
 </body>
 </html>
