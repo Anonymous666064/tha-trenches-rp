@@ -73,6 +73,7 @@
             border-radius: 8px;
             font-size: 14px;
             box-sizing: border-box;
+            text-align: center;
         }
         
         #session-panel button {
@@ -134,24 +135,36 @@
             pointer-events: none;
         }
         
-        #session-id-display {
+        #session-code-display {
             position: absolute;
             bottom: 20px;
             right: 20px;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.9);
             color: #ffaa66;
-            padding: 8px 15px;
+            padding: 12px 20px;
             border-radius: 8px;
             z-index: 100;
-            font-size: 12px;
+            font-size: 18px;
+            font-weight: bold;
             font-family: monospace;
             backdrop-filter: blur(5px);
             pointer-events: none;
             display: none;
+            letter-spacing: 2px;
         }
         
         .hidden {
             display: none;
+        }
+        
+        .code-badge {
+            background: #4ec9e0;
+            color: #000;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-weight: bold;
+            margin-left: 10px;
         }
     </style>
 </head>
@@ -166,14 +179,14 @@
     <div id="player-count">
         👥 Players: <span id="player-count-number">0</span>
     </div>
-    <div id="session-id-display">
-        🔑 Session ID: <span id="session-id-text"></span>
+    <div id="session-code-display">
+        🔑 GAME CODE: <span id="session-code-text"></span>
     </div>
     
     <div id="session-panel">
         <h2>🌐 MULTIPLAYER GAME</h2>
         <input type="text" id="player-name" placeholder="Your Name" value="Player">
-        <input type="text" id="session-id-input" placeholder="Session ID (leave empty to create new)">
+        <input type="text" id="session-code-input" placeholder="6-digit Game Code (leave empty to create new)" maxlength="6">
         <button id="join-btn">🎮 JOIN / CREATE GAME</button>
         <div class="status info" id="session-status">Ready to connect</div>
     </div>
@@ -199,6 +212,16 @@
         console.log('Supabase client created');
         
         // ==================== HELPER FUNCTIONS ====================
+        function generateSessionCode() {
+            // Generate a 6-digit alphanumeric code (e.g., A3F9K2)
+            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ0123456789';
+            let code = '';
+            for (let i = 0; i < 6; i++) {
+                code += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return code;
+        }
+        
         function generateUUID() {
             return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
                 const r = Math.random() * 16 | 0;
@@ -213,14 +236,13 @@
         let currentPlayerId = null;
         let currentPlayerName = "";
         let otherPlayers = new Map();
-        let currentSessionId = null;
+        let currentSessionCode = null;
         let keys = { w: false, s: false, a: false, d: false };
         let mouseX = 0, mouseY = 0;
         let moveSpeed = 5;
         let pointerLocked = false;
         let syncInterval = null;
         let subscription = null;
-        let worldCreated = false;
         
         // Colors for different players
         const playerColors = [
@@ -233,8 +255,8 @@
             
             // Scene
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x87CEEB);
-            scene.fog = new THREE.FogExp2(0x87CEEB, 0.008);
+            scene.background = new THREE.Color(0x1a1a2e);
+            scene.fog = new THREE.FogExp2(0x1a1a2e, 0.008);
             
             // Camera
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -247,69 +269,92 @@
             document.body.appendChild(renderer.domElement);
             console.log('Renderer created');
             
-            // Ground (grid)
-            const gridHelper = new THREE.GridHelper(200, 20, 0x88aaff, 0x335588);
-            gridHelper.position.y = -0.5;
-            scene.add(gridHelper);
-            
-            // Ground plane
-            const groundPlane = new THREE.Mesh(
-                new THREE.PlaneGeometry(200, 200),
-                new THREE.MeshStandardMaterial({ color: 0x2c5a2c, roughness: 0.8, metalness: 0.1 })
-            );
+            // Ground plane with color
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0x3a6b3a, roughness: 0.8, metalness: 0.1 });
+            const groundPlane = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), groundMat);
             groundPlane.rotation.x = -Math.PI / 2;
             groundPlane.position.y = -0.5;
             groundPlane.receiveShadow = true;
             scene.add(groundPlane);
             
+            // Grid helper
+            const gridHelper = new THREE.GridHelper(200, 20, 0x88aaff, 0x335588);
+            gridHelper.position.y = -0.4;
+            scene.add(gridHelper);
+            
             // Lighting
-            const ambientLight = new THREE.AmbientLight(0x404060, 0.6);
+            const ambientLight = new THREE.AmbientLight(0x404060, 0.7);
             scene.add(ambientLight);
             
             const directionalLight = new THREE.DirectionalLight(0xfff5e0, 1.2);
             directionalLight.position.set(10, 20, 5);
             directionalLight.castShadow = true;
-            directionalLight.shadow.mapSize.width = 1024;
-            directionalLight.shadow.mapSize.height = 1024;
+            directionalLight.receiveShadow = false;
             scene.add(directionalLight);
             
-            const backLight = new THREE.PointLight(0x4466cc, 0.3);
-            backLight.position.set(-5, 10, -5);
+            const fillLight = new THREE.PointLight(0x4466cc, 0.4);
+            fillLight.position.set(-5, 10, -5);
+            scene.add(fillLight);
+            
+            const backLight = new THREE.PointLight(0xffaa66, 0.3);
+            backLight.position.set(0, 5, -10);
             scene.add(backLight);
             
-            // Simple colored cubes to mark positions (helps verify rendering)
-            const markerMat = new THREE.MeshStandardMaterial({ color: 0xffaa44 });
-            for (let i = -3; i <= 3; i++) {
-                const marker = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), markerMat);
-                marker.position.set(i * 5, 0, i * 5);
-                scene.add(marker);
+            // Colorful floating cubes to make sure rendering works
+            const colors = [0xff3333, 0x33ff33, 0x3333ff, 0xff33ff, 0xffaa33];
+            for (let i = 0; i < 20; i++) {
+                const cube = new THREE.Mesh(
+                    new THREE.BoxGeometry(0.5, 0.5, 0.5),
+                    new THREE.MeshStandardMaterial({ color: colors[i % colors.length], emissive: colors[i % colors.length], emissiveIntensity: 0.2 })
+                );
+                cube.position.set((Math.random() - 0.5) * 30, Math.random() * 3 + 0.5, (Math.random() - 0.5) * 30);
+                cube.castShadow = true;
+                scene.add(cube);
             }
             
-            // Floating particles for ambiance
-            const particleCount = 300;
+            // Simple trees
+            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8B5A2B });
+            const topMat = new THREE.MeshStandardMaterial({ color: 0x3c9e3c });
+            
+            for (let i = 0; i < 40; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const radius = 40 + Math.random() * 40;
+                const x = Math.cos(angle) * radius;
+                const z = Math.sin(angle) * radius;
+                
+                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.6, 1.2, 6), trunkMat);
+                trunk.position.set(x, 0.1, z);
+                trunk.castShadow = true;
+                scene.add(trunk);
+                
+                const top = new THREE.Mesh(new THREE.ConeGeometry(0.7, 1, 8), topMat);
+                top.position.set(x, 0.8, z);
+                top.castShadow = true;
+                scene.add(top);
+            }
+            
+            // Floating particles
+            const particleCount = 500;
             const particlesGeometry = new THREE.BufferGeometry();
             const particlePositions = new Float32Array(particleCount * 3);
             for (let i = 0; i < particleCount; i++) {
                 particlePositions[i*3] = (Math.random() - 0.5) * 150;
-                particlePositions[i*3+1] = Math.random() * 15;
+                particlePositions[i*3+1] = Math.random() * 20;
                 particlePositions[i*3+2] = (Math.random() - 0.5) * 150;
             }
             particlesGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
-            const particlesMaterial = new THREE.PointsMaterial({ color: 0x88aaff, size: 0.1, transparent: true, opacity: 0.5 });
+            const particlesMaterial = new THREE.PointsMaterial({ color: 0xffaa66, size: 0.08, transparent: true, opacity: 0.6 });
             const particles = new THREE.Points(particlesGeometry, particlesMaterial);
             scene.add(particles);
             
-            worldCreated = true;
-            console.log('World created successfully!');
+            // Add a central platform
+            const platformMat = new THREE.MeshStandardMaterial({ color: 0xccaa88, roughness: 0.4 });
+            const platform = new THREE.Mesh(new THREE.CylinderGeometry(3, 3, 0.3, 8), platformMat);
+            platform.position.set(0, -0.35, 0);
+            platform.castShadow = true;
+            scene.add(platform);
             
-            // Add a test cube to ensure rendering works
-            const testCube = new THREE.Mesh(
-                new THREE.BoxGeometry(1, 1, 1),
-                new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 0.3 })
-            );
-            testCube.position.set(0, 2, 0);
-            scene.add(testCube);
-            console.log('Test red cube added at (0,2,0) - you should see it!');
+            console.log('World created successfully!');
         }
         
         // ==================== CREATE CYLINDRICAL PLAYER ====================
@@ -356,14 +401,15 @@
                 canvas.width = 256;
                 canvas.height = 64;
                 const ctx = canvas.getContext('2d');
-                ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                ctx.fillStyle = 'rgba(0,0,0,0.8)';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
                 ctx.font = 'Bold 20px Arial';
                 ctx.fillStyle = '#ffffff';
                 ctx.textAlign = 'center';
                 ctx.fillText(name, canvas.width/2, canvas.height/2 + 8);
                 ctx.strokeStyle = '#4ec9e0';
-                ctx.strokeRect(0, 0, canvas.width, canvas.height);
+                ctx.lineWidth = 2;
+                ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
                 
                 const texture = new THREE.CanvasTexture(canvas);
                 const nameMat = new THREE.MeshStandardMaterial({ map: texture, transparent: true });
@@ -377,29 +423,14 @@
             return group;
         }
         
-        // ==================== UPDATE NAME TAG ====================
-        function updateNameTag(mesh, name) {
-            if (mesh.userData.namePlate && mesh.userData.nameTexture) {
-                const canvas = mesh.userData.nameTexture.image;
-                const ctx = canvas.getContext('2d');
-                ctx.fillStyle = 'rgba(0,0,0,0.7)';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.font = 'Bold 20px Arial';
-                ctx.fillStyle = '#ffffff';
-                ctx.textAlign = 'center';
-                ctx.fillText(name, canvas.width/2, canvas.height/2 + 8);
-                mesh.userData.nameTexture.needsUpdate = true;
-            }
-        }
-        
         // ==================== SUPABASE MULTIPLAYER FUNCTIONS ====================
-        async function createSession(sessionId, playerName) {
-            console.log('Creating session:', sessionId);
+        async function createSession(sessionCode, playerName) {
+            console.log('Creating session with code:', sessionCode);
             const { data, error } = await supabase
                 .from('sessions')
                 .insert({ 
-                    id: sessionId,
-                    name: `Game Session`,
+                    id: sessionCode,
+                    name: `Game Session ${sessionCode}`,
                     host: currentPlayerId,
                     players: [currentPlayerId]
                 })
@@ -413,12 +444,12 @@
             return data?.[0] || null;
         }
         
-        async function joinSession(sessionId, playerName) {
-            console.log('Joining session:', sessionId);
+        async function joinSession(sessionCode, playerName) {
+            console.log('Joining session with code:', sessionCode);
             const { data: session, error } = await supabase
                 .from('sessions')
                 .select('*')
-                .eq('id', sessionId)
+                .eq('id', sessionCode)
                 .single();
             
             if (error) {
@@ -430,7 +461,7 @@
             const { error: updateError } = await supabase
                 .from('sessions')
                 .update({ players: [...playersList, currentPlayerId] })
-                .eq('id', sessionId);
+                .eq('id', sessionCode);
             
             if (updateError) {
                 console.error('Error joining session:', updateError);
@@ -442,7 +473,7 @@
         }
         
         async function syncPlayerPosition() {
-            if (!currentSessionId || !currentPlayerId || !currentPlayer) return;
+            if (!currentSessionCode || !currentPlayerId || !currentPlayer) return;
             
             const position = {
                 x: currentPlayer.position.x,
@@ -454,7 +485,7 @@
             const { error } = await supabase
                 .from('players')
                 .upsert({
-                    session_id: currentSessionId,
+                    session_id: currentSessionCode,
                     player_id: currentPlayerId,
                     name: currentPlayerName,
                     data: position,
@@ -465,17 +496,17 @@
         }
         
         async function listenForPlayers() {
-            if (!currentSessionId) return;
+            if (!currentSessionCode) return;
             
-            console.log('Listening for players in session:', currentSessionId);
+            console.log('Listening for players in session:', currentSessionCode);
             
             subscription = supabase
-                .channel(`players:${currentSessionId}`)
+                .channel(`players:${currentSessionCode}`)
                 .on('postgres_changes', {
                     event: '*',
                     schema: 'public',
                     table: 'players',
-                    filter: `session_id=eq.${currentSessionId}`
+                    filter: `session_id=eq.${currentSessionCode}`
                 }, (payload) => {
                     const { new: newPlayer, old: oldPlayer, eventType } = payload;
                     const playerId = newPlayer?.player_id || oldPlayer?.player_id;
@@ -503,11 +534,6 @@
                             }
                             playerData.mesh.rotation.y = pos.rotation || 0;
                             playerData.lastPosition = { x: pos.x, y: pos.y, z: pos.z };
-                            
-                            if (playerData.name !== newPlayer.name) {
-                                playerData.name = newPlayer.name;
-                                updateNameTag(playerData.mesh, newPlayer.name);
-                            }
                         }
                     } else if (eventType === 'DELETE') {
                         const playerData = otherPlayers.get(playerId);
@@ -523,19 +549,19 @@
         }
         
         async function cleanupSession() {
-            if (!currentSessionId || !currentPlayerId) return;
+            if (!currentSessionCode || !currentPlayerId) return;
             
             console.log('Cleaning up session...');
             await supabase
                 .from('players')
                 .delete()
-                .eq('session_id', currentSessionId)
+                .eq('session_id', currentSessionCode)
                 .eq('player_id', currentPlayerId);
             
             const { data: session } = await supabase
                 .from('sessions')
                 .select('players')
-                .eq('id', currentSessionId)
+                .eq('id', currentSessionCode)
                 .single();
             
             if (session && session.players) {
@@ -543,7 +569,7 @@
                 await supabase
                     .from('sessions')
                     .update({ players: newPlayers })
-                    .eq('id', currentSessionId);
+                    .eq('id', currentSessionCode);
             }
             
             if (syncInterval) clearInterval(syncInterval);
@@ -589,7 +615,7 @@
         }
         
         // ==================== SETUP GAME ====================
-        async function startGame(sessionId, playerName) {
+        async function startGame(sessionCode, playerName) {
             currentPlayerId = generateUUID();
             currentPlayerName = playerName || 'Player';
             
@@ -597,60 +623,60 @@
             statusDiv.textContent = 'Connecting to server...';
             statusDiv.className = 'status info';
             
-            let finalSessionId = sessionId;
-            if (!finalSessionId) {
-                finalSessionId = generateUUID();
-                console.log('Generated new session ID:', finalSessionId);
+            let finalSessionCode = sessionCode;
+            if (!finalSessionCode) {
+                finalSessionCode = generateSessionCode();
+                console.log('Generated new session code:', finalSessionCode);
+            } else {
+                finalSessionCode = finalSessionCode.toUpperCase();
             }
             
             // Check if session exists
             const { data: existingSession } = await supabase
                 .from('sessions')
                 .select('*')
-                .eq('id', finalSessionId)
+                .eq('id', finalSessionCode)
                 .single();
             
             let session;
             if (existingSession) {
-                session = await joinSession(finalSessionId, playerName);
+                session = await joinSession(finalSessionCode, playerName);
                 if (!session) {
                     statusDiv.textContent = '❌ Failed to join session!';
                     statusDiv.className = 'status error';
                     return false;
                 }
-                statusDiv.textContent = `✅ Joined existing session!`;
+                statusDiv.textContent = `✅ Joined game! Code: ${finalSessionCode}`;
                 statusDiv.className = 'status success';
             } else {
-                session = await createSession(finalSessionId, playerName);
+                session = await createSession(finalSessionCode, playerName);
                 if (!session) {
-                    statusDiv.textContent = '❌ Failed to create session! Make sure tables exist in Supabase.';
+                    statusDiv.textContent = '❌ Failed to create session!';
                     statusDiv.className = 'status error';
                     return false;
                 }
-                statusDiv.textContent = `✅ Session created! Share this ID with friends:`;
+                statusDiv.textContent = `✅ Game created! Share this code: ${finalSessionCode}`;
                 statusDiv.className = 'status success';
             }
             
-            currentSessionId = finalSessionId;
+            currentSessionCode = finalSessionCode;
             
-            // Show session ID
-            const sessionDisplay = document.getElementById('session-id-display');
-            const sessionIdText = document.getElementById('session-id-text');
-            sessionIdText.textContent = finalSessionId;
-            sessionDisplay.style.display = 'block';
+            // Show session code
+            const codeDisplay = document.getElementById('session-code-display');
+            const codeText = document.getElementById('session-code-text');
+            codeText.textContent = finalSessionCode;
+            codeDisplay.style.display = 'block';
             
             // Add player to players table
-            const { error: playerError } = await supabase
+            await supabase
                 .from('players')
                 .insert({
-                    session_id: currentSessionId,
+                    session_id: currentSessionCode,
                     player_id: currentPlayerId,
                     name: playerName,
                     data: { x: 0, y: 0, z: 0, rotation: 0 },
                     last_updated: new Date().toISOString()
                 });
-            
-            if (playerError) console.error('Error adding player:', playerError);
             
             // Create player mesh
             const playerColor = playerColors[Math.abs(currentPlayerId.charCodeAt(0) % playerColors.length)];
@@ -676,7 +702,7 @@
             const { data: existingPlayers } = await supabase
                 .from('players')
                 .select('*')
-                .eq('session_id', currentSessionId);
+                .eq('session_id', currentSessionCode);
             
             if (existingPlayers) {
                 existingPlayers.forEach(player => {
@@ -746,11 +772,11 @@
             
             document.getElementById('join-btn').addEventListener('click', async () => {
                 const playerName = document.getElementById('player-name').value || 'Player';
-                const sessionId = document.getElementById('session-id-input').value || '';
+                const sessionCode = document.getElementById('session-code-input').value.toUpperCase();
                 const statusDiv = document.getElementById('session-status');
                 statusDiv.textContent = 'Connecting...';
                 statusDiv.className = 'status info';
-                await startGame(sessionId, playerName);
+                await startGame(sessionCode, playerName);
             });
         }
         
