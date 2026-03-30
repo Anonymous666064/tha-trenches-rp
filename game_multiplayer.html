@@ -3,24 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Simple Multiplayer Game</title>
+    <title>Multiplayer Game</title>
     <style>
-        body { margin: 0; overflow: hidden; font-family: Arial, sans-serif; }
+        body { margin: 0; overflow: hidden; font-family: Arial; }
         #ui {
             position: absolute;
             top: 20px;
             left: 20px;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.85);
             padding: 20px;
             border-radius: 10px;
             color: white;
             z-index: 100;
-            pointer-events: auto;
             backdrop-filter: blur(5px);
-            border: 1px solid #00ff00;
+            border: 1px solid #0f0;
+            min-width: 250px;
         }
         button {
-            background: #00ff00;
+            background: #0f0;
             border: none;
             padding: 10px 20px;
             margin: 5px;
@@ -28,54 +28,62 @@
             border-radius: 5px;
             font-weight: bold;
         }
-        button:hover { background: #00cc00; }
+        button:hover { background: #0c0; }
         input {
             padding: 10px;
             margin: 5px;
             border-radius: 5px;
-            border: 1px solid #00ff00;
+            border: 1px solid #0f0;
             background: #333;
             color: white;
         }
-        .status {
-            margin-top: 10px;
-            font-size: 12px;
-            color: #00ff00;
-        }
-        .error { color: #ff4444; }
+        .status { margin-top: 10px; font-size: 12px; color: #0f0; }
+        .error { color: #f44; }
         #playersList {
             position: absolute;
             top: 20px;
             right: 20px;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.85);
             padding: 15px;
             border-radius: 10px;
             color: white;
             font-size: 12px;
-            border: 1px solid #00ff00;
-            pointer-events: none;
+            border: 1px solid #0f0;
+            min-width: 150px;
+        }
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+            color: white;
+            font-size: 12px;
         }
     </style>
 </head>
 <body>
     <div id="ui">
         <h3>🎮 Multiplayer Game</h3>
-        <div id="hostSection">
+        <div>
             <button id="hostBtn">🌟 Create Game</button>
-            <input type="text" id="customCode" placeholder="Custom code (optional)" maxlength="6">
+            <input type="text" id="customCode" placeholder="Custom code (6 digits)" maxlength="6" style="width: 100px;">
         </div>
-        <div id="joinSection" style="margin-top: 10px;">
-            <input type="text" id="joinCode" placeholder="Enter 6-digit code">
+        <div style="margin-top: 10px;">
+            <input type="text" id="joinCode" placeholder="Enter 6-digit code" maxlength="6">
             <button id="joinBtn">🔗 Join Game</button>
         </div>
         <div id="gameInfo" class="status"></div>
     </div>
     <div id="playersList">
-        <strong>👥 Players Online</strong><br>
+        <strong>👥 Players</strong>
         <div id="players"></div>
     </div>
+    <div class="controls">
+        🎮 Move with <strong>W A S D</strong>
+    </div>
 
-    <!-- Import Three.js -->
     <script type="importmap">
         {
             "imports": {
@@ -83,38 +91,35 @@
             }
         }
     </script>
-
-    <!-- Supabase JS -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
     <script type="module">
         import * as THREE from 'three';
 
-        // ==================== SUPABASE SETUP ====================
-        // REPLACE WITH YOUR SUPABASE CREDENTIALS:
+        // ========== SUPABASE SETUP ==========
+        // REPLACE WITH YOUR CREDENTIALS:
         const SUPABASE_URL = 'https://hcvewiwhtxqpbogcrukk.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjdmV3aXdodHhxcGJvZ2NydWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTQ4MzMsImV4cCI6MjA5MDQ3MDgzM30.UsdvDyrGl4OhmbDjonyOagknHf--Zhe-fhCi0LFVoQw';
         
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
-        // ==================== GAME STATE ====================
+        // ========== GAME STATE ==========
         let currentSession = null;
         let myPlayerId = null;
-        let isHost = false;
-        let players = new Map(); // playerId -> { mesh, position, name }
+        let players = new Map();
         let localPlayer = null;
         let scene, camera, renderer;
         let keys = { w: false, s: false, a: false, d: false };
+        let subscription = null;
         
-        // ==================== 3D SETUP ====================
+        // ========== 3D SETUP ==========
         function setup3D() {
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x87CEEB);
-            scene.fog = new THREE.Fog(0x87CEEB, 20, 50);
+            scene.background = new THREE.Color(0x1a1a2e);
+            scene.fog = new THREE.Fog(0x1a1a2e, 20, 40);
             
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 10, 15);
-            camera.lookAt(0, 0, 0);
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 8, 12);
             
             renderer = new THREE.WebGLRenderer();
             renderer.setSize(window.innerWidth, window.innerHeight);
@@ -122,30 +127,35 @@
             
             // Ground
             const ground = new THREE.Mesh(
-                new THREE.PlaneGeometry(30, 30),
-                new THREE.MeshStandardMaterial({ color: 0x3a9e3a })
+                new THREE.PlaneGeometry(25, 25),
+                new THREE.MeshStandardMaterial({ color: 0x2c3e50 })
             );
             ground.rotation.x = -Math.PI / 2;
             ground.receiveShadow = true;
             scene.add(ground);
             
-            // Grid helper
-            const grid = new THREE.GridHelper(30, 20, 0xffffff, 0xcccccc);
+            // Grid
+            const grid = new THREE.GridHelper(25, 20, 0x3498db, 0x2980b9);
             grid.position.y = 0.01;
             scene.add(grid);
             
-            // Simple obstacles
-            const wallMat = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
-            for (let i = -12; i <= 12; i += 8) {
-                const tree = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.8, 2, 6), wallMat);
-                tree.position.set(i, 1, -10);
-                tree.castShadow = true;
-                scene.add(tree);
-                
-                const tree2 = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.8, 2, 6), wallMat);
-                tree2.position.set(i, 1, 10);
-                tree2.castShadow = true;
-                scene.add(tree2);
+            // Simple trees
+            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+            const leafMat = new THREE.MeshStandardMaterial({ color: 0x27ae60 });
+            
+            for (let i = -10; i <= 10; i += 5) {
+                for (let j = -10; j <= 10; j += 5) {
+                    if (Math.abs(i) < 3 && Math.abs(j) < 3) continue;
+                    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 1, 6), trunkMat);
+                    trunk.position.set(i, 0.5, j);
+                    trunk.castShadow = true;
+                    scene.add(trunk);
+                    
+                    const leaves = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.8, 8), leafMat);
+                    leaves.position.set(i, 1, j);
+                    leaves.castShadow = true;
+                    scene.add(leaves);
+                }
             }
             
             // Lighting
@@ -153,18 +163,17 @@
             light.position.set(10, 20, 5);
             light.castShadow = true;
             scene.add(light);
-            scene.add(new THREE.AmbientLight(0x404040));
+            scene.add(new THREE.AmbientLight(0x404060));
             
             animate();
         }
         
-        // Create player character
         function createPlayer(color, isLocal = false) {
             const group = new THREE.Group();
             
             // Body
             const body = new THREE.Mesh(
-                new THREE.BoxGeometry(0.8, 1, 0.8),
+                new THREE.BoxGeometry(0.7, 1, 0.7),
                 new THREE.MeshStandardMaterial({ color: color })
             );
             body.position.y = 0.5;
@@ -173,7 +182,7 @@
             
             // Head
             const head = new THREE.Mesh(
-                new THREE.SphereGeometry(0.5, 16, 16),
+                new THREE.SphereGeometry(0.45, 16, 16),
                 new THREE.MeshStandardMaterial({ color: 0xffccaa })
             );
             head.position.y = 1.1;
@@ -182,103 +191,68 @@
             
             // Eyes
             const eyeMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-            const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), eyeMat);
-            leftEye.position.set(-0.2, 1.25, 0.45);
+            const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), eyeMat);
+            leftEye.position.set(-0.18, 1.22, 0.45);
             group.add(leftEye);
             
-            const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), eyeMat);
-            rightEye.position.set(0.2, 1.25, 0.45);
+            const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), eyeMat);
+            rightEye.position.set(0.18, 1.22, 0.45);
             group.add(rightEye);
             
-            // Pupils
-            const pupilMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
-            const leftPupil = new THREE.Mesh(new THREE.SphereGeometry(0.07, 16, 16), pupilMat);
-            leftPupil.position.set(0, 0, 0.05);
-            leftEye.add(leftPupil);
-            
-            const rightPupil = new THREE.Mesh(new THREE.SphereGeometry(0.07, 16, 16), pupilMat);
-            rightPupil.position.set(0, 0, 0.05);
-            rightEye.add(rightPupil);
-            
+            // Hat for local player
             if (isLocal) {
-                // Add a little crown for local player
-                const crown = new THREE.Mesh(
-                    new THREE.ConeGeometry(0.3, 0.4, 8),
-                    new THREE.MeshStandardMaterial({ color: 0xffaa00 })
+                const hat = new THREE.Mesh(
+                    new THREE.ConeGeometry(0.4, 0.5, 8),
+                    new THREE.MeshStandardMaterial({ color: 0xff4444 })
                 );
-                crown.position.y = 1.45;
-                group.add(crown);
+                hat.position.y = 1.45;
+                group.add(hat);
             }
             
             return group;
         }
         
-        // Update player positions
-        function updatePlayerPosition(playerId, x, z) {
-            if (players.has(playerId)) {
-                players.get(playerId).mesh.position.set(x, 0, z);
-            }
-        }
-        
-        // Add a player
         function addPlayer(playerId, x, z, isLocal = false) {
-            const color = isLocal ? 0x44ff44 : 0xff4444;
+            const color = isLocal ? 0x44ff44 : 0xff6644;
             const playerMesh = createPlayer(color, isLocal);
             playerMesh.position.set(x, 0, z);
             scene.add(playerMesh);
             
-            players.set(playerId, {
-                mesh: playerMesh,
-                position: { x, z },
-                name: playerId.slice(0, 6)
-            });
+            players.set(playerId, { mesh: playerMesh, x, z });
             
             if (isLocal) {
                 localPlayer = playerMesh;
-                camera.lookAt(x, 2, z);
+                camera.position.set(x, 8, x + 12);
             }
             
             updatePlayersList();
             return playerMesh;
         }
         
-        // Remove player
-        function removePlayer(playerId) {
-            if (players.has(playerId)) {
-                scene.remove(players.get(playerId).mesh);
-                players.delete(playerId);
-                updatePlayersList();
-            }
-        }
-        
-        // Update UI list
         function updatePlayersList() {
             const listDiv = document.getElementById('players');
-            const playerCount = players.size;
-            let html = `${playerCount} player${playerCount !== 1 ? 's' : ''}<br>`;
+            let html = '';
             for (let [id, player] of players) {
-                html += `🎮 ${player.name}<br>`;
+                html += `🎮 ${id.slice(0, 6)}<br>`;
             }
-            listDiv.innerHTML = html;
+            listDiv.innerHTML = html || 'Waiting for players...';
         }
         
-        // ==================== MOVEMENT ====================
         function handleMovement() {
             if (!localPlayer || !currentSession) return;
             
             let moved = false;
             let newX = localPlayer.position.x;
             let newZ = localPlayer.position.z;
-            const speed = 0.15;
+            const speed = 0.2;
             
             if (keys.w) { newZ -= speed; moved = true; }
             if (keys.s) { newZ += speed; moved = true; }
             if (keys.a) { newX -= speed; moved = true; }
             if (keys.d) { newX += speed; moved = true; }
             
-            // Boundaries
-            newX = Math.max(-13, Math.min(13, newX));
-            newZ = Math.max(-13, Math.min(13, newZ));
+            newX = Math.max(-11, Math.min(11, newX));
+            newZ = Math.max(-11, Math.min(11, newZ));
             
             if (moved) {
                 localPlayer.position.set(newX, 0, newZ);
@@ -286,67 +260,57 @@
                 camera.position.z = newZ + 8;
                 camera.lookAt(newX, 2, newZ);
                 
-                // Send position update
                 updatePositionInDB(newX, newZ);
             }
         }
         
         async function updatePositionInDB(x, z) {
             if (!currentSession || !myPlayerId) return;
-            
             await supabase
                 .from('players')
                 .update({ pos_x: x, pos_z: z, last_seen: new Date() })
                 .eq('player_id', myPlayerId);
         }
         
-        // ==================== DATABASE FUNCTIONS ====================
-        async function createSession(customCode = null) {
-            let code = customCode;
+        // ========== DATABASE FUNCTIONS ==========
+        async function createSession(customCode) {
+            let code = customCode?.toUpperCase();
             if (!code || code.length !== 6) {
-                // Generate random 6-digit code
                 code = Math.random().toString(36).substring(2, 8).toUpperCase();
             }
             
-            // Check if code exists
             const { data: existing } = await supabase
                 .from('game_sessions')
                 .select('session_code')
                 .eq('session_code', code);
             
-            if (existing && existing.length > 0) {
-                throw new Error('Code already taken, try another');
+            if (existing?.length > 0) {
+                throw new Error('Code taken, try another');
             }
             
-            // Create session
             const { error } = await supabase
                 .from('game_sessions')
                 .insert({ session_code: code });
             
             if (error) throw error;
-            
             return code;
         }
         
         async function joinSession(code) {
-            // Check if session exists
-            const { data: session, error } = await supabase
+            const { data, error } = await supabase
                 .from('game_sessions')
-                .select('*')
+                .select('session_code')
                 .eq('session_code', code.toUpperCase())
                 .single();
             
-            if (error || !session) {
-                throw new Error('Game not found');
-            }
-            
+            if (error || !data) throw new Error('Game not found');
             return code.toUpperCase();
         }
         
-        async function addPlayerToGame(sessionCode, isHostPlayer = false) {
+        async function addPlayerToGame(sessionCode) {
             myPlayerId = Math.random().toString(36).substring(2, 15);
-            const startX = (Math.random() - 0.5) * 10;
-            const startZ = (Math.random() - 0.5) * 10;
+            const startX = (Math.random() - 0.5) * 8;
+            const startZ = (Math.random() - 0.5) * 8;
             
             const { error } = await supabase
                 .from('players')
@@ -355,44 +319,40 @@
                     session_id: sessionCode,
                     pos_x: startX,
                     pos_z: startZ,
-                    is_host: isHostPlayer,
                     last_seen: new Date()
                 });
             
             if (error) throw error;
             
-            // Add local player to scene
             addPlayer(myPlayerId, startX, startZ, true);
-            
-            // Load existing players
             await loadPlayers(sessionCode);
-            
-            // Subscribe to changes
             subscribeToPlayers(sessionCode);
             
             return startX;
         }
         
         async function loadPlayers(sessionCode) {
-            const { data: playersList, error } = await supabase
+            const { data, error } = await supabase
                 .from('players')
                 .select('*')
                 .eq('session_id', sessionCode);
             
             if (error) return;
             
-            for (let player of playersList) {
-                if (player.player_id !== myPlayerId && !players.has(player.player_id)) {
-                    addPlayer(player.player_id, player.pos_x, player.pos_z, false);
-                } else if (player.player_id !== myPlayerId && players.has(player.player_id)) {
-                    updatePlayerPosition(player.player_id, player.pos_x, player.pos_z);
+            for (let p of data) {
+                if (p.player_id !== myPlayerId && !players.has(p.player_id)) {
+                    addPlayer(p.player_id, p.pos_x, p.pos_z, false);
+                } else if (p.player_id !== myPlayerId && players.has(p.player_id)) {
+                    players.get(p.player_id).mesh.position.set(p.pos_x, 0, p.pos_z);
                 }
             }
         }
         
         function subscribeToPlayers(sessionCode) {
-            const subscription = supabase
-                .channel('players_channel')
+            if (subscription) subscription.unsubscribe();
+            
+            subscription = supabase
+                .channel('players-channel')
                 .on('postgres_changes', {
                     event: '*',
                     schema: 'public',
@@ -402,55 +362,56 @@
                     if (payload.eventType === 'INSERT' && payload.new.player_id !== myPlayerId) {
                         addPlayer(payload.new.player_id, payload.new.pos_x, payload.new.pos_z, false);
                     } else if (payload.eventType === 'UPDATE' && payload.new.player_id !== myPlayerId) {
-                        updatePlayerPosition(payload.new.player_id, payload.new.pos_x, payload.new.pos_z);
+                        const player = players.get(payload.new.player_id);
+                        if (player) {
+                            player.mesh.position.set(payload.new.pos_x, 0, payload.new.pos_z);
+                        }
                     } else if (payload.eventType === 'DELETE' && payload.old.player_id !== myPlayerId) {
-                        removePlayer(payload.old.player_id);
+                        const player = players.get(payload.old.player_id);
+                        if (player) {
+                            scene.remove(player.mesh);
+                            players.delete(payload.old.player_id);
+                            updatePlayersList();
+                        }
                     }
                 })
                 .subscribe();
-            
-            return subscription;
         }
         
-        // ==================== UI HANDLERS ====================
+        // ========== UI ==========
         document.getElementById('hostBtn').onclick = async () => {
             const customCode = document.getElementById('customCode').value;
             try {
                 const code = await createSession(customCode);
                 currentSession = code;
-                isHost = true;
-                await addPlayerToGame(code, true);
-                document.getElementById('gameInfo').innerHTML = `✅ Game created! Code: ${code}<br>Share this code with friends`;
-                document.getElementById('gameInfo').style.color = '#00ff00';
-                document.getElementById('hostSection').style.opacity = '0.5';
-                document.getElementById('joinSection').style.opacity = '0.5';
+                await addPlayerToGame(code);
+                document.getElementById('gameInfo').innerHTML = `✅ Game: ${code}<br>Share this code!`;
+                document.getElementById('gameInfo').style.color = '#0f0';
+                document.getElementById('hostBtn').disabled = true;
+                document.getElementById('joinBtn').disabled = true;
             } catch (err) {
-                document.getElementById('gameInfo').innerHTML = `❌ Error: ${err.message}`;
-                document.getElementById('gameInfo').style.color = '#ff4444';
+                document.getElementById('gameInfo').innerHTML = `❌ ${err.message}`;
+                document.getElementById('gameInfo').style.color = '#f44';
             }
         };
         
         document.getElementById('joinBtn').onclick = async () => {
             const code = document.getElementById('joinCode').value;
-            if (!code) {
-                alert('Enter a game code');
-                return;
-            }
+            if (!code) return alert('Enter code');
             try {
                 currentSession = await joinSession(code);
-                isHost = false;
-                await addPlayerToGame(currentSession, false);
-                document.getElementById('gameInfo').innerHTML = `✅ Joined game: ${currentSession}`;
-                document.getElementById('gameInfo').style.color = '#00ff00';
-                document.getElementById('hostSection').style.opacity = '0.5';
-                document.getElementById('joinSection').style.opacity = '0.5';
+                await addPlayerToGame(currentSession);
+                document.getElementById('gameInfo').innerHTML = `✅ Joined: ${currentSession}`;
+                document.getElementById('gameInfo').style.color = '#0f0';
+                document.getElementById('hostBtn').disabled = true;
+                document.getElementById('joinBtn').disabled = true;
             } catch (err) {
                 document.getElementById('gameInfo').innerHTML = `❌ ${err.message}`;
-                document.getElementById('gameInfo').style.color = '#ff4444';
+                document.getElementById('gameInfo').style.color = '#f44';
             }
         };
         
-        // Keyboard controls
+        // Keyboard
         window.addEventListener('keydown', (e) => {
             const key = e.key.toLowerCase();
             if (keys.hasOwnProperty(key)) keys[key] = true;
@@ -461,27 +422,25 @@
             if (keys.hasOwnProperty(key)) keys[key] = false;
         });
         
-        // Animation loop
-        function animate() {
-            requestAnimationFrame(animate);
-            handleMovement();
-            renderer.render(scene, camera);
-        }
-        
-        // Clean up on page close
+        // Cleanup
         window.addEventListener('beforeunload', async () => {
             if (myPlayerId) {
                 await supabase.from('players').delete().eq('player_id', myPlayerId);
             }
         });
         
-        // Start game
+        function animate() {
+            requestAnimationFrame(animate);
+            handleMovement();
+            renderer.render(scene, camera);
+        }
+        
         setup3D();
         
-        // Show warning if Supabase not configured
+        // Config check
         if (SUPABASE_URL.includes('YOUR_PROJECT')) {
-            document.getElementById('gameInfo').innerHTML = '⚠️ Configure Supabase first! See instructions below.';
-            document.getElementById('gameInfo').style.color = '#ffaa00';
+            document.getElementById('gameInfo').innerHTML = '⚠️ Configure Supabase first!';
+            document.getElementById('gameInfo').style.color = '#ff0';
         }
     </script>
 </body>
