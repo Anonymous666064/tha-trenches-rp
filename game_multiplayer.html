@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -101,6 +100,7 @@
             border-radius: 8px;
             font-size: 12px;
             color: #ffaa00;
+            word-break: break-all;
         }
         
         #player-count {
@@ -122,6 +122,14 @@
         .hidden {
             display: none;
         }
+        
+        .error {
+            color: #ff6666 !important;
+        }
+        
+        .success {
+            color: #66ff66 !important;
+        }
     </style>
 </head>
 <body>
@@ -138,7 +146,7 @@
     
     <div id="session-panel">
         <h2>🌐 MULTIPLAYER GAME</h2>
-        <input type="text" id="player-name" placeholder="Your Name" value="Player_" + Math.floor(Math.random() * 1000)>
+        <input type="text" id="player-name" placeholder="Your Name" value="Player">
         <input type="text" id="session-id" placeholder="Session ID (leave empty to create new)">
         <button id="join-btn">🎮 JOIN / CREATE GAME</button>
         <div class="status" id="session-status">Ready to connect</div>
@@ -162,17 +170,28 @@
             'sb_publishable_aOPgE3PvcNPiVyaIEK1evQ_NBi_TXHw'
         );
         
+        // ==================== HELPER FUNCTIONS ====================
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0;
+                const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+        
         // ==================== GAME VARIABLES ====================
         let scene, camera, renderer;
         let currentPlayer = null;
         let currentPlayerId = null;
         let currentPlayerName = "";
-        let otherPlayers = new Map(); // playerId -> { mesh, name, lastPosition }
+        let otherPlayers = new Map();
         let currentSessionId = null;
         let keys = { w: false, s: false, a: false, d: false };
         let mouseX = 0, mouseY = 0;
         let moveSpeed = 5;
         let pointerLocked = false;
+        let syncInterval = null;
+        let subscription = null;
         
         // Colors for different players
         const playerColors = [
@@ -225,7 +244,7 @@
             fillLight.position.set(-5, 10, -5);
             scene.add(fillLight);
             
-            // Decorative elements - trees (simple)
+            // Decorative elements - trees
             const treeTrunkMat = new THREE.MeshStandardMaterial({ color: 0x8B5A2B });
             const treeTopMat = new THREE.MeshStandardMaterial({ color: 0x3c9e3c });
             
@@ -420,7 +439,7 @@
         async function listenForPlayers() {
             if (!currentSessionId) return;
             
-            const subscription = supabase
+            subscription = supabase
                 .channel(`players:${currentSessionId}`)
                 .on('postgres_changes', {
                     event: '*',
@@ -495,13 +514,16 @@
                 .eq('id', currentSessionId)
                 .single();
             
-            if (session) {
+            if (session && session.players) {
                 const newPlayers = session.players.filter(pid => pid !== currentPlayerId);
                 await supabase
                     .from('sessions')
                     .update({ players: newPlayers })
                     .eq('id', currentSessionId);
             }
+            
+            if (syncInterval) clearInterval(syncInterval);
+            if (subscription) supabase.removeChannel(subscription);
         }
         
         function updatePlayerCount() {
@@ -548,29 +570,45 @@
         // ==================== SETUP GAME ====================
         async function startGame(sessionId, playerName) {
             // Generate unique player ID
-            currentPlayerId = 'player_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
-            currentPlayerName = playerName;
+            currentPlayerId = generateUUID();
+            currentPlayerName = playerName || 'Player';
+            
+            // Generate session ID if not provided
+            let finalSessionId = sessionId;
+            if (!finalSessionId) {
+                finalSessionId = generateUUID();
+            }
+            
+            const statusDiv = document.getElementById('session-status');
+            statusDiv.textContent = 'Creating/joining session...';
             
             // Create or join session
             let session;
-            if (sessionId) {
-                session = await joinSession(sessionId, playerName);
+            const { data: existingSession } = await supabase
+                .from('sessions')
+                .select('*')
+                .eq('id', finalSessionId)
+                .single();
+            
+            if (existingSession) {
+                session = await joinSession(finalSessionId, playerName);
                 if (!session) {
-                    document.getElementById('session-status').textContent = '❌ Session not found! Creating new one...';
-                    sessionId = 'session_' + Date.now();
-                    session = await createSession(sessionId, playerName);
+                    statusDiv.textContent = '❌ Failed to join session!';
+                    statusDiv.classList.add('error');
+                    return false;
                 }
+                statusDiv.textContent = `✅ Joined session!`;
             } else {
-                sessionId = 'session_' + Date.now();
-                session = await createSession(sessionId, playerName);
+                session = await createSession(finalSessionId, playerName);
+                if (!session) {
+                    statusDiv.textContent = '❌ Failed to create session!';
+                    statusDiv.classList.add('error');
+                    return false;
+                }
+                statusDiv.textContent = `✅ Session created! Share this ID: ${finalSessionId.substring(0, 8)}...`;
             }
             
-            if (!session) {
-                document.getElementById('session-status').textContent = '❌ Failed to create/join session';
-                return false;
-            }
-            
-            currentSessionId = sessionId;
+            currentSessionId = finalSessionId;
             
             // Add current player to players table
             await supabase
@@ -599,17 +637,17 @@
             // Hide session panel
             document.getElementById('session-panel').classList.add('hidden');
             
-            document.getElementById('session-status').textContent = `✅ Connected to session: ${sessionId.substring(0, 8)}...`;
-            setTimeout(() => {
-                document.getElementById('session-status').style.opacity = '0';
-            }, 3000);
-            
             updatePlayerCount();
             
             // Start position sync interval
-            setInterval(() => {
+            syncInterval = setInterval(() => {
                 syncPlayerPosition();
             }, 100);
+            
+            statusDiv.classList.add('success');
+            setTimeout(() => {
+                statusDiv.style.opacity = '0';
+            }, 3000);
             
             return true;
         }
@@ -665,7 +703,9 @@
             document.getElementById('join-btn').addEventListener('click', async () => {
                 const playerName = document.getElementById('player-name').value || 'Player';
                 const sessionId = document.getElementById('session-id').value || '';
-                document.getElementById('session-status').textContent = 'Connecting...';
+                const statusDiv = document.getElementById('session-status');
+                statusDiv.textContent = 'Connecting...';
+                statusDiv.classList.remove('error', 'success');
                 await startGame(sessionId, playerName);
             });
         }
