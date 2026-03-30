@@ -1,711 +1,195 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Multiplayer World - Simple 3D Game</title>
-    <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        #info {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 8px;
-            z-index: 100;
-            font-size: 14px;
-            pointer-events: none;
-            font-family: monospace;
-        }
-        
-        #controls {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 10px 20px;
-            border-radius: 8px;
-            z-index: 100;
-            font-size: 12px;
-            pointer-events: none;
-        }
-        
-        #session-panel {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.95);
-            color: white;
-            padding: 30px;
-            border-radius: 20px;
-            z-index: 1000;
-            text-align: center;
-            border: 2px solid #4ec9e0;
-            min-width: 350px;
-        }
-        
-        #session-panel h2 {
-            margin: 0 0 20px 0;
-            color: #4ec9e0;
-        }
-        
-        #session-panel input {
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            background: rgba(255,255,255,0.1);
-            border: 1px solid #4ec9e0;
-            color: white;
-            border-radius: 8px;
-            font-size: 14px;
-            box-sizing: border-box;
-            text-align: center;
-        }
-        
-        #session-panel button {
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            background: #4ec9e0;
-            color: #000;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-        }
-        
-        #session-panel button:hover {
-            background: #7dd9ff;
-        }
-        
-        #session-panel .status {
-            margin-top: 15px;
-            padding: 10px;
-            background: rgba(0,0,0,0.5);
-            border-radius: 8px;
-            font-size: 12px;
-        }
-        
-        #session-panel .status.error {
-            color: #ff6666;
-        }
-        
-        #session-panel .status.success {
-            color: #66ff66;
-        }
-        
-        #player-count {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(0,0,0,0.8);
-            color: #4ec9e0;
-            padding: 10px 20px;
-            border-radius: 8px;
-            z-index: 100;
-            font-size: 14px;
-            font-weight: bold;
-        }
-        
-        #session-code-display {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(0,0,0,0.9);
-            color: #ffaa66;
-            padding: 12px 20px;
-            border-radius: 8px;
-            z-index: 100;
-            font-size: 24px;
-            font-weight: bold;
-            font-family: monospace;
-            display: none;
-            letter-spacing: 4px;
-        }
-        
-        .hidden {
-            display: none;
-        }
-        
-        #test-message {
-            position: absolute;
-            top: 100px;
-            left: 20px;
-            background: red;
-            color: white;
-            padding: 10px;
-            z-index: 1000;
-            display: none;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>3D Test World</title>
+
+<style>
+    body {
+        margin: 0;
+        overflow: hidden;
+        background: black;
+    }
+
+    #ui {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        color: white;
+        font-family: monospace;
+        z-index: 10;
+    }
+</style>
 </head>
 <body>
-    <div id="info">
-        🎮 MULTIPLAYER WORLD<br>
-        WASD to move | Mouse to look
-    </div>
-    <div id="controls">
-        🖱️ Click to lock mouse | ESC to release
-    </div>
-    <div id="player-count">
-        👥 Players: <span id="player-count-number">0</span>
-    </div>
-    <div id="session-code-display">
-        🔑 CODE: <span id="session-code-text"></span>
-    </div>
-    <div id="test-message">TEST - If you see this, HTML is working</div>
-    
-    <div id="session-panel">
-        <h2>🌐 MULTIPLAYER GAME</h2>
-        <input type="text" id="player-name" placeholder="Your Name" value="Player">
-        <input type="text" id="session-code-input" placeholder="6-digit Game Code (leave empty to create new)" maxlength="6">
-        <button id="join-btn">🎮 JOIN / CREATE GAME</button>
-        <div class="status" id="session-status">Ready to connect</div>
-    </div>
 
-    <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.128.0/build/three.module.js"
-            }
-        }
-    </script>
+<div id="ui">
+    ✅ 3D TEST RUNNING<br>
+    WASD = Move<br>
+    Click = Look Around
+</div>
 
-    <script type="module">
-        import * as THREE from 'three';
-        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-        
-        console.log('=== SCRIPT STARTED ===');
-        document.getElementById('test-message').style.display = 'block';
-        
-        // ==================== SUPABASE SETUP ====================
-        const supabase = createClient(
-            'https://hcvewiwhtxqpbogcrukk.supabase.co',
-            'sb_publishable_aOPgE3PvcNPiVyaIEK1evQ_NBi_TXHw'
-        );
-        console.log('Supabase client created');
-        
-        // ==================== HELPER FUNCTIONS ====================
-        function generateSessionCode() {
-            const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ0123456789';
-            let code = '';
-            for (let i = 0; i < 6; i++) {
-                code += chars.charAt(Math.floor(Math.random() * chars.length));
-            }
-            return code;
-        }
-        
-        function generateUUID() {
-            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                const r = Math.random() * 16 | 0;
-                const v = c === 'x' ? r : (r & 0x3 | 0x8);
-                return v.toString(16);
-            });
-        }
-        
-        // ==================== GAME VARIABLES ====================
-        let scene, camera, renderer;
-        let currentPlayer = null;
-        let currentPlayerId = null;
-        let currentPlayerName = "";
-        let otherPlayers = new Map();
-        let currentSessionCode = null;
-        let keys = { w: false, s: false, a: false, d: false };
-        let mouseX = 0, mouseY = 0;
-        let moveSpeed = 5;
-        let pointerLocked = false;
-        let syncInterval = null;
-        let subscription = null;
-        
-        const playerColors = [0xff6b6b, 0x4ec9e0, 0x9b59b6, 0x2ecc71, 0xe74c3c, 0xf39c12, 0x1abc9c, 0x3498db];
-        
-        // ==================== CREATE 3D WORLD ====================
-        function initWorld() {
-            console.log('Creating 3D world...');
-            
-            // Create scene with bright blue sky
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x87CEEB);
-            scene.fog = new THREE.FogExp2(0x87CEEB, 0.005);
-            
-            // Camera
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(0, 5, 10);
-            camera.lookAt(0, 0, 0);
-            
-            // Renderer
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.shadowMap.enabled = true;
-            document.body.appendChild(renderer.domElement);
-            console.log('Renderer created');
-            
-            // Test cube - bright red, spinning
-            const cubeGeometry = new THREE.BoxGeometry(1, 1, 1);
-            const cubeMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0x440000 });
-            const testCube = new THREE.Mesh(cubeGeometry, cubeMaterial);
-            testCube.position.set(0, 1, 0);
-            scene.add(testCube);
-            console.log('Test cube added');
-            
-            // Ground - green plane
-            const groundGeometry = new THREE.PlaneGeometry(200, 200);
-            const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x3a8c3a, roughness: 0.8 });
-            const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-            ground.rotation.x = -Math.PI / 2;
-            ground.position.y = -0.5;
-            ground.receiveShadow = true;
-            scene.add(ground);
-            
-            // Grid helper
-            const gridHelper = new THREE.GridHelper(200, 20, 0x88aaff, 0x335588);
-            gridHelper.position.y = -0.4;
-            scene.add(gridHelper);
-            
-            // Simple trees
-            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8B5A2B });
-            const topMat = new THREE.MeshStandardMaterial({ color: 0x3c9e3c });
-            
-            for (let i = 0; i < 30; i++) {
-                const angle = Math.random() * Math.PI * 2;
-                const radius = 40 + Math.random() * 40;
-                const x = Math.cos(angle) * radius;
-                const z = Math.sin(angle) * radius;
-                
-                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.6, 1.2, 6), trunkMat);
-                trunk.position.set(x, -0.2, z);
-                trunk.castShadow = true;
-                scene.add(trunk);
-                
-                const top = new THREE.Mesh(new THREE.ConeGeometry(0.7, 1, 8), topMat);
-                top.position.set(x, 0.5, z);
-                top.castShadow = true;
-                scene.add(top);
-            }
-            
-            // Lighting
-            const ambientLight = new THREE.AmbientLight(0x404040, 0.6);
-            scene.add(ambientLight);
-            
-            const directionalLight = new THREE.DirectionalLight(0xfff5e0, 1);
-            directionalLight.position.set(10, 20, 5);
-            directionalLight.castShadow = true;
-            scene.add(directionalLight);
-            
-            const backLight = new THREE.PointLight(0xffaa66, 0.3);
-            backLight.position.set(0, 5, -10);
-            scene.add(backLight);
-            
-            console.log('World created successfully');
-            
-            // Animation for test cube
-            function animateTestCube() {
-                if (testCube) {
-                    testCube.rotation.x += 0.02;
-                    testCube.rotation.y += 0.03;
-                }
-                requestAnimationFrame(animateTestCube);
-            }
-            animateTestCube();
-        }
-        
-        // ==================== CREATE PLAYER ====================
-        function createPlayerMesh(color, name = "") {
-            const group = new THREE.Group();
-            
-            // Body
-            const bodyMat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.3 });
-            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 1.2, 16), bodyMat);
-            body.position.y = 0.6;
-            body.castShadow = true;
-            group.add(body);
-            
-            // Head
-            const headMat = new THREE.MeshStandardMaterial({ color: 0xffccaa });
-            const head = new THREE.Mesh(new THREE.SphereGeometry(0.45, 16, 16), headMat);
-            head.position.y = 1.25;
-            head.castShadow = true;
-            group.add(head);
-            
-            // Eyes
-            const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), new THREE.MeshStandardMaterial({ color: 0xffffff }));
-            leftEye.position.set(-0.18, 1.35, 0.45);
-            group.add(leftEye);
-            
-            const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), new THREE.MeshStandardMaterial({ color: 0xffffff }));
-            rightEye.position.set(0.18, 1.35, 0.45);
-            group.add(rightEye);
-            
-            const leftPupil = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), new THREE.MeshStandardMaterial({ color: 0x000000 }));
-            leftPupil.position.set(-0.18, 1.33, 0.52);
-            group.add(leftPupil);
-            
-            const rightPupil = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), new THREE.MeshStandardMaterial({ color: 0x000000 }));
-            rightPupil.position.set(0.18, 1.33, 0.52);
-            group.add(rightPupil);
-            
-            // Name tag
-            if (name) {
-                const canvas = document.createElement('canvas');
-                canvas.width = 256;
-                canvas.height = 64;
-                const ctx = canvas.getContext('2d');
-                ctx.fillStyle = 'rgba(0,0,0,0.7)';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.font = 'Bold 20px Arial';
-                ctx.fillStyle = '#ffffff';
-                ctx.textAlign = 'center';
-                ctx.fillText(name, canvas.width/2, canvas.height/2 + 8);
-                
-                const texture = new THREE.CanvasTexture(canvas);
-                const namePlate = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.4), new THREE.MeshStandardMaterial({ map: texture, transparent: true }));
-                namePlate.position.y = 1.75;
-                group.add(namePlate);
-            }
-            
-            return group;
-        }
-        
-        // ==================== SUPABASE FUNCTIONS ====================
-        async function createSession(sessionCode, playerName) {
-            const { data, error } = await supabase
-                .from('sessions')
-                .insert({ 
-                    id: sessionCode,
-                    name: `Game Session ${sessionCode}`,
-                    host: currentPlayerId,
-                    players: [currentPlayerId]
-                })
-                .select();
-            
-            if (error) {
-                console.error('Error creating session:', error);
-                return null;
-            }
-            return data?.[0] || null;
-        }
-        
-        async function joinSession(sessionCode, playerName) {
-            const { data: session, error } = await supabase
-                .from('sessions')
-                .select('*')
-                .eq('id', sessionCode)
-                .single();
-            
-            if (error || !session) {
-                console.error('Session not found:', error);
-                return null;
-            }
-            
-            const playersList = session.players || [];
-            await supabase
-                .from('sessions')
-                .update({ players: [...playersList, currentPlayerId] })
-                .eq('id', sessionCode);
-            
-            return session;
-        }
-        
-        async function syncPlayerPosition() {
-            if (!currentSessionCode || !currentPlayerId || !currentPlayer) return;
-            
-            const position = {
-                x: currentPlayer.position.x,
-                y: currentPlayer.position.y,
-                z: currentPlayer.position.z,
-                rotation: currentPlayer.rotation.y
-            };
-            
-            await supabase
-                .from('players')
-                .upsert({
-                    session_id: currentSessionCode,
-                    player_id: currentPlayerId,
-                    name: currentPlayerName,
-                    data: position,
-                    last_updated: new Date().toISOString()
-                }, { onConflict: 'session_id, player_id' });
-        }
-        
-        async function listenForPlayers() {
-            if (!currentSessionCode) return;
-            
-            subscription = supabase
-                .channel(`players:${currentSessionCode}`)
-                .on('postgres_changes', {
-                    event: '*',
-                    schema: 'public',
-                    table: 'players',
-                    filter: `session_id=eq.${currentSessionCode}`
-                }, (payload) => {
-                    const { new: newPlayer, old: oldPlayer, eventType } = payload;
-                    const playerId = newPlayer?.player_id || oldPlayer?.player_id;
-                    if (playerId === currentPlayerId) return;
-                    
-                    if (eventType === 'INSERT' || eventType === 'UPDATE') {
-                        if (!otherPlayers.has(playerId)) {
-                            const color = playerColors[Math.abs(playerId.charCodeAt(0) % playerColors.length)];
-                            const playerMesh = createPlayerMesh(color, newPlayer.name);
-                            scene.add(playerMesh);
-                            otherPlayers.set(playerId, { mesh: playerMesh, name: newPlayer.name });
-                            updatePlayerCount();
-                        }
-                        
-                        const playerData = otherPlayers.get(playerId);
-                        if (playerData && newPlayer?.data) {
-                            playerData.mesh.position.lerp(new THREE.Vector3(newPlayer.data.x, newPlayer.data.y, newPlayer.data.z), 0.3);
-                            playerData.mesh.rotation.y = newPlayer.data.rotation || 0;
-                        }
-                    } else if (eventType === 'DELETE') {
-                        const playerData = otherPlayers.get(playerId);
-                        if (playerData) {
-                            scene.remove(playerData.mesh);
-                            otherPlayers.delete(playerId);
-                            updatePlayerCount();
-                        }
-                    }
-                })
-                .subscribe();
-        }
-        
-        async function cleanupSession() {
-            if (!currentSessionCode || !currentPlayerId) return;
-            await supabase.from('players').delete().eq('session_id', currentSessionCode).eq('player_id', currentPlayerId);
-            if (syncInterval) clearInterval(syncInterval);
-            if (subscription) supabase.removeChannel(subscription);
-        }
-        
-        function updatePlayerCount() {
-            const count = otherPlayers.size + 1;
-            document.getElementById('player-count-number').textContent = count;
-        }
-        
-        // ==================== MOVEMENT ====================
-        function handleMovement(deltaTime) {
-            if (!currentPlayer) return;
-            
-            const move = new THREE.Vector3();
-            if (keys.w) move.z -= 1;
-            if (keys.s) move.z += 1;
-            if (keys.a) move.x -= 1;
-            if (keys.d) move.x += 1;
-            if (move.length() > 0) move.normalize();
-            
-            const forward = new THREE.Vector3(-Math.sin(camera.rotation.y), 0, -Math.cos(camera.rotation.y));
-            const right = new THREE.Vector3(Math.cos(camera.rotation.y), 0, -Math.sin(camera.rotation.y));
-            
-            let newX = currentPlayer.position.x + (move.x * right.x + move.z * forward.x) * moveSpeed * deltaTime;
-            let newZ = currentPlayer.position.z + (move.x * right.z + move.z * forward.z) * moveSpeed * deltaTime;
-            
-            const boundary = 85;
-            newX = Math.max(-boundary, Math.min(boundary, newX));
-            newZ = Math.max(-boundary, Math.min(boundary, newZ));
-            
-            currentPlayer.position.x = newX;
-            currentPlayer.position.z = newZ;
-            
-            if (move.x !== 0 || move.z !== 0) {
-                currentPlayer.rotation.y = Math.atan2(move.x, move.z);
-            }
-        }
-        
-        // ==================== START GAME ====================
-        async function startGame(sessionCode, playerName) {
-            currentPlayerId = generateUUID();
-            currentPlayerName = playerName || 'Player';
-            
-            const statusDiv = document.getElementById('session-status');
-            statusDiv.textContent = 'Connecting...';
-            
-            let finalSessionCode = sessionCode;
-            if (!finalSessionCode) {
-                finalSessionCode = generateSessionCode();
-            } else {
-                finalSessionCode = finalSessionCode.toUpperCase();
-            }
-            
-            // Check if session exists
-            const { data: existingSession } = await supabase
-                .from('sessions')
-                .select('*')
-                .eq('id', finalSessionCode)
-                .single();
-            
-            let session;
-            if (existingSession) {
-                session = await joinSession(finalSessionCode, playerName);
-                if (!session) {
-                    statusDiv.textContent = '❌ Failed to join session!';
-                    statusDiv.classList.add('error');
-                    return false;
-                }
-                statusDiv.textContent = `✅ Joined! Code: ${finalSessionCode}`;
-                statusDiv.classList.add('success');
-            } else {
-                session = await createSession(finalSessionCode, playerName);
-                if (!session) {
-                    statusDiv.textContent = '❌ Failed to create session!';
-                    statusDiv.classList.add('error');
-                    return false;
-                }
-                statusDiv.textContent = `✅ Created! Share code: ${finalSessionCode}`;
-                statusDiv.classList.add('success');
-            }
-            
-            currentSessionCode = finalSessionCode;
-            
-            // Show session code
-            const codeDisplay = document.getElementById('session-code-display');
-            document.getElementById('session-code-text').textContent = finalSessionCode;
-            codeDisplay.style.display = 'block';
-            
-            // Add player to players table
-            await supabase.from('players').insert({
-                session_id: currentSessionCode,
-                player_id: currentPlayerId,
-                name: playerName,
-                data: { x: 0, y: 0, z: 0, rotation: 0 },
-                last_updated: new Date().toISOString()
-            });
-            
-            // Create player
-            const playerColor = playerColors[Math.abs(currentPlayerId.charCodeAt(0) % playerColors.length)];
-            currentPlayer = createPlayerMesh(playerColor, playerName);
-            currentPlayer.position.set(0, 0, 0);
-            scene.add(currentPlayer);
-            
-            // Start listening
-            await listenForPlayers();
-            
-            // Hide panel
-            document.getElementById('session-panel').classList.add('hidden');
-            
-            updatePlayerCount();
-            
-            // Start sync
-            syncInterval = setInterval(() => {
-                syncPlayerPosition();
-            }, 100);
-            
-            // Load existing players
-            const { data: existingPlayers } = await supabase
-                .from('players')
-                .select('*')
-                .eq('session_id', currentSessionCode);
-            
-            if (existingPlayers) {
-                existingPlayers.forEach(player => {
-                    if (player.player_id !== currentPlayerId) {
-                        const color = playerColors[Math.abs(player.player_id.charCodeAt(0) % playerColors.length)];
-                        const playerMesh = createPlayerMesh(color, player.name);
-                        if (player.data) {
-                            playerMesh.position.set(player.data.x, player.data.y, player.data.z);
-                            playerMesh.rotation.y = player.data.rotation || 0;
-                        }
-                        scene.add(playerMesh);
-                        otherPlayers.set(player.player_id, { mesh: playerMesh, name: player.name });
-                    }
-                });
-                updatePlayerCount();
-            }
-            
-            return true;
-        }
-        
-        // ==================== EVENT LISTENERS ====================
-        function setupEventListeners() {
-            window.addEventListener('keydown', (e) => {
-                const key = e.key.toLowerCase();
-                if (key === 'w') keys.w = true;
-                if (key === 's') keys.s = true;
-                if (key === 'a') keys.a = true;
-                if (key === 'd') keys.d = true;
-                if (key === 'escape') document.exitPointerLock();
-            });
-            
-            window.addEventListener('keyup', (e) => {
-                const key = e.key.toLowerCase();
-                if (key === 'w') keys.w = false;
-                if (key === 's') keys.s = false;
-                if (key === 'a') keys.a = false;
-                if (key === 'd') keys.d = false;
-            });
-            
-            renderer.domElement.addEventListener('click', () => {
-                renderer.domElement.requestPointerLock();
-            });
-            
-            document.addEventListener('pointerlockchange', () => {
-                pointerLocked = document.pointerLockElement === renderer.domElement;
-                if (pointerLocked) {
-                    document.addEventListener('mousemove', onMouseMove);
-                } else {
-                    document.removeEventListener('mousemove', onMouseMove);
-                }
-            });
-            
-            function onMouseMove(e) {
-                if (!pointerLocked) return;
-                mouseX += e.movementX * 0.002;
-                mouseY += e.movementY * 0.002;
-                mouseY = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, mouseY));
-                camera.rotation.order = 'YXZ';
-                camera.rotation.y = mouseX;
-                camera.rotation.x = mouseY;
-            }
-            
-            document.getElementById('join-btn').addEventListener('click', async () => {
-                const playerName = document.getElementById('player-name').value || 'Player';
-                const sessionCode = document.getElementById('session-code-input').value;
-                await startGame(sessionCode, playerName);
-            });
-        }
-        
-        // ==================== ANIMATION LOOP ====================
-        let lastTime = performance.now();
-        
-        function animate() {
-            const now = performance.now();
-            let deltaTime = Math.min(0.033, (now - lastTime) / 1000);
-            lastTime = now;
-            
-            handleMovement(deltaTime);
-            
-            if (currentPlayer && !pointerLocked) {
-                camera.position.lerp(new THREE.Vector3(currentPlayer.position.x, 5, currentPlayer.position.z + 8), 0.1);
-                camera.lookAt(currentPlayer.position);
-            }
-            
-            if (renderer && scene && camera) {
-                renderer.render(scene, camera);
-            }
-            
-            requestAnimationFrame(animate);
-        }
-        
-        // ==================== INITIALIZE ====================
-        function init() {
-            console.log('Initializing...');
-            initWorld();
-            setupEventListeners();
-            animate();
-            console.log('Ready!');
-        }
-        
-        window.addEventListener('beforeunload', () => cleanupSession());
-        
-        // Start everything
-        init();
-    </script>
+<script type="module">
+import * as THREE from 'https://unpkg.com/three@0.128.0/build/three.module.js';
+
+// ================= SCENE =================
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x87CEEB);
+
+// ================= CAMERA =================
+const camera = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    1000
+);
+camera.position.set(0, 5, 10);
+
+// ================= RENDERER =================
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setSize(window.innerWidth, window.innerHeight);
+document.body.appendChild(renderer.domElement);
+
+// ================= LIGHTING =================
+const light = new THREE.DirectionalLight(0xffffff, 1);
+light.position.set(10, 20, 10);
+scene.add(light);
+
+scene.add(new THREE.AmbientLight(0x404040, 0.6));
+
+// ================= GROUND =================
+const ground = new THREE.Mesh(
+    new THREE.PlaneGeometry(200, 200),
+    new THREE.MeshStandardMaterial({ color: 0x3a8c3a })
+);
+ground.rotation.x = -Math.PI / 2;
+scene.add(ground);
+
+// ================= PLAYER =================
+const player = new THREE.Group();
+
+// Body
+const body = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.5, 0.5, 1.2, 16),
+    new THREE.MeshStandardMaterial({ color: 0x4ec9e0 })
+);
+body.position.y = 0.6;
+player.add(body);
+
+// Head
+const head = new THREE.Mesh(
+    new THREE.SphereGeometry(0.4, 16, 16),
+    new THREE.MeshStandardMaterial({ color: 0xffccaa })
+);
+head.position.y = 1.4;
+player.add(head);
+
+scene.add(player);
+
+// ================= TEST CUBE =================
+const cube = new THREE.Mesh(
+    new THREE.BoxGeometry(),
+    new THREE.MeshStandardMaterial({ color: 0xff0000 })
+);
+cube.position.set(3, 1, 0);
+scene.add(cube);
+
+// ================= CONTROLS =================
+let keys = {};
+let yaw = 0;
+let pitch = 0;
+
+window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+
+// Mouse look
+document.body.addEventListener('click', () => {
+    document.body.requestPointerLock();
+});
+
+document.addEventListener('mousemove', e => {
+    if (document.pointerLockElement !== document.body) return;
+
+    yaw -= e.movementX * 0.002;
+    pitch -= e.movementY * 0.002;
+
+    pitch = Math.max(-Math.PI/3, Math.min(Math.PI/3, pitch));
+
+    camera.rotation.order = "YXZ";
+    camera.rotation.y = yaw;
+    camera.rotation.x = pitch;
+});
+
+// ================= MOVEMENT =================
+function movePlayer(delta) {
+    const speed = 5;
+    const dir = new THREE.Vector3();
+
+    if (keys.w) dir.z -= 1;
+    if (keys.s) dir.z += 1;
+    if (keys.a) dir.x -= 1;
+    if (keys.d) dir.x += 1;
+
+    if (dir.length() > 0) dir.normalize();
+
+    const forward = new THREE.Vector3(
+        -Math.sin(yaw),
+        0,
+        -Math.cos(yaw)
+    );
+
+    const right = new THREE.Vector3(
+        Math.cos(yaw),
+        0,
+        -Math.sin(yaw)
+    );
+
+    player.position.x += (dir.x * right.x + dir.z * forward.x) * speed * delta;
+    player.position.z += (dir.x * right.z + dir.z * forward.z) * speed * delta;
+}
+
+// ================= RESIZE =================
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ================= LOOP =================
+let last = performance.now();
+
+function animate() {
+    const now = performance.now();
+    const delta = (now - last) / 1000;
+    last = now;
+
+    movePlayer(delta);
+
+    // Camera follow
+    camera.position.lerp(
+        new THREE.Vector3(
+            player.position.x,
+            5,
+            player.position.z + 8
+        ),
+        0.1
+    );
+
+    camera.lookAt(player.position);
+
+    // Spin cube
+    cube.rotation.x += 0.01;
+    cube.rotation.y += 0.02;
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+}
+
+animate();
+
+console.log("✅ 3D WORLD LOADED");
+</script>
 </body>
 </html>
