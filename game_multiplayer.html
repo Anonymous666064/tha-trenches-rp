@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multiplayer Game - 3D World</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Multiplayer 3D Game - Join Friends!</title>
     <style>
         body {
             margin: 0;
@@ -24,7 +24,6 @@
             box-shadow: 0 0 20px rgba(0,255,136,0.3);
             min-width: 300px;
             pointer-events: auto;
-            font-size: 14px;
         }
         h3 {
             margin: 0 0 15px 0;
@@ -41,14 +40,13 @@
             font-size: 14px;
             transition: transform 0.2s;
         }
-        button:hover {
+        button:hover:not(:disabled) {
             transform: scale(1.02);
             background: linear-gradient(135deg, #00ff99, #00dd77);
         }
         button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
-            transform: none;
         }
         input {
             padding: 10px;
@@ -66,7 +64,6 @@
             padding: 8px;
             border-radius: 5px;
             background: rgba(0,0,0,0.5);
-            word-break: break-all;
         }
         .success { color: #00ff88; }
         .error { color: #ff4444; }
@@ -109,21 +106,10 @@
             display: inline-block;
             margin-top: 10px;
         }
-        .debug-console {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(0,0,0,0.8);
-            color: #0f0;
-            font-family: monospace;
-            font-size: 10px;
-            padding: 10px;
-            border-radius: 8px;
-            max-width: 300px;
-            max-height: 150px;
-            overflow-y: auto;
-            z-index: 100;
-            pointer-events: none;
+        @media (max-width: 700px) {
+            #ui { min-width: 260px; padding: 15px; }
+            button { padding: 8px 15px; font-size: 12px; }
+            input { padding: 8px; font-size: 12px; }
         }
     </style>
 </head>
@@ -132,7 +118,7 @@
         <h3>🎮 3D Multiplayer Arena</h3>
         <div>
             <button id="hostBtn">🌟 Create Game</button>
-            <input type="text" id="customCode" placeholder="6-digit code" maxlength="6" style="width: 100px; text-transform: uppercase;">
+            <input type="text" id="customCode" placeholder="Custom code" maxlength="6" style="width: 100px; text-transform: uppercase;">
         </div>
         <div style="margin-top: 10px;">
             <input type="text" id="joinCode" placeholder="Enter 6-digit code" maxlength="6" style="width: 120px; text-transform: uppercase;">
@@ -147,11 +133,7 @@
         <div id="players"></div>
     </div>
     <div class="controls">
-        🎮 WASD to move | 🏃‍♂️ Explore the 3D world
-    </div>
-    <div class="debug-console" id="debugConsole">
-        📡 Debug Console<br>
-        Waiting for connection...
+        🎮 WASD to move | 🏃‍♂️ Explore with friends!
     </div>
 
     <script type="importmap">
@@ -166,38 +148,16 @@
     <script type="module">
         import * as THREE from 'three';
 
-        // ========== SUPABASE CONFIG ==========
-        // REPLACE WITH YOUR ACTUAL CREDENTIALS:
+        // ========== YOUR SUPABASE CREDENTIALS ==========
         const SUPABASE_URL = 'https://hcvewiwhtxqpbogcrukk.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjdmV3aXdodHhxcGJvZ2NydWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTQ4MzMsImV4cCI6MjA5MDQ3MDgzM30.UsdvDyrGl4OhmbDjonyOagknHf--Zhe-fhCi0LFVoQw';
         
-        // Debug logging
-        function debugLog(msg) {
-            const consoleDiv = document.getElementById('debugConsole');
-            const time = new Date().toLocaleTimeString();
-            consoleDiv.innerHTML += `<br>[${time}] ${msg}`;
-            consoleDiv.scrollTop = consoleDiv.scrollHeight;
-            console.log(msg);
-        }
-        
-        debugLog('Game starting...');
-        debugLog(`Supabase URL: ${SUPABASE_URL}`);
-        
-        // Check if Supabase is configured
-        if (SUPABASE_URL.includes('YOUR_PROJECT')) {
-            debugLog('⚠️ WARNING: Please configure your Supabase credentials!');
-            document.getElementById('gameInfo').innerHTML = '⚠️ Please configure Supabase URL and Key in the HTML code!';
-            document.getElementById('gameInfo').className = 'status error';
-        }
+        console.log('🎮 Game starting...');
+        console.log('Supabase URL:', SUPABASE_URL);
         
         // Initialize Supabase
-        let supabase;
-        try {
-            supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-            debugLog('✅ Supabase client created');
-        } catch (e) {
-            debugLog(`❌ Failed to create Supabase client: ${e.message}`);
-        }
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        console.log('✅ Supabase client created');
         
         // ========== GAME STATE ==========
         let currentSession = null;
@@ -208,120 +168,115 @@
         let keys = { w: false, s: false, a: false, d: false };
         let subscription = null;
         let lastUpdateTime = 0;
-        let animationId = null;
         
         // ========== 3D WORLD ==========
         function setup3D() {
-            debugLog("Setting up 3D world...");
+            console.log("🎨 Setting up 3D world...");
             
-            try {
-                // Create scene
-                scene = new THREE.Scene();
-                scene.background = new THREE.Color(0x0a0a2a);
-                scene.fog = new THREE.FogExp2(0x0a0a2a, 0.015);
+            // Create scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x0a0a2a);
+            scene.fog = new THREE.FogExp2(0x0a0a2a, 0.015);
+            
+            // Create camera
+            camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 8, 15);
+            
+            // Create renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.setClearColor(0x0a0a2a);
+            document.body.appendChild(renderer.domElement);
+            
+            // ========== GROUND ==========
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0x3a7a3a, roughness: 0.7 });
+            const ground = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            ground.position.y = -0.5;
+            ground.receiveShadow = true;
+            scene.add(ground);
+            
+            // Grid helper
+            const gridHelper = new THREE.GridHelper(30, 20, 0x88ff88, 0x44aa44);
+            gridHelper.position.y = -0.4;
+            scene.add(gridHelper);
+            
+            // ========== TREES ==========
+            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8B5A2B });
+            const leafMat = new THREE.MeshStandardMaterial({ color: 0x3a9e3a });
+            
+            for (let i = 0; i < 30; i++) {
+                const angle = (i / 30) * Math.PI * 2;
+                const radius = 12;
+                const x = Math.cos(angle) * radius;
+                const z = Math.sin(angle) * radius;
                 
-                // Create camera
-                camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1000);
-                camera.position.set(0, 8, 15);
-                camera.lookAt(0, 0, 0);
+                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.5, 1.2, 6), trunkMat);
+                trunk.position.set(x, 0, z);
+                trunk.castShadow = true;
+                scene.add(trunk);
                 
-                // Create renderer
-                renderer = new THREE.WebGLRenderer({ antialias: true });
-                renderer.setSize(window.innerWidth, window.innerHeight);
-                renderer.shadowMap.enabled = true;
-                renderer.setClearColor(0x0a0a2a);
-                document.body.appendChild(renderer.domElement);
-                
-                debugLog("✅ Renderer added to body");
-                
-                // ========== CREATE VISUAL WORLD ==========
-                
-                // Ground plane
-                const groundMat = new THREE.MeshStandardMaterial({ color: 0x3a7a3a, roughness: 0.7, metalness: 0.1 });
-                const ground = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), groundMat);
-                ground.rotation.x = -Math.PI / 2;
-                ground.position.y = -0.5;
-                ground.receiveShadow = true;
-                scene.add(ground);
-                
-                // Grid helper
-                const gridHelper = new THREE.GridHelper(30, 20, 0x88ff88, 0x44aa44);
-                gridHelper.position.y = -0.4;
-                scene.add(gridHelper);
-                
-                // Trees
-                const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8B5A2B });
-                const leafMat = new THREE.MeshStandardMaterial({ color: 0x3a9e3a });
-                
-                for (let i = 0; i < 30; i++) {
-                    const angle = (i / 30) * Math.PI * 2;
-                    const radius = 12;
-                    const x = Math.cos(angle) * radius;
-                    const z = Math.sin(angle) * radius;
-                    
-                    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.5, 1.2, 6), trunkMat);
-                    trunk.position.set(x, 0, z);
-                    trunk.castShadow = true;
-                    scene.add(trunk);
-                    
-                    const leaves = new THREE.Mesh(new THREE.ConeGeometry(0.6, 0.9, 8), leafMat);
-                    leaves.position.set(x, 0.9, z);
-                    leaves.castShadow = true;
-                    scene.add(leaves);
-                }
-                
-                // Floating orbs (ambiance)
-                const orbMat = new THREE.MeshStandardMaterial({ color: 0xff66aa, emissive: 0x331133 });
-                for (let i = 0; i < 40; i++) {
-                    const orb = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), orbMat);
-                    const angle = Math.random() * Math.PI * 2;
-                    const radius = 10 + Math.random() * 8;
-                    orb.position.x = Math.cos(angle) * radius;
-                    orb.position.z = Math.sin(angle) * radius;
-                    orb.position.y = 0.5 + Math.random() * 1.5;
-                    scene.add(orb);
-                }
-                
-                // ========== LIGHTING ==========
-                
-                // Ambient light
-                const ambientLight = new THREE.AmbientLight(0x404060);
-                scene.add(ambientLight);
-                
-                // Main directional light
-                const mainLight = new THREE.DirectionalLight(0xfff5e6, 1.2);
-                mainLight.position.set(10, 20, 5);
-                mainLight.castShadow = true;
-                mainLight.receiveShadow = true;
-                mainLight.shadow.mapSize.width = 1024;
-                mainLight.shadow.mapSize.height = 1024;
-                scene.add(mainLight);
-                
-                // Fill light
-                const fillLight = new THREE.PointLight(0x4466ff, 0.4);
-                fillLight.position.set(0, 5, 0);
-                scene.add(fillLight);
-                
-                debugLog("✅ 3D world created successfully");
-                
-            } catch (e) {
-                debugLog(`❌ Error setting up 3D: ${e.message}`);
+                const leaves = new THREE.Mesh(new THREE.ConeGeometry(0.6, 0.9, 8), leafMat);
+                leaves.position.set(x, 0.9, z);
+                leaves.castShadow = true;
+                scene.add(leaves);
             }
+            
+            // ========== FLOATING ORBS ==========
+            const orbMat = new THREE.MeshStandardMaterial({ color: 0xff66aa, emissive: 0x331133 });
+            for (let i = 0; i < 50; i++) {
+                const orb = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), orbMat);
+                const angle = Math.random() * Math.PI * 2;
+                const radius = 8 + Math.random() * 10;
+                orb.position.x = Math.cos(angle) * radius;
+                orb.position.z = Math.sin(angle) * radius;
+                orb.position.y = 0.5 + Math.random() * 2;
+                scene.add(orb);
+            }
+            
+            // ========== LIGHTING ==========
+            const ambientLight = new THREE.AmbientLight(0x404060);
+            scene.add(ambientLight);
+            
+            const mainLight = new THREE.DirectionalLight(0xfff5e6, 1.2);
+            mainLight.position.set(10, 20, 5);
+            mainLight.castShadow = true;
+            mainLight.shadow.mapSize.width = 1024;
+            mainLight.shadow.mapSize.height = 1024;
+            scene.add(mainLight);
+            
+            const fillLight = new THREE.PointLight(0x4466ff, 0.4);
+            fillLight.position.set(0, 5, 0);
+            scene.add(fillLight);
+            
+            const backLight = new THREE.PointLight(0xffaa66, 0.3);
+            backLight.position.set(-5, 5, -8);
+            scene.add(backLight);
+            
+            console.log("✅ 3D world ready!");
+            
+            // Start animation
+            animate();
         }
         
         function createPlayer(color, isLocal = false) {
             const group = new THREE.Group();
             
             // Body
-            const bodyMat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.3 });
-            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.9, 8), bodyMat);
+            const body = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.5, 0.5, 0.9, 8),
+                new THREE.MeshStandardMaterial({ color: color, roughness: 0.3 })
+            );
             body.position.y = 0.45;
             body.castShadow = true;
             group.add(body);
             
             // Head
-            const headMat = new THREE.MeshStandardMaterial({ color: 0xffccaa });
-            const head = new THREE.Mesh(new THREE.SphereGeometry(0.45, 32, 32), headMat);
+            const head = new THREE.Mesh(
+                new THREE.SphereGeometry(0.45, 32, 32),
+                new THREE.MeshStandardMaterial({ color: 0xffccaa })
+            );
             head.position.y = 1.0;
             head.castShadow = true;
             group.add(head);
@@ -336,10 +291,22 @@
             rightEye.position.set(0.18, 1.12, 0.48);
             group.add(rightEye);
             
-            // Hat for local player
+            // Pupils
+            const pupilMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
+            const leftPupil = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 16), pupilMat);
+            leftPupil.position.set(0, 0, 0.08);
+            leftEye.add(leftPupil);
+            
+            const rightPupil = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 16), pupilMat);
+            rightPupil.position.set(0, 0, 0.08);
+            rightEye.add(rightPupil);
+            
+            // Crown for local player
             if (isLocal) {
-                const crownMat = new THREE.MeshStandardMaterial({ color: 0xffaa44 });
-                const crown = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.5, 8), crownMat);
+                const crown = new THREE.Mesh(
+                    new THREE.ConeGeometry(0.4, 0.5, 8),
+                    new THREE.MeshStandardMaterial({ color: 0xffaa44 })
+                );
                 crown.position.y = 1.38;
                 group.add(crown);
             }
@@ -353,13 +320,12 @@
             playerMesh.position.set(x, 0, z);
             scene.add(playerMesh);
             
-            players.set(playerId, { mesh: playerMesh, x, z, name: playerId.slice(0, 6) });
+            players.set(playerId, { mesh: playerMesh, name: playerId.slice(0, 6) });
             
             if (isLocal) {
                 localPlayer = playerMesh;
                 camera.position.set(x, 8, x + 12);
-                camera.lookAt(x, 1.5, z);
-                debugLog(`Local player added at (${x.toFixed(1)}, ${z.toFixed(1)})`);
+                console.log(`✅ Local player spawned at (${x.toFixed(1)}, ${z.toFixed(1)})`);
             }
             
             updatePlayersList();
@@ -372,12 +338,13 @@
                 scene.remove(player.mesh);
                 players.delete(playerId);
                 updatePlayersList();
-                debugLog(`Player removed: ${playerId.slice(0, 6)}`);
             }
         }
         
         function updatePlayersList() {
             const listDiv = document.getElementById('players');
+            if (!listDiv) return;
+            
             if (players.size === 0) {
                 listDiv.innerHTML = 'Waiting for players...';
                 return;
@@ -389,7 +356,6 @@
                 html += `🎮 ${player.name}${isMe ? ' (YOU)' : ''}<br>`;
             }
             listDiv.innerHTML = html;
-            document.getElementById('playersList').innerHTML = `<strong>👥 Players (${players.size})</strong><hr style="margin: 8px 0;">${html}`;
         }
         
         function handleMovement() {
@@ -411,11 +377,10 @@
             if (moved) {
                 localPlayer.position.set(newX, 0, newZ);
                 
-                const targetX = newX;
-                const targetZ = newZ + 10;
-                camera.position.x += (targetX - camera.position.x) * 0.1;
-                camera.position.z += (targetZ - camera.position.z) * 0.1;
-                camera.position.y = 7;
+                // Camera follow
+                camera.position.x += (newX - camera.position.x) * 0.1;
+                camera.position.z = newZ + 10;
+                camera.position.y = 8;
                 camera.lookAt(newX, 1.5, newZ);
                 
                 const now = Date.now();
@@ -434,7 +399,7 @@
                     .update({ pos_x: x, pos_z: z, last_seen: new Date() })
                     .eq('player_id', myPlayerId);
             } catch (e) {
-                debugLog(`Update failed: ${e.message}`);
+                console.warn('Update failed:', e);
             }
         }
         
@@ -445,37 +410,27 @@
                 code = Math.random().toString(36).substring(2, 8).toUpperCase();
             }
             
-            debugLog(`Creating session with code: ${code}`);
+            console.log(`Creating session: ${code}`);
             
-            const { data: existing, error: checkError } = await supabase
+            const { data: existing } = await supabase
                 .from('game_sessions')
                 .select('session_code')
                 .eq('session_code', code);
             
-            if (checkError) {
-                debugLog(`Check error: ${checkError.message}`);
-                throw new Error(`Database error: ${checkError.message}`);
-            }
-            
             if (existing && existing.length > 0) {
-                throw new Error('Code already taken! Try another.');
+                throw new Error('Code already taken!');
             }
             
-            const { error: insertError } = await supabase
+            const { error } = await supabase
                 .from('game_sessions')
                 .insert({ session_code: code });
             
-            if (insertError) {
-                debugLog(`Insert error: ${insertError.message}`);
-                throw new Error(`Failed to create: ${insertError.message}`);
-            }
-            
-            debugLog(`✅ Session created: ${code}`);
+            if (error) throw error;
             return code;
         }
         
         async function joinSession(code) {
-            debugLog(`Joining session: ${code}`);
+            console.log(`Joining session: ${code}`);
             
             const { data, error } = await supabase
                 .from('game_sessions')
@@ -483,16 +438,9 @@
                 .eq('session_code', code.toUpperCase())
                 .maybeSingle();
             
-            if (error) {
-                debugLog(`Join error: ${error.message}`);
-                throw new Error(`Database error: ${error.message}`);
-            }
+            if (error) throw error;
+            if (!data) throw new Error('Game not found!');
             
-            if (!data) {
-                throw new Error('Game not found! Check the code.');
-            }
-            
-            debugLog(`✅ Joined session: ${code}`);
             return code.toUpperCase();
         }
         
@@ -500,8 +448,6 @@
             myPlayerId = 'p_' + Math.random().toString(36).substring(2, 15);
             const startX = (Math.random() - 0.5) * 10;
             const startZ = (Math.random() - 0.5) * 10;
-            
-            debugLog(`Adding player ${myPlayerId.slice(0, 8)} at (${startX.toFixed(1)}, ${startZ.toFixed(1)})`);
             
             const { error } = await supabase
                 .from('players')
@@ -513,17 +459,11 @@
                     last_seen: new Date()
                 });
             
-            if (error) {
-                debugLog(`Insert player error: ${error.message}`);
-                throw new Error(`Failed to join: ${error.message}`);
-            }
+            if (error) throw error;
             
             addPlayer(myPlayerId, startX, startZ, true);
             await loadPlayers(sessionCode);
             subscribeToPlayers(sessionCode);
-            
-            debugLog(`✅ Player added successfully`);
-            return startX;
         }
         
         async function loadPlayers(sessionCode) {
@@ -533,11 +473,11 @@
                 .eq('session_id', sessionCode);
             
             if (error) {
-                debugLog(`Load players error: ${error.message}`);
+                console.error('Load error:', error);
                 return;
             }
             
-            debugLog(`Loaded ${data.length} players`);
+            console.log(`Loaded ${data.length} players`);
             
             for (let p of data) {
                 if (p.player_id !== myPlayerId && !players.has(p.player_id)) {
@@ -551,8 +491,6 @@
                 supabase.removeChannel(subscription);
             }
             
-            debugLog(`Subscribing to realtime updates for session: ${sessionCode}`);
-            
             subscription = supabase
                 .channel(`players:${sessionCode}`)
                 .on('postgres_changes', {
@@ -562,7 +500,7 @@
                     filter: `session_id=eq.${sessionCode}`
                 }, (payload) => {
                     if (payload.eventType === 'INSERT' && payload.new.player_id !== myPlayerId) {
-                        debugLog(`New player joined: ${payload.new.player_id.slice(0, 6)}`);
+                        console.log(`➕ Player joined: ${payload.new.player_id.slice(0, 6)}`);
                         addPlayer(payload.new.player_id, payload.new.pos_x, payload.new.pos_z, false);
                     } else if (payload.eventType === 'UPDATE' && payload.new.player_id !== myPlayerId) {
                         const player = players.get(payload.new.player_id);
@@ -570,16 +508,14 @@
                             player.mesh.position.set(payload.new.pos_x, 0, payload.new.pos_z);
                         }
                     } else if (payload.eventType === 'DELETE' && payload.old.player_id !== myPlayerId) {
-                        debugLog(`Player left: ${payload.old.player_id.slice(0, 6)}`);
+                        console.log(`➖ Player left: ${payload.old.player_id.slice(0, 6)}`);
                         removePlayer(payload.old.player_id);
                     }
                 })
-                .subscribe((status) => {
-                    debugLog(`Realtime subscription status: ${status}`);
-                });
+                .subscribe();
         }
         
-        // ========== UI HANDLERS ==========
+        // ========== UI ==========
         let isConnecting = false;
         
         document.getElementById('hostBtn').onclick = async () => {
@@ -598,11 +534,10 @@
                 document.getElementById('activeCode').innerHTML = `<div class="code-badge">🔑 ${code}</div>`;
                 document.getElementById('hostBtn').disabled = true;
                 document.getElementById('joinBtn').disabled = true;
-                debugLog(`🎮 Game session active: ${code}`);
             } catch (err) {
                 infoDiv.innerHTML = `❌ ${err.message}`;
                 infoDiv.className = 'status error';
-                debugLog(`❌ Error: ${err.message}`);
+                console.error(err);
             } finally {
                 isConnecting = false;
             }
@@ -630,11 +565,10 @@
                 document.getElementById('activeCode').innerHTML = `<div class="code-badge">🎮 ${currentSession}</div>`;
                 document.getElementById('hostBtn').disabled = true;
                 document.getElementById('joinBtn').disabled = true;
-                debugLog(`🎮 Joined game: ${currentSession}`);
             } catch (err) {
                 infoDiv.innerHTML = `❌ ${err.message}`;
                 infoDiv.className = 'status error';
-                debugLog(`❌ Error: ${err.message}`);
+                console.error(err);
             } finally {
                 isConnecting = false;
             }
@@ -658,23 +592,21 @@
         window.addEventListener('beforeunload', async () => {
             if (myPlayerId) {
                 await supabase.from('players').delete().eq('player_id', myPlayerId);
-                debugLog('Player removed from session');
             }
         });
         
         // Animation loop
         function animate() {
-            animationId = requestAnimationFrame(animate);
+            requestAnimationFrame(animate);
             handleMovement();
             if (renderer && scene && camera) {
                 renderer.render(scene, camera);
             }
         }
         
-        // Start everything
+        // Start game
         setup3D();
-        animate();
-        debugLog("Game initialized, waiting for user action...");
+        console.log("🎮 Game ready! Create or join a game to start playing!");
     </script>
 </body>
 </html>
