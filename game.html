@@ -1,0 +1,718 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Multiplayer World - Simple 3D Game</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            z-index: 100;
+            font-size: 14px;
+            pointer-events: none;
+            backdrop-filter: blur(5px);
+            font-family: monospace;
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            z-index: 100;
+            font-size: 12px;
+            font-family: monospace;
+            backdrop-filter: blur(5px);
+            pointer-events: none;
+        }
+        
+        #session-panel {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            backdrop-filter: blur(10px);
+            color: white;
+            padding: 30px;
+            border-radius: 20px;
+            z-index: 1000;
+            text-align: center;
+            border: 2px solid #4ec9e0;
+            min-width: 320px;
+            box-shadow: 0 0 50px rgba(0,0,0,0.5);
+        }
+        
+        #session-panel h2 {
+            margin: 0 0 20px 0;
+            color: #4ec9e0;
+        }
+        
+        #session-panel input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid #4ec9e0;
+            color: white;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        #session-panel button {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            background: #4ec9e0;
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        #session-panel button:hover {
+            background: #7dd9ff;
+            transform: scale(1.02);
+        }
+        
+        #session-panel .status {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 8px;
+            font-size: 12px;
+            color: #ffaa00;
+        }
+        
+        #player-count {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            color: #4ec9e0;
+            padding: 10px 20px;
+            border-radius: 8px;
+            z-index: 100;
+            font-size: 14px;
+            font-weight: bold;
+            font-family: monospace;
+            backdrop-filter: blur(5px);
+            pointer-events: none;
+        }
+        
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">
+        🎮 MULTIPLAYER WORLD<br>
+        WASD to move | Mouse to look
+    </div>
+    <div id="controls">
+        🖱️ Click to lock mouse | ESC to release
+    </div>
+    <div id="player-count">
+        👥 Players: <span id="player-count-number">1</span>
+    </div>
+    
+    <div id="session-panel">
+        <h2>🌐 MULTIPLAYER GAME</h2>
+        <input type="text" id="player-name" placeholder="Your Name" value="Player_" + Math.floor(Math.random() * 1000)>
+        <input type="text" id="session-id" placeholder="Session ID (leave empty to create new)">
+        <button id="join-btn">🎮 JOIN / CREATE GAME</button>
+        <div class="status" id="session-status">Ready to connect</div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+        
+        // ==================== SUPABASE SETUP ====================
+        const supabase = createClient(
+            'https://hcvewiwhtxqpbogcrukk.supabase.co',
+            'sb_publishable_aOPgE3PvcNPiVyaIEK1evQ_NBi_TXHw'
+        );
+        
+        // ==================== GAME VARIABLES ====================
+        let scene, camera, renderer;
+        let currentPlayer = null;
+        let currentPlayerId = null;
+        let currentPlayerName = "";
+        let otherPlayers = new Map(); // playerId -> { mesh, name, lastPosition }
+        let currentSessionId = null;
+        let keys = { w: false, s: false, a: false, d: false };
+        let mouseX = 0, mouseY = 0;
+        let moveSpeed = 5;
+        let pointerLocked = false;
+        
+        // Colors for different players
+        const playerColors = [
+            0xff6b6b, 0x4ec9e0, 0x9b59b6, 0x2ecc71, 0xe74c3c, 0xf39c12, 0x1abc9c, 0x3498db
+        ];
+        
+        // ==================== CREATE 3D WORLD ====================
+        function initWorld() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB);
+            scene.fog = new THREE.FogExp2(0x87CEEB, 0.008);
+            
+            // Camera
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.body.appendChild(renderer.domElement);
+            
+            // Ground (grid + grass)
+            const gridHelper = new THREE.GridHelper(200, 20, 0x88aaff, 0x335588);
+            gridHelper.position.y = -0.5;
+            scene.add(gridHelper);
+            
+            const groundPlane = new THREE.Mesh(
+                new THREE.PlaneGeometry(200, 200),
+                new THREE.MeshStandardMaterial({ color: 0x2c5a2c, roughness: 0.8, metalness: 0.1 })
+            );
+            groundPlane.rotation.x = -Math.PI / 2;
+            groundPlane.position.y = -0.5;
+            groundPlane.receiveShadow = true;
+            scene.add(groundPlane);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404060, 0.6);
+            scene.add(ambientLight);
+            
+            const directionalLight = new THREE.DirectionalLight(0xfff5e0, 1.2);
+            directionalLight.position.set(10, 20, 5);
+            directionalLight.castShadow = true;
+            directionalLight.receiveShadow = false;
+            directionalLight.shadow.mapSize.width = 1024;
+            directionalLight.shadow.mapSize.height = 1024;
+            scene.add(directionalLight);
+            
+            const fillLight = new THREE.PointLight(0x4466cc, 0.3);
+            fillLight.position.set(-5, 10, -5);
+            scene.add(fillLight);
+            
+            // Decorative elements - trees (simple)
+            const treeTrunkMat = new THREE.MeshStandardMaterial({ color: 0x8B5A2B });
+            const treeTopMat = new THREE.MeshStandardMaterial({ color: 0x3c9e3c });
+            
+            for (let i = 0; i < 60; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const radius = 45 + Math.random() * 50;
+                const x = Math.cos(angle) * radius;
+                const z = Math.sin(angle) * radius;
+                
+                const treeGroup = new THREE.Group();
+                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.6, 1.2, 6), treeTrunkMat);
+                trunk.position.y = 0.6;
+                trunk.castShadow = true;
+                treeGroup.add(trunk);
+                
+                const top1 = new THREE.Mesh(new THREE.ConeGeometry(0.7, 1, 8), treeTopMat);
+                top1.position.y = 1.3;
+                top1.castShadow = true;
+                treeGroup.add(top1);
+                
+                const top2 = new THREE.Mesh(new THREE.ConeGeometry(0.55, 0.9, 8), treeTopMat);
+                top2.position.y = 1.9;
+                top2.castShadow = true;
+                treeGroup.add(top2);
+                
+                treeGroup.position.set(x, -0.5, z);
+                scene.add(treeGroup);
+            }
+            
+            // Floating particles for ambiance
+            const particleCount = 200;
+            const particlesGeometry = new THREE.BufferGeometry();
+            const particlePositions = new Float32Array(particleCount * 3);
+            for (let i = 0; i < particleCount; i++) {
+                particlePositions[i*3] = (Math.random() - 0.5) * 150;
+                particlePositions[i*3+1] = Math.random() * 15;
+                particlePositions[i*3+2] = (Math.random() - 0.5) * 150;
+            }
+            particlesGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
+            const particlesMaterial = new THREE.PointsMaterial({ color: 0x88aaff, size: 0.1, transparent: true, opacity: 0.5 });
+            const particles = new THREE.Points(particlesGeometry, particlesMaterial);
+            scene.add(particles);
+            
+            console.log('World created successfully');
+        }
+        
+        // ==================== CREATE CYLINDRICAL PLAYER ====================
+        function createPlayerMesh(color, name = "") {
+            const group = new THREE.Group();
+            
+            // Body (cylinder)
+            const bodyMat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.3, metalness: 0.1 });
+            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 1.2, 16), bodyMat);
+            body.position.y = 0.6;
+            body.castShadow = true;
+            body.receiveShadow = true;
+            group.add(body);
+            
+            // Head (sphere)
+            const headMat = new THREE.MeshStandardMaterial({ color: 0xffccaa, roughness: 0.2 });
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.45, 16, 16), headMat);
+            head.position.y = 1.25;
+            head.castShadow = true;
+            group.add(head);
+            
+            // Eyes
+            const eyeMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+            const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), eyeMat);
+            leftEye.position.set(-0.18, 1.35, 0.45);
+            group.add(leftEye);
+            
+            const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 8), eyeMat);
+            rightEye.position.set(0.18, 1.35, 0.45);
+            group.add(rightEye);
+            
+            const pupilMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
+            const leftPupil = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), pupilMat);
+            leftPupil.position.set(-0.18, 1.33, 0.52);
+            group.add(leftPupil);
+            
+            const rightPupil = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 8), pupilMat);
+            rightPupil.position.set(0.18, 1.33, 0.52);
+            group.add(rightPupil);
+            
+            // Name tag (floating above head)
+            if (name) {
+                const canvas = document.createElement('canvas');
+                canvas.width = 256;
+                canvas.height = 64;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.font = 'Bold 20px Arial';
+                ctx.fillStyle = '#ffffff';
+                ctx.textAlign = 'center';
+                ctx.fillText(name, canvas.width/2, canvas.height/2 + 8);
+                
+                const texture = new THREE.CanvasTexture(canvas);
+                const nameMat = new THREE.MeshStandardMaterial({ map: texture, transparent: true });
+                const namePlate = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.4), nameMat);
+                namePlate.position.y = 1.75;
+                namePlate.rotation.x = 0;
+                group.add(namePlate);
+                group.userData.namePlate = namePlate;
+                group.userData.nameTexture = texture;
+            }
+            
+            return group;
+        }
+        
+        // ==================== UPDATE NAME TAG ====================
+        function updateNameTag(mesh, name) {
+            if (mesh.userData.namePlate && mesh.userData.nameTexture) {
+                const canvas = mesh.userData.nameTexture.image;
+                const ctx = canvas.getContext('2d');
+                ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.font = 'Bold 20px Arial';
+                ctx.fillStyle = '#ffffff';
+                ctx.textAlign = 'center';
+                ctx.fillText(name, canvas.width/2, canvas.height/2 + 8);
+                mesh.userData.nameTexture.needsUpdate = true;
+            }
+        }
+        
+        // ==================== SUPABASE MULTIPLAYER FUNCTIONS ====================
+        async function createSession(sessionId, playerName) {
+            const { data, error } = await supabase
+                .from('sessions')
+                .insert({ 
+                    id: sessionId,
+                    name: `Game Session`,
+                    host: currentPlayerId,
+                    players: [currentPlayerId]
+                })
+                .select()
+                .single();
+            
+            if (error) {
+                console.error('Error creating session:', error);
+                return null;
+            }
+            return data;
+        }
+        
+        async function joinSession(sessionId, playerName) {
+            const { data: session, error } = await supabase
+                .from('sessions')
+                .select('*')
+                .eq('id', sessionId)
+                .single();
+            
+            if (error || !session) {
+                console.error('Session not found:', error);
+                return null;
+            }
+            
+            const { error: updateError } = await supabase
+                .from('sessions')
+                .update({ players: [...session.players, currentPlayerId] })
+                .eq('id', sessionId);
+            
+            if (updateError) {
+                console.error('Error joining session:', updateError);
+                return null;
+            }
+            
+            return session;
+        }
+        
+        async function syncPlayerPosition() {
+            if (!currentSessionId || !currentPlayerId || !currentPlayer) return;
+            
+            const position = {
+                x: currentPlayer.position.x,
+                y: currentPlayer.position.y,
+                z: currentPlayer.position.z,
+                rotation: currentPlayer.rotation.y
+            };
+            
+            await supabase
+                .from('players')
+                .upsert({
+                    session_id: currentSessionId,
+                    player_id: currentPlayerId,
+                    name: currentPlayerName,
+                    data: position,
+                    last_updated: new Date().toISOString()
+                }, { onConflict: 'session_id, player_id' });
+        }
+        
+        async function listenForPlayers() {
+            if (!currentSessionId) return;
+            
+            const subscription = supabase
+                .channel(`players:${currentSessionId}`)
+                .on('postgres_changes', {
+                    event: '*',
+                    schema: 'public',
+                    table: 'players',
+                    filter: `session_id=eq.${currentSessionId}`
+                }, (payload) => {
+                    const { new: newPlayer, old: oldPlayer, eventType } = payload;
+                    const playerId = newPlayer?.player_id || oldPlayer?.player_id;
+                    
+                    if (playerId === currentPlayerId) return;
+                    
+                    if (eventType === 'INSERT' || eventType === 'UPDATE') {
+                        if (!otherPlayers.has(playerId)) {
+                            // Create new player mesh
+                            const color = playerColors[Math.abs(playerId.charCodeAt(0) % playerColors.length)];
+                            const playerMesh = createPlayerMesh(color, newPlayer.name);
+                            playerMesh.userData.playerId = playerId;
+                            scene.add(playerMesh);
+                            otherPlayers.set(playerId, { mesh: playerMesh, name: newPlayer.name, lastPosition: null });
+                            updatePlayerCount();
+                            console.log(`Player ${newPlayer.name} joined`);
+                        }
+                        
+                        const playerData = otherPlayers.get(playerId);
+                        if (playerData && newPlayer?.data) {
+                            const pos = newPlayer.data;
+                            // Smooth interpolation
+                            if (playerData.lastPosition) {
+                                playerData.mesh.position.lerp(new THREE.Vector3(pos.x, pos.y, pos.z), 0.3);
+                            } else {
+                                playerData.mesh.position.set(pos.x, pos.y, pos.z);
+                            }
+                            playerData.mesh.rotation.y = pos.rotation || 0;
+                            playerData.lastPosition = { x: pos.x, y: pos.y, z: pos.z };
+                            
+                            // Update name if changed
+                            if (playerData.name !== newPlayer.name) {
+                                playerData.name = newPlayer.name;
+                                updateNameTag(playerData.mesh, newPlayer.name);
+                            }
+                        }
+                    } else if (eventType === 'DELETE') {
+                        const playerData = otherPlayers.get(playerId);
+                        if (playerData) {
+                            scene.remove(playerData.mesh);
+                            otherPlayers.delete(playerId);
+                            updatePlayerCount();
+                            console.log(`Player ${playerData.name} left`);
+                        }
+                    }
+                })
+                .subscribe();
+            
+            return subscription;
+        }
+        
+        async function cleanupSession() {
+            if (!currentSessionId || !currentPlayerId) return;
+            
+            // Remove player from session
+            await supabase
+                .from('players')
+                .delete()
+                .eq('session_id', currentSessionId)
+                .eq('player_id', currentPlayerId);
+            
+            // Get session and update player list
+            const { data: session } = await supabase
+                .from('sessions')
+                .select('players')
+                .eq('id', currentSessionId)
+                .single();
+            
+            if (session) {
+                const newPlayers = session.players.filter(pid => pid !== currentPlayerId);
+                await supabase
+                    .from('sessions')
+                    .update({ players: newPlayers })
+                    .eq('id', currentSessionId);
+            }
+        }
+        
+        function updatePlayerCount() {
+            const count = otherPlayers.size + 1;
+            document.getElementById('player-count-number').textContent = count;
+        }
+        
+        // ==================== GAME LOOP & MOVEMENT ====================
+        function handleMovement(deltaTime) {
+            if (!currentPlayer) return;
+            
+            const move = new THREE.Vector3();
+            if (keys.w) move.z -= 1;
+            if (keys.s) move.z += 1;
+            if (keys.a) move.x -= 1;
+            if (keys.d) move.x += 1;
+            
+            if (move.length() > 0) {
+                move.normalize();
+            }
+            
+            // Move relative to camera direction
+            const forward = new THREE.Vector3(-Math.sin(camera.rotation.y), 0, -Math.cos(camera.rotation.y));
+            const right = new THREE.Vector3(Math.cos(camera.rotation.y), 0, -Math.sin(camera.rotation.y));
+            
+            let newX = currentPlayer.position.x + (move.x * right.x + move.z * forward.x) * moveSpeed * deltaTime;
+            let newZ = currentPlayer.position.z + (move.x * right.z + move.z * forward.z) * moveSpeed * deltaTime;
+            
+            // Boundaries
+            const boundary = 85;
+            newX = Math.max(-boundary, Math.min(boundary, newX));
+            newZ = Math.max(-boundary, Math.min(boundary, newZ));
+            
+            currentPlayer.position.x = newX;
+            currentPlayer.position.z = newZ;
+            
+            // Rotate player to face movement direction
+            if (move.x !== 0 || move.z !== 0) {
+                const angle = Math.atan2(move.x, move.z);
+                currentPlayer.rotation.y = angle;
+            }
+        }
+        
+        // ==================== SETUP GAME ====================
+        async function startGame(sessionId, playerName) {
+            // Generate unique player ID
+            currentPlayerId = 'player_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+            currentPlayerName = playerName;
+            
+            // Create or join session
+            let session;
+            if (sessionId) {
+                session = await joinSession(sessionId, playerName);
+                if (!session) {
+                    document.getElementById('session-status').textContent = '❌ Session not found! Creating new one...';
+                    sessionId = 'session_' + Date.now();
+                    session = await createSession(sessionId, playerName);
+                }
+            } else {
+                sessionId = 'session_' + Date.now();
+                session = await createSession(sessionId, playerName);
+            }
+            
+            if (!session) {
+                document.getElementById('session-status').textContent = '❌ Failed to create/join session';
+                return false;
+            }
+            
+            currentSessionId = sessionId;
+            
+            // Add current player to players table
+            await supabase
+                .from('players')
+                .insert({
+                    session_id: currentSessionId,
+                    player_id: currentPlayerId,
+                    name: playerName,
+                    data: { x: 0, y: 0, z: 0, rotation: 0 },
+                    last_updated: new Date().toISOString()
+                });
+            
+            // Create player mesh
+            const playerColor = playerColors[Math.abs(currentPlayerId.charCodeAt(0) % playerColors.length)];
+            currentPlayer = createPlayerMesh(playerColor, playerName);
+            currentPlayer.position.set(0, 0, 0);
+            scene.add(currentPlayer);
+            
+            // Position camera above player
+            camera.position.set(0, 5, 8);
+            camera.lookAt(currentPlayer.position);
+            
+            // Start listening for other players
+            await listenForPlayers();
+            
+            // Hide session panel
+            document.getElementById('session-panel').classList.add('hidden');
+            
+            document.getElementById('session-status').textContent = `✅ Connected to session: ${sessionId.substring(0, 8)}...`;
+            setTimeout(() => {
+                document.getElementById('session-status').style.opacity = '0';
+            }, 3000);
+            
+            updatePlayerCount();
+            
+            // Start position sync interval
+            setInterval(() => {
+                syncPlayerPosition();
+            }, 100);
+            
+            return true;
+        }
+        
+        // ==================== EVENT LISTENERS ====================
+        function setupEventListeners() {
+            // Keyboard
+            window.addEventListener('keydown', (e) => {
+                const key = e.key.toLowerCase();
+                if (key === 'w') keys.w = true;
+                if (key === 's') keys.s = true;
+                if (key === 'a') keys.a = true;
+                if (key === 'd') keys.d = true;
+                if (key === 'escape') {
+                    document.exitPointerLock();
+                    pointerLocked = false;
+                }
+            });
+            
+            window.addEventListener('keyup', (e) => {
+                const key = e.key.toLowerCase();
+                if (key === 'w') keys.w = false;
+                if (key === 's') keys.s = false;
+                if (key === 'a') keys.a = false;
+                if (key === 'd') keys.d = false;
+            });
+            
+            // Mouse look
+            renderer.domElement.addEventListener('click', () => {
+                renderer.domElement.requestPointerLock();
+            });
+            
+            document.addEventListener('pointerlockchange', () => {
+                pointerLocked = document.pointerLockElement === renderer.domElement;
+                if (pointerLocked) {
+                    document.addEventListener('mousemove', onMouseMove);
+                } else {
+                    document.removeEventListener('mousemove', onMouseMove);
+                }
+            });
+            
+            function onMouseMove(e) {
+                if (!pointerLocked) return;
+                mouseX += e.movementX * 0.002;
+                mouseY += e.movementY * 0.002;
+                mouseY = Math.max(-Math.PI / 3, Math.min(Math.PI / 3, mouseY));
+                camera.rotation.order = 'YXZ';
+                camera.rotation.y = mouseX;
+                camera.rotation.x = mouseY;
+            }
+            
+            // UI Buttons
+            document.getElementById('join-btn').addEventListener('click', async () => {
+                const playerName = document.getElementById('player-name').value || 'Player';
+                const sessionId = document.getElementById('session-id').value || '';
+                document.getElementById('session-status').textContent = 'Connecting...';
+                await startGame(sessionId, playerName);
+            });
+        }
+        
+        // ==================== ANIMATION LOOP ====================
+        let lastTime = performance.now();
+        
+        function animate() {
+            const now = performance.now();
+            let deltaTime = Math.min(0.033, (now - lastTime) / 1000);
+            lastTime = now;
+            
+            handleMovement(deltaTime);
+            
+            // Update camera to follow player
+            if (currentPlayer && !pointerLocked) {
+                camera.position.lerp(new THREE.Vector3(
+                    currentPlayer.position.x,
+                    5,
+                    currentPlayer.position.z + 8
+                ), 0.1);
+                camera.lookAt(currentPlayer.position);
+            } else if (currentPlayer && pointerLocked) {
+                camera.position.copy(currentPlayer.position);
+                camera.position.y += 1.2;
+            }
+            
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
+        
+        // ==================== INITIALIZE ====================
+        function init() {
+            console.log('Initializing game...');
+            initWorld();
+            setupEventListeners();
+            animate();
+            console.log('Game ready!');
+        }
+        
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => {
+            cleanupSession();
+        });
+        
+        // Start the game
+        init();
+    </script>
+</body>
+</html>
