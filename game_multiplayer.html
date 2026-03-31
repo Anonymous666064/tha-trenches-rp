@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>3D World - Multiplayer with Vehicles</title>
+    <title>3D Multiplayer - Vehicles with Passengers</title>
     <style>
         * {
             margin: 0;
@@ -45,12 +45,6 @@
             font-size: 12px;
             font-family: monospace;
             pointer-events: none;
-        }
-
-        #ui h2 {
-            font-size: 16px;
-            margin-bottom: 5px;
-            color: #00ff88;
         }
 
         #info-panel {
@@ -165,7 +159,6 @@
             text-align: center;
             pointer-events: auto;
             display: none;
-            box-shadow: 0 0 50px rgba(0,0,0,0.5);
         }
 
         #session-panel input {
@@ -198,7 +191,6 @@
             flex-direction: column;
             overflow: hidden;
             box-shadow: 0 25px 50px rgba(0,0,0,0.5);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
 
         .phone-notch {
@@ -275,7 +267,6 @@
             max-height: 80vh;
             overflow-y: auto;
             color: white;
-            font-family: monospace;
         }
 
         .dealership-menu h3 {
@@ -301,11 +292,6 @@
             border-radius: 8px;
             cursor: pointer;
             font-weight: bold;
-        }
-
-        .vehicle-card button:disabled {
-            background: #666;
-            cursor: not-allowed;
         }
 
         .close-menu {
@@ -337,6 +323,7 @@
             width: 140px;
             height: 140px;
             position: relative;
+            pointer-events: auto;
         }
 
         #joystick-base {
@@ -365,6 +352,7 @@
             display: flex;
             gap: 15px;
             align-items: flex-end;
+            pointer-events: auto;
         }
 
         .action-btn {
@@ -418,7 +406,6 @@
             display: none;
             text-align: center;
             z-index: 100;
-            font-family: monospace;
         }
 
         #vehicle-speed {
@@ -476,7 +463,7 @@
 <body>
     <div id="ui">
         <h2>🎮 3D MULTIPLAYER WITH VEHICLES</h2>
-        <p>Press O for Phone | Buy cars | Drive around with friends!</p>
+        <p>E - Enter/Exit Vehicle | O - Phone | Shift+E - Enter as Passenger</p>
     </div>
 
     <div id="info-panel">
@@ -486,6 +473,7 @@
         <div>🏃 Speed: <span id="speed">0</span></div>
         <div style="margin-top: 6px;">👥 Online: <span id="player-count">1</span></div>
         <div>💰 Money: <span id="money-display">∞</span></div>
+        <div id="role-display" style="color:#ffaa44;">Driver: No Vehicle</div>
     </div>
 
     <div id="vehicle-hud">
@@ -535,10 +523,6 @@
                 <div class="phone-app-icon">🏠</div>
                 <div class="phone-app-name">My Garage</div>
             </div>
-            <div class="phone-app" data-app="spawn">
-                <div class="phone-app-icon">🚙</div>
-                <div class="phone-app-name">Spawn Vehicle</div>
-            </div>
             <div class="phone-app" data-app="close">
                 <div class="phone-app-icon">❌</div>
                 <div class="phone-app-name">Close</div>
@@ -560,7 +544,7 @@
     </div>
     <div id="look-area"></div>
 
-    <div class="controls-indicator">💻 PC: WASD + Mouse | O - Phone | E - Enter/Exit Vehicle</div>
+    <div class="controls-indicator">💻 PC: WASD + Mouse | O - Phone | E - Enter/Exit | Shift+E - Enter as Passenger</div>
     <div id="device-mode">💻 PC Mode</div>
     <div id="notification"></div>
 
@@ -568,15 +552,13 @@
     <script type="importmap">
         {
             "imports": {
-                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js"
             }
         }
     </script>
 
     <script type="module">
         import * as THREE from 'three';
-        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
         // ==================== SUPABASE CONFIG ====================
         const SUPABASE_URL = 'https://hcvewiwhtxqpbogcrukk.supabase.co';
@@ -595,12 +577,13 @@
         // ==================== VEHICLE SYSTEM ====================
         let vehicles = [];
         let currentVehicle = null;
-        let isInVehicle = false;
+        let isDriver = false;
+        let isPassenger = false;
         let ownedVehicles = ["Sports Car", "Police Car", "SUV"];
         let vehicleModels = {
-            "Sports Car": { color: 0xff3333, speed: 15, handling: 0.9, modelUrl: null },
-            "Police Car": { color: 0x3366ff, speed: 12, handling: 0.85, modelUrl: null },
-            "SUV": { color: 0x44aa44, speed: 10, handling: 0.7, modelUrl: null }
+            "Sports Car": { color: 0xff3333, speed: 15, handling: 0.9 },
+            "Police Car": { color: 0x3366ff, speed: 12, handling: 0.85 },
+            "SUV": { color: 0x44aa44, speed: 10, handling: 0.7 }
         };
         
         let vehicleStats = { speed: 0, fuel: 100 };
@@ -608,8 +591,10 @@
         // Vehicle physics
         const ENGINE_FORCE = 1200;
         const BRAKE_FORCE = 800;
-        const STEERING_SPEED = 2.5;
         const MAX_STEER = 0.8;
+        
+        // Passenger offset (relative to vehicle)
+        const PASSENGER_OFFSET = { x: 0.8, z: -1.2 };
         
         // ==================== THREE.JS WORLD ====================
         let scene, camera, renderer;
@@ -645,6 +630,7 @@
         const vehicleNameEl = document.getElementById('vehicle-name');
         const vehicleSpeedEl = document.getElementById('vehicle-speed');
         const fuelDisplay = document.getElementById('fuel-display');
+        const roleDisplay = document.getElementById('role-display');
         
         // FPS counter
         let frameCount = 0;
@@ -654,17 +640,15 @@
         // Device detection
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         let touchLook = { active: false, lastX: 0, lastY: 0 };
+        let joystickVector = { x: 0, z: 0 };
         
-        // GLTF Loader
-        const gltfLoader = new GLTFLoader();
-        
-        // ==================== CREATE 3D WORLD ====================
+        // ==================== CREATE 3D WORLD (CLEAN) ====================
         function init3DWorld() {
             console.log("🎨 Creating 3D World...");
             
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x87CEEB);
-            scene.fog = new THREE.Fog(0x87CEEB, 150, 300);
+            scene.fog = new THREE.Fog(0x87CEEB, 200, 400);
             
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.copy(playerPosition);
@@ -674,7 +658,7 @@
             renderer.shadowMap.enabled = true;
             document.body.appendChild(renderer.domElement);
             
-            // Lighting
+            // Simple lighting
             const ambientLight = new THREE.AmbientLight(0x404060, 0.7);
             scene.add(ambientLight);
             
@@ -683,77 +667,39 @@
             sunLight.castShadow = true;
             scene.add(sunLight);
             
-            const fillLight = new THREE.PointLight(0x88aaff, 0.4);
-            fillLight.position.set(0, 15, 0);
-            scene.add(fillLight);
-            
-            // Ground
+            // Ground - plain green
             const groundMat = new THREE.MeshStandardMaterial({ color: 0x5c9e5c, roughness: 0.8 });
-            const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), groundMat);
+            const ground = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), groundMat);
             ground.rotation.x = -Math.PI / 2;
             ground.position.y = -0.5;
             ground.receiveShadow = true;
             scene.add(ground);
             
-            const gridHelper = new THREE.GridHelper(200, 40, 0x88aaff, 0x446688);
+            // Simple grid for reference
+            const gridHelper = new THREE.GridHelper(300, 30, 0x88aaff, 0x446688);
             gridHelper.position.y = -0.4;
             scene.add(gridHelper);
             
-            // Grass patches
-            const grassMat = new THREE.MeshStandardMaterial({ color: 0x6cae5a });
-            for (let i = 0; i < 500; i++) {
-                const x = (Math.random() - 0.5) * 180;
-                const z = (Math.random() - 0.5) * 180;
-                if (Math.abs(x) < 15 && Math.abs(z) < 15) continue;
-                const grass = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 0.2, 3), grassMat);
-                grass.position.set(x, -0.4, z);
-                grass.castShadow = false;
-                scene.add(grass);
-            }
-            
-            // Floating particles
-            const particleCount = 800;
-            const particleGeo = new THREE.BufferGeometry();
-            const particlePositions = new Float32Array(particleCount * 3);
-            for (let i = 0; i < particleCount; i++) {
-                particlePositions[i*3] = (Math.random() - 0.5) * 180;
-                particlePositions[i*3+1] = Math.random() * 12;
-                particlePositions[i*3+2] = (Math.random() - 0.5) * 180;
-            }
-            particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
-            const particleMat = new THREE.PointsMaterial({ color: 0xffdd99, size: 0.06 });
-            const particles = new THREE.Points(particleGeo, particleMat);
-            scene.add(particles);
-            
-            // Center marker
-            const markerMat = new THREE.MeshStandardMaterial({ color: 0xffaa44, emissive: 0x442200 });
-            const centerMarker = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), markerMat);
-            centerMarker.position.set(0, 0.5, 0);
-            scene.add(centerMarker);
-            
-            console.log("✅ 3D World created!");
+            console.log("✅ Clean 3D World created!");
         }
         
         // ==================== CREATE VEHICLE MODEL ====================
-        function createVehicleModel(type, x, z) {
+        function createVehicleModel(type, x, z, color = null) {
             const config = vehicleModels[type];
             const group = new THREE.Group();
             
-            // Body
-            const bodyMat = new THREE.MeshStandardMaterial({ color: config.color, roughness: 0.4, metalness: 0.6 });
+            const bodyMat = new THREE.MeshStandardMaterial({ color: color || config.color, roughness: 0.4, metalness: 0.6 });
             const body = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.5, 4.2), bodyMat);
             body.position.y = 0.35;
             body.castShadow = true;
             group.add(body);
             
-            // Roof
             const roofMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
             const roof = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.4, 2.2), roofMat);
             roof.position.y = 0.8;
             roof.castShadow = true;
             group.add(roof);
             
-            // Wheels
             const wheelMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8 });
             const wheelGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.3, 16);
             const wheelPositions = [[-0.8, 0.2, -1.5], [0.8, 0.2, -1.5], [-0.8, 0.2, 1.5], [0.8, 0.2, 1.5]];
@@ -765,15 +711,6 @@
                 group.add(wheel);
             });
             
-            // Lights
-            const lightMat = new THREE.MeshStandardMaterial({ color: 0xffaa66, emissive: 0xff4400 });
-            const headlight = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), lightMat);
-            headlight.position.set(0.6, 0.3, 2.1);
-            group.add(headlight);
-            const headlight2 = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), lightMat);
-            headlight2.position.set(-0.6, 0.3, 2.1);
-            group.add(headlight2);
-            
             group.position.set(x, 0, z);
             group.userData = {
                 type: type,
@@ -781,7 +718,9 @@
                 fuel: 100,
                 maxFuel: 100,
                 speed: config.speed,
-                handling: config.handling
+                handling: config.handling,
+                driver: null,
+                passenger: null
             };
             
             scene.add(group);
@@ -804,22 +743,6 @@
             head.position.y = 1.25;
             head.castShadow = true;
             group.add(head);
-            
-            const eyeMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-            const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 24, 24), eyeMat);
-            leftEye.position.set(-0.18, 1.38, 0.48);
-            group.add(leftEye);
-            const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 24, 24), eyeMat);
-            rightEye.position.set(0.18, 1.38, 0.48);
-            group.add(rightEye);
-            
-            const pupilMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
-            const leftPupil = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 16), pupilMat);
-            leftPupil.position.set(0, 0, 0.08);
-            leftEye.add(leftPupil);
-            const rightPupil = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 16), pupilMat);
-            rightPupil.position.set(0, 0, 0.08);
-            rightEye.add(rightPupil);
             
             if (isLocal) {
                 const crownMat = new THREE.MeshStandardMaterial({ color: 0xffaa44, emissive: 0x442200 });
@@ -863,16 +786,14 @@
             if (!vehicle.userData.velocity) vehicle.userData.velocity = new THREE.Vector3(0, 0, 0);
             
             const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(vehicle.quaternion);
-            const right = new THREE.Vector3(1, 0, 0).applyQuaternion(vehicle.quaternion);
             
             let throttle = 0;
-            if (accelerate && vehicle.userData.fuel > 0) throttle = 1;
-            if (brake) throttle = -0.5;
+            if (accelerate && vehicle.userData.fuel > 0 && isDriver) throttle = 1;
+            if (brake && isDriver) throttle = -0.5;
             
-            // Steering
             let steer = 0;
-            if (steerLeft) steer = 1;
-            if (steerRight) steer = -1;
+            if (steerLeft && isDriver) steer = 1;
+            if (steerRight && isDriver) steer = -1;
             currentSteer += (steer - currentSteer) * 0.1;
             
             const speed = vehicle.userData.velocity.length();
@@ -885,23 +806,20 @@
             vehicle.userData.velocity.x += forward.x * driveForce * delta / 800;
             vehicle.userData.velocity.z += forward.z * driveForce * delta / 800;
             
-            // Braking
-            if (brake && speed > 1) {
+            if (brake && speed > 1 && isDriver) {
                 const brakeForce = BRAKE_FORCE * delta / 800;
                 const brakeDir = vehicle.userData.velocity.clone().normalize();
                 vehicle.userData.velocity.x -= brakeDir.x * Math.min(brakeForce, Math.abs(vehicle.userData.velocity.x));
                 vehicle.userData.velocity.z -= brakeDir.z * Math.min(brakeForce, Math.abs(vehicle.userData.velocity.z));
             }
             
-            // Drag
             vehicle.userData.velocity.x *= 0.98;
             vehicle.userData.velocity.z *= 0.98;
             
             vehicle.position.x += vehicle.userData.velocity.x * delta;
             vehicle.position.z += vehicle.userData.velocity.z * delta;
             
-            // Fuel consumption
-            if (throttle > 0 && speed > 1) {
+            if (throttle > 0 && speed > 1 && isDriver) {
                 vehicle.userData.fuel -= 0.02 * delta * 30;
                 vehicle.userData.fuel = Math.max(0, vehicle.userData.fuel);
             }
@@ -909,67 +827,102 @@
             vehicleStats.speed = speed * 4.5;
             vehicleStats.fuel = (vehicle.userData.fuel / vehicle.userData.maxFuel) * 100;
             
-            // Update HUD
-            if (isInVehicle && currentVehicle === vehicle) {
+            if (isDriver && currentVehicle === vehicle) {
                 vehicleSpeedEl.textContent = Math.floor(vehicleStats.speed) + " MPH";
                 fuelDisplay.textContent = Math.floor(vehicleStats.fuel);
             }
             
-            // Boundaries
-            const bound = 95;
+            const bound = 140;
             vehicle.position.x = Math.max(-bound, Math.min(bound, vehicle.position.x));
             vehicle.position.z = Math.max(-bound, Math.min(bound, vehicle.position.z));
-            
-            // Ground height
             vehicle.position.y = -0.2;
         }
         
         // ==================== VEHICLE ENTRY/EXIT ====================
-        function enterNearestVehicle() {
+        function enterVehicle(asDriver = true) {
             let nearest = null;
             let nearestDist = Infinity;
-            const playerPos = isInVehicle ? currentVehicle.position : playerPosition;
             
             vehicles.forEach(v => {
-                const dist = Math.hypot(playerPos.x - v.position.x, playerPos.z - v.position.z);
+                const dist = Math.hypot(playerPosition.x - v.position.x, playerPosition.z - v.position.z);
                 if (dist < 3 && dist < nearestDist) {
                     nearestDist = dist;
                     nearest = v;
                 }
             });
             
-            if (nearest && !isInVehicle) {
-                isInVehicle = true;
+            if (!nearest) return;
+            
+            if (asDriver && !nearest.userData.driver) {
+                // Enter as driver
+                if (currentVehicle) exitVehicle();
+                isDriver = true;
+                isPassenger = false;
                 currentVehicle = nearest;
+                currentVehicle.userData.driver = myPlayerId;
                 localPlayerMesh.visible = false;
                 vehicleHud.style.display = 'block';
                 vehicleNameEl.textContent = currentVehicle.userData.type;
-                showNotification(`Entered ${currentVehicle.userData.type}`, '#4ae04a');
-                // Reset vehicle controls
-                accelerate = false;
-                brake = false;
-                steerLeft = false;
-                steerRight = false;
-                currentSteer = 0;
-            } else if (isInVehicle) {
-                isInVehicle = false;
-                playerPosition.copy(currentVehicle.position);
-                playerPosition.y += 1.5;
-                localPlayerMesh.position.copy(playerPosition);
-                localPlayerMesh.visible = true;
-                currentVehicle = null;
-                vehicleHud.style.display = 'none';
-                showNotification('Exited vehicle', '#ffaa00');
+                roleDisplay.innerHTML = `Driver: ${currentVehicle.userData.type}`;
+                showNotification(`Entered as DRIVER of ${currentVehicle.userData.type}`, '#4ae04a');
+            } else if (!asDriver && !nearest.userData.passenger && nearest.userData.driver) {
+                // Enter as passenger
+                if (currentVehicle) exitVehicle();
+                isDriver = false;
+                isPassenger = true;
+                currentVehicle = nearest;
+                currentVehicle.userData.passenger = myPlayerId;
+                localPlayerMesh.visible = false;
+                roleDisplay.innerHTML = `Passenger: ${currentVehicle.userData.type}`;
+                showNotification(`Entered as PASSENGER in ${currentVehicle.userData.type}`, '#88ff88');
+            } else if (asDriver && nearest.userData.driver === myPlayerId) {
+                // Already driving this vehicle
+                showNotification(`Already driving this vehicle`, '#ffaa00');
+            } else if (!asDriver && nearest.userData.passenger === myPlayerId) {
+                showNotification(`Already a passenger in this vehicle`, '#ffaa00');
+            } else if (asDriver && nearest.userData.driver) {
+                showNotification(`Vehicle already has a driver! Try entering as passenger (Shift+E)`, '#ffaa00');
+            } else if (!asDriver && !nearest.userData.driver) {
+                showNotification(`No driver! Enter as driver first (E)`, '#ffaa00');
             }
+        }
+        
+        function exitVehicle() {
+            if (!currentVehicle) return;
+            
+            // Clear vehicle occupant
+            if (isDriver) currentVehicle.userData.driver = null;
+            if (isPassenger) currentVehicle.userData.passenger = null;
+            
+            // Position player next to vehicle
+            playerPosition.copy(currentVehicle.position);
+            playerPosition.x += 2;
+            playerPosition.z += 2;
+            playerPosition.y = 1.6;
+            localPlayerMesh.position.copy(playerPosition);
+            localPlayerMesh.visible = true;
+            
+            currentVehicle = null;
+            isDriver = false;
+            isPassenger = false;
+            vehicleHud.style.display = 'none';
+            roleDisplay.innerHTML = 'Driver: No Vehicle';
+            showNotification('Exited vehicle', '#ffaa00');
+            
+            // Reset controls
+            accelerate = false;
+            brake = false;
+            steerLeft = false;
+            steerRight = false;
+            currentSteer = 0;
         }
         
         // ==================== VEHICLE SPAWNING ====================
         function spawnVehicle(type) {
             const spawnX = playerPosition.x + Math.sin(cameraAngleY) * 5;
             const spawnZ = playerPosition.z + Math.cos(cameraAngleY) * 5;
-            const vehicle = createVehicleModel(type, spawnX, spawnZ);
-            showNotification(`Spawned ${type}! Press E to enter`, '#4ae04a');
-            return vehicle;
+            createVehicleModel(type, spawnX, spawnZ);
+            showNotification(`Spawned ${type}!`, '#4ae04a');
         }
         
         // ==================== MULTIPLAYER FUNCTIONS ====================
@@ -984,14 +937,9 @@
                 .select('session_code')
                 .eq('session_code', code);
             
-            if (existing && existing.length > 0) {
-                throw new Error('Code already taken!');
-            }
+            if (existing && existing.length > 0) throw new Error('Code already taken!');
             
-            const { error } = await supabase
-                .from('game_sessions')
-                .insert({ session_code: code });
-            
+            const { error } = await supabase.from('game_sessions').insert({ session_code: code });
             if (error) throw error;
             return code;
         }
@@ -1011,30 +959,27 @@
             myPlayerId = 'p_' + Math.random().toString(36).substring(2, 12);
             isHost = isHostPlayer;
             
-            const startX = (Math.random() - 0.5) * 40;
-            const startZ = (Math.random() - 0.5) * 40;
+            const startX = (Math.random() - 0.5) * 60;
+            const startZ = (Math.random() - 0.5) * 60;
             playerPosition.set(startX, 1.6, startZ);
             
             localPlayerMesh = createPlayerModel(0x66ff88, null, true);
             localPlayerMesh.position.copy(playerPosition);
             scene.add(localPlayerMesh);
             
-            const { error } = await supabase
-                .from('players')
-                .insert({
-                    player_id: myPlayerId,
-                    session_id: sessionCode,
-                    pos_x: startX,
-                    pos_z: startZ,
-                    last_seen: new Date()
-                });
+            const { error } = await supabase.from('players').insert({
+                player_id: myPlayerId,
+                session_id: sessionCode,
+                pos_x: startX,
+                pos_z: startZ,
+                last_seen: new Date()
+            });
             
             if (error) throw error;
             
             await loadPlayersInSession(sessionCode);
             subscribeToSession(sessionCode);
             
-            if (heartbeatInterval) clearInterval(heartbeatInterval);
             heartbeatInterval = setInterval(() => sendHeartbeat(), 2000);
             
             updatePlayersUI();
@@ -1043,11 +988,7 @@
         }
         
         async function loadPlayersInSession(sessionCode) {
-            const { data, error } = await supabase
-                .from('players')
-                .select('*')
-                .eq('session_id', sessionCode);
-            
+            const { data, error } = await supabase.from('players').select('*').eq('session_id', sessionCode);
             if (error) return;
             
             for (let p of data) {
@@ -1063,9 +1004,7 @@
         }
         
         function subscribeToSession(sessionCode) {
-            if (subscription) {
-                supabase.removeChannel(subscription);
-            }
+            if (subscription) supabase.removeChannel(subscription);
             
             subscription = supabase
                 .channel(`game:${sessionCode}`)
@@ -1075,7 +1014,7 @@
                     table: 'players',
                     filter: `session_id=eq.${sessionCode}`
                 }, (payload) => {
-                    if (payload.eventType === 'INSERT' && payload.new.player_id !== myPlayerId && scene) {
+                    if (payload.eventType === 'INSERT' && payload.new.player_id !== myPlayerId) {
                         const playerModel = createPlayerModel(0xff8844, payload.new.player_id, false);
                         playerModel.position.set(payload.new.pos_x, 0.7, payload.new.pos_z);
                         scene.add(playerModel);
@@ -1093,7 +1032,7 @@
                     }
                     else if (payload.eventType === 'DELETE' && payload.old.player_id !== myPlayerId) {
                         const playerModel = multiplayerPlayers.get(payload.old.player_id);
-                        if (playerModel && scene) {
+                        if (playerModel) {
                             scene.remove(playerModel);
                             multiplayerPlayers.delete(payload.old.player_id);
                             updatePlayersUI();
@@ -1108,55 +1047,36 @@
         async function sendHeartbeat() {
             if (!currentSession || !myPlayerId) return;
             
-            const pos = isInVehicle && currentVehicle ? currentVehicle.position : playerPosition;
+            let pos;
+            if (isDriver || isPassenger) {
+                pos = currentVehicle.position;
+            } else {
+                pos = playerPosition;
+            }
             
             try {
-                await supabase
-                    .from('players')
-                    .update({
-                        pos_x: pos.x,
-                        pos_z: pos.z,
-                        last_seen: new Date()
-                    })
-                    .eq('player_id', myPlayerId);
-            } catch (e) {
-                console.warn('Heartbeat failed:', e);
-            }
+                await supabase.from('players').update({
+                    pos_x: pos.x,
+                    pos_z: pos.z,
+                    last_seen: new Date()
+                }).eq('player_id', myPlayerId);
+            } catch (e) {}
         }
         
         async function leaveGameSession() {
-            if (heartbeatInterval) {
-                clearInterval(heartbeatInterval);
-                heartbeatInterval = null;
-            }
+            if (heartbeatInterval) clearInterval(heartbeatInterval);
+            if (myPlayerId) await supabase.from('players').delete().eq('player_id', myPlayerId);
+            if (isHost && currentSession) await supabase.from('game_sessions').delete().eq('session_code', currentSession);
+            if (subscription) supabase.removeChannel(subscription);
             
-            if (myPlayerId) {
-                await supabase.from('players').delete().eq('player_id', myPlayerId);
-            }
-            
-            if (isHost && currentSession) {
-                await supabase.from('game_sessions').delete().eq('session_code', currentSession);
-            }
-            
-            if (subscription) {
-                supabase.removeChannel(subscription);
-                subscription = null;
-            }
-            
-            for (let [id, model] of multiplayerPlayers) {
-                if (scene) scene.remove(model);
-            }
+            for (let [id, model] of multiplayerPlayers) scene.remove(model);
             multiplayerPlayers.clear();
-            
-            if (localPlayerMesh && scene) {
-                scene.remove(localPlayerMesh);
-                localPlayerMesh = null;
-            }
+            if (localPlayerMesh) scene.remove(localPlayerMesh);
+            localPlayerMesh = null;
             
             currentSession = null;
             myPlayerId = null;
             isHost = false;
-            
             updatePlayersUI();
             updatePlayerCount();
             document.getElementById('session-code-display').innerHTML = '';
@@ -1166,12 +1086,10 @@
         function updatePlayersUI() {
             const container = document.getElementById('players-list');
             if (!container) return;
-            
             if (!myPlayerId) {
                 container.innerHTML = '<div style="color:#888;">Not in a game</div>';
                 return;
             }
-            
             let html = `<div class="player-entry local">👑 YOU (${isHost ? 'Host' : 'Player'})</div>`;
             for (let [id] of multiplayerPlayers) {
                 html += `<div class="player-entry">🎮 ${id.slice(0, 8)}</div>`;
@@ -1180,9 +1098,7 @@
         }
         
         function updatePlayerCount() {
-            if (playerCountEl) {
-                playerCountEl.textContent = 1 + multiplayerPlayers.size;
-            }
+            if (playerCountEl) playerCountEl.textContent = 1 + multiplayerPlayers.size;
         }
         
         function showNotification(msg, color) {
@@ -1198,17 +1114,31 @@
         function updateMovement(deltaTime) {
             if (!localPlayerMesh) return;
             
-            if (isInVehicle && currentVehicle) {
-                updateVehiclePhysics(currentVehicle, deltaTime);
-                camera.position.copy(currentVehicle.position);
-                camera.position.y += 1.2;
-                camera.rotation.order = 'YXZ';
-                camera.rotation.y = cameraAngleY;
-                camera.rotation.x = cameraAngleX;
+            if (isDriver || isPassenger) {
+                if (currentVehicle) {
+                    updateVehiclePhysics(currentVehicle, deltaTime);
+                    
+                    if (isDriver) {
+                        camera.position.copy(currentVehicle.position);
+                        camera.position.y += 1.2;
+                    } else {
+                        // Passenger position - fixed offset relative to vehicle
+                        const vehiclePos = currentVehicle.position;
+                        const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(currentVehicle.quaternion);
+                        const right = new THREE.Vector3(1, 0, 0).applyQuaternion(currentVehicle.quaternion);
+                        camera.position.x = vehiclePos.x + right.x * PASSENGER_OFFSET.x + forward.x * PASSENGER_OFFSET.z;
+                        camera.position.z = vehiclePos.z + right.z * PASSENGER_OFFSET.x + forward.z * PASSENGER_OFFSET.z;
+                        camera.position.y = vehiclePos.y + 1.0;
+                    }
+                    
+                    camera.rotation.order = 'YXZ';
+                    camera.rotation.y = cameraAngleY;
+                    camera.rotation.x = cameraAngleX;
+                }
                 return;
             }
             
-            const speed = isSprinting ? SPRINT_SPEED : WALK_SPEED;
+            // Walking movement
             let moveX = 0, moveZ = 0;
             
             if (moveForward) moveZ -= 1;
@@ -1222,6 +1152,7 @@
                 moveZ /= len;
             }
             
+            const speed = isSprinting ? SPRINT_SPEED : WALK_SPEED;
             const forward = new THREE.Vector3(Math.sin(cameraAngleY), 0, Math.cos(cameraAngleY));
             const right = new THREE.Vector3(Math.cos(cameraAngleY), 0, -Math.sin(cameraAngleY));
             
@@ -1250,12 +1181,11 @@
                 isJumping = false;
             }
             
-            const bound = 95;
+            const bound = 140;
             playerPosition.x = Math.max(-bound, Math.min(bound, playerPosition.x));
             playerPosition.z = Math.max(-bound, Math.min(bound, playerPosition.z));
             
             localPlayerMesh.position.copy(playerPosition);
-            
             camera.position.copy(playerPosition);
             camera.rotation.order = 'YXZ';
             camera.rotation.y = cameraAngleY;
@@ -1278,7 +1208,6 @@
             const now = performance.now();
             const delta = now - lastTime;
             frameCount++;
-            
             if (delta >= 1000) {
                 fps = frameCount;
                 fpsEl.textContent = fps;
@@ -1301,10 +1230,7 @@
                 <div style="color:#ffaa44; margin-bottom:10px;">💰 INFINITE MONEY - Free Cars!</div>
                 ${Object.keys(vehicleModels).map(type => `
                     <div class="vehicle-card">
-                        <div>
-                            <strong>${type}</strong><br>
-                            Speed: ${vehicleModels[type].speed*10} MPH | Handling: ${vehicleModels[type].handling*100}%
-                        </div>
+                        <div><strong>${type}</strong><br>Speed: ${vehicleModels[type].speed*10} MPH</div>
                         <button onclick="window.buyVehicle('${type}')">BUY (FREE)</button>
                     </div>
                 `).join('')}
@@ -1345,27 +1271,6 @@
             };
         }
         
-        function showSpawnMenu() {
-            const menu = document.createElement('div');
-            menu.className = 'dealership-menu';
-            menu.innerHTML = `
-                <h3>🚙 SPAWN VEHICLE</h3>
-                ${Object.keys(vehicleModels).map(type => `
-                    <div class="vehicle-card">
-                        <div><strong>${type}</strong></div>
-                        <button onclick="window.spawnAnyVehicle('${type}')">SPAWN</button>
-                    </div>
-                `).join('')}
-                <button class="close-menu" onclick="this.parentElement.remove()">CLOSE</button>
-            `;
-            document.body.appendChild(menu);
-            
-            window.spawnAnyVehicle = (type) => {
-                spawnVehicle(type);
-                menu.remove();
-            };
-        }
-        
         // ==================== CONTROLS ====================
         function initPCControls() {
             window.addEventListener('keydown', (e) => {
@@ -1373,8 +1278,7 @@
                 
                 const key = e.code;
                 
-                // Player controls
-                if (!isInVehicle) {
+                if (!isDriver && !isPassenger) {
                     switch(key) {
                         case 'KeyW': moveForward = true; e.preventDefault(); break;
                         case 'KeyS': moveBack = true; e.preventDefault(); break;
@@ -1383,8 +1287,7 @@
                         case 'ShiftLeft': case 'ShiftRight': isSprinting = true; e.preventDefault(); break;
                         case 'Space': if (isOnGround && !isJumping) isJumping = true; e.preventDefault(); break;
                     }
-                } else {
-                    // Vehicle controls
+                } else if (isDriver) {
                     switch(key) {
                         case 'KeyW': accelerate = true; e.preventDefault(); break;
                         case 'KeyS': brake = true; e.preventDefault(); break;
@@ -1393,17 +1296,19 @@
                     }
                 }
                 
-                // Common controls
                 switch(key) {
-                    case 'KeyE': enterNearestVehicle(); e.preventDefault(); break;
+                    case 'KeyE': 
+                        if (e.shiftKey) enterVehicle(false);
+                        else enterVehicle(true);
+                        e.preventDefault(); 
+                        break;
                     case 'KeyO': togglePhone(); e.preventDefault(); break;
                 }
             });
             
             window.addEventListener('keyup', (e) => {
                 const key = e.code;
-                
-                if (!isInVehicle) {
+                if (!isDriver && !isPassenger) {
                     switch(key) {
                         case 'KeyW': moveForward = false; break;
                         case 'KeyS': moveBack = false; break;
@@ -1411,7 +1316,7 @@
                         case 'KeyD': moveRight = false; break;
                         case 'ShiftLeft': case 'ShiftRight': isSprinting = false; break;
                     }
-                } else {
+                } else if (isDriver) {
                     switch(key) {
                         case 'KeyW': accelerate = false; break;
                         case 'KeyS': brake = false; break;
@@ -1457,55 +1362,56 @@
             lookArea.style.display = 'block';
             
             let joystickActive = false;
-            const maxDist = 40;
+            const maxDist = 45;
             
-            function getJoystickPosition(touchX, touchY) {
+            function updateMovementFromJoystick(dx, dy, distance) {
+                const strength = Math.min(1, distance / maxDist);
+                if (strength < 0.1) {
+                    moveForward = moveBack = moveLeft = moveRight = false;
+                    return;
+                }
+                
+                const angle = Math.atan2(dy, dx);
+                const forwardInput = Math.cos(angle);
+                const rightInput = Math.sin(angle);
+                
+                moveForward = forwardInput < -0.3;
+                moveBack = forwardInput > 0.3;
+                moveLeft = rightInput < -0.3;
+                moveRight = rightInput > 0.3;
+            }
+            
+            function handleTouchMove(e) {
+                if (!joystickActive) return;
                 const rect = joystickArea.getBoundingClientRect();
                 const centerX = rect.left + rect.width / 2;
                 const centerY = rect.top + rect.height / 2;
-                let dx = touchX - centerX;
-                let dy = touchY - centerY;
-                const distance = Math.hypot(dx, dy);
-                if (distance > maxDist) { dx = dx * maxDist / distance; dy = dy * maxDist / distance; }
-                return { x: dx, y: dy, distance: Math.min(distance, maxDist) };
-            }
-            
-            function updateJoystickVisual(x, y) { joystickThumb.style.transform = `translate(${x}px, ${y}px)`; }
-            
-            function updateMovementFromJoystick(dx, dy, distance) {
-                const angle = Math.atan2(dy, dx);
-                const strength = distance / maxDist;
-                moveForward = moveBack = moveLeft = moveRight = false;
-                if (strength > 0.1) {
-                    const forwardInput = Math.cos(angle);
-                    const rightInput = Math.sin(angle);
-                    if (forwardInput < -0.3) moveForward = true;
-                    if (forwardInput > 0.3) moveBack = true;
-                    if (rightInput > 0.3) moveRight = true;
-                    if (rightInput < -0.3) moveLeft = true;
+                let dx = e.touches[0].clientX - centerX;
+                let dy = e.touches[0].clientY - centerY;
+                const distance = Math.min(maxDist, Math.hypot(dx, dy));
+                if (distance > 0) {
+                    dx = dx * maxDist / Math.hypot(dx, dy);
+                    dy = dy * maxDist / Math.hypot(dx, dy);
                 }
+                joystickThumb.style.transform = `translate(${dx}px, ${dy}px)`;
+                updateMovementFromJoystick(dx, dy, distance);
             }
             
             joystickArea.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 joystickActive = true;
-                const pos = getJoystickPosition(e.touches[0].clientX, e.touches[0].clientY);
-                updateJoystickVisual(pos.x, pos.y);
-                updateMovementFromJoystick(pos.x, pos.y, pos.distance);
+                handleTouchMove(e);
             });
             
             joystickArea.addEventListener('touchmove', (e) => {
                 e.preventDefault();
-                if (!joystickActive) return;
-                const pos = getJoystickPosition(e.touches[0].clientX, e.touches[0].clientY);
-                updateJoystickVisual(pos.x, pos.y);
-                updateMovementFromJoystick(pos.x, pos.y, pos.distance);
+                handleTouchMove(e);
             });
             
             joystickArea.addEventListener('touchend', (e) => {
                 e.preventDefault();
                 joystickActive = false;
-                updateJoystickVisual(0, 0);
+                joystickThumb.style.transform = `translate(0px, 0px)`;
                 moveForward = moveBack = moveLeft = moveRight = false;
             });
             
@@ -1550,14 +1456,14 @@
             const codeInput = document.getElementById('session-code-input');
             
             document.getElementById('host-game-btn')?.addEventListener('click', () => {
-                if (currentSession) { showNotification('Already in a session! Leave first.', '#ff5555'); return; }
+                if (currentSession) { showNotification('Already in a session!', '#ff5555'); return; }
                 sessionPanel.style.display = 'block';
                 document.getElementById('session-title').textContent = '🎮 Create Game Session';
                 codeInput.focus();
             });
             
             document.getElementById('join-game-btn')?.addEventListener('click', () => {
-                if (currentSession) { showNotification('Already in a session! Leave first.', '#ff5555'); return; }
+                if (currentSession) { showNotification('Already in a session!', '#ff5555'); return; }
                 sessionPanel.style.display = 'block';
                 document.getElementById('session-title').textContent = '🔗 Join Game Session';
                 codeInput.focus();
@@ -1608,8 +1514,6 @@
                     document.getElementById('phone-ui').style.display = 'none';
                     if (appName === 'dealership') showDealership();
                     else if (appName === 'garage') showGarage();
-                    else if (appName === 'spawn') showSpawnMenu();
-                    else if (appName === 'close') document.getElementById('phone-ui').style.display = 'none';
                 });
             });
         }
@@ -1637,9 +1541,6 @@
             updateMovement(deltaTime);
             updateFPS();
             
-            const particles = scene.children.find(c => c.isPoints);
-            if (particles) particles.rotation.y += 0.002;
-            
             renderer.render(scene, camera);
             requestAnimationFrame(animate);
         }
@@ -1652,15 +1553,15 @@
             addMultiplayerEventListeners();
             initPhoneApps();
             
-            // Spawn a few test vehicles
+            // Spawn some test vehicles
             setTimeout(() => {
-                createVehicleModel("Sports Car", 15, 10);
-                createVehicleModel("Police Car", -15, 10);
-                createVehicleModel("SUV", 0, -15);
+                createVehicleModel("Sports Car", 20, 15, 0xff3333);
+                createVehicleModel("Police Car", -20, 15, 0x3366ff);
+                createVehicleModel("SUV", 0, -20, 0x44aa44);
             }, 1000);
             
             animate();
-            console.log("✅ Game ready! Press O for phone, buy cars, drive with friends!");
+            console.log("✅ Game ready! Press O for phone, E to drive, Shift+E to ride as passenger!");
         }
         
         init();
