@@ -73,7 +73,7 @@
             padding: 15px;
             border-radius: 15px;
             border: 2px solid #4ec9e0;
-            min-width: 200px;
+            min-width: 220px;
             z-index: 200;
             font-size: 12px;
         }
@@ -102,27 +102,137 @@
         
         /* UI Elements */
         #info, #money-ui, #weed-inventory, #vehicle-hud, #camera-mode-indicator, 
-        .controls-panel, #coords-ui, #vitals-ui, #ammo-ui, #minimap-wrap, 
-        #callout-panel, #police-question-panel, #dispatch-panel, #blunt-indicator {
+        .controls-panel, #coords-ui, #vitals-ui, #blunt-indicator {
             z-index: 100;
         }
         
-        #info { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 20px; font-size: 12px; z-index: 100; }
-        #money-ui { position: absolute; top: 20px; right: 220px; background: rgba(0,0,0,0.6); padding: 8px 20px; border-radius: 30px; font-size: 1.3rem; font-weight: bold; color: #ffd700; z-index: 100; }
-        #weed-inventory { position: absolute; bottom: 100px; left: 20px; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 20px; font-size: 0.9rem; z-index: 100; }
-        #vehicle-hud { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); border: 2px solid #4ec9e0; border-radius: 20px; padding: 12px 25px; display: none; min-width: 380px; text-align: center; z-index: 100; }
+        #info { 
+            position: absolute; 
+            top: 20px; 
+            left: 20px; 
+            background: rgba(0,0,0,0.7); 
+            padding: 8px 15px; 
+            border-radius: 20px; 
+            font-size: 12px; 
+            z-index: 100;
+            font-family: monospace;
+        }
+        
+        #money-ui { 
+            position: absolute; 
+            top: 20px; 
+            right: 260px; 
+            background: rgba(0,0,0,0.7); 
+            padding: 8px 20px; 
+            border-radius: 30px; 
+            font-size: 1.3rem; 
+            font-weight: bold; 
+            color: #ffd700; 
+            z-index: 100; 
+        }
+        
+        #weed-inventory { 
+            position: absolute; 
+            bottom: 100px; 
+            left: 20px; 
+            background: rgba(0,0,0,0.7); 
+            padding: 8px 15px; 
+            border-radius: 20px; 
+            font-size: 0.9rem; 
+            z-index: 100; 
+        }
+        
+        #vehicle-hud { 
+            position: absolute; 
+            bottom: 30px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+            background: rgba(0,0,0,0.85); 
+            border: 2px solid #4ec9e0; 
+            border-radius: 20px; 
+            padding: 12px 25px; 
+            display: none; 
+            min-width: 380px; 
+            text-align: center; 
+            z-index: 100; 
+        }
+        
         .speedometer { font-size: 2.5rem; font-weight: bold; color: #ffaa00; }
-        .controls-panel { position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.5); padding: 8px 12px; border-radius: 12px; font-size: 10px; z-index: 100; }
+        
+        .controls-panel { 
+            position: absolute; 
+            bottom: 20px; 
+            left: 20px; 
+            background: rgba(0,0,0,0.6); 
+            padding: 8px 12px; 
+            border-radius: 12px; 
+            font-size: 10px; 
+            z-index: 100; 
+        }
+        
         .controls-panel span { color: #ffaa00; }
-        #camera-mode-indicator { position: absolute; bottom: 100px; right: 20px; background: rgba(0,0,0,0.6); padding: 5px 12px; border-radius: 20px; font-size: 11px; z-index: 100; }
         
-        #blunt-indicator { position: absolute; bottom: 150px; right: 30px; background: rgba(0,0,0,0.8); border-radius: 30px; padding: 12px 20px; display: none; align-items: center; gap: 10px; z-index: 200; border: 2px solid #ffaa00; }
-        #high-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; display: none; background: radial-gradient(circle, rgba(0,255,0,0.1) 0%, rgba(0,100,0,0.3) 100%); animation: highPulse 0.5s infinite alternate; }
-        @keyframes highPulse { 0% { opacity: 0.3; } 100% { opacity: 0.6; } }
+        #camera-mode-indicator { 
+            position: absolute; 
+            bottom: 100px; 
+            right: 20px; 
+            background: rgba(0,0,0,0.6); 
+            padding: 5px 12px; 
+            border-radius: 20px; 
+            font-size: 11px; 
+            z-index: 100; 
+        }
         
-        .dealership-menu { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); border-radius: 30px; padding: 25px; border: 3px solid #ffaa00; z-index: 5000; min-width: 350px; max-width: 90vw; max-height: 80vh; overflow-y: auto; color: white; }
+        #blunt-indicator { 
+            position: absolute; 
+            bottom: 150px; 
+            right: 30px; 
+            background: rgba(0,0,0,0.8); 
+            border-radius: 30px; 
+            padding: 12px 20px; 
+            display: none; 
+            align-items: center; 
+            gap: 10px; 
+            z-index: 200; 
+            border: 2px solid #ffaa00; 
+        }
         
-        #inventory-panel, #phone-ui, #house-purchase-ui, #pump-ui, #shop-ui, #session-panel {
+        #high-overlay { 
+            position: fixed; 
+            top: 0; 
+            left: 0; 
+            width: 100%; 
+            height: 100%; 
+            pointer-events: none; 
+            z-index: 999; 
+            display: none; 
+            background: radial-gradient(circle, rgba(0,255,0,0.1) 0%, rgba(0,100,0,0.3) 100%); 
+            animation: highPulse 0.5s infinite alternate; 
+        }
+        
+        @keyframes highPulse { 
+            0% { opacity: 0.3; } 
+            100% { opacity: 0.6; } 
+        }
+        
+        .dealership-menu { 
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            background: rgba(0,0,0,0.95); 
+            border-radius: 30px; 
+            padding: 25px; 
+            border: 3px solid #ffaa00; 
+            z-index: 5000; 
+            min-width: 350px; 
+            max-width: 90vw; 
+            max-height: 80vh; 
+            overflow-y: auto; 
+            color: white; 
+        }
+        
+        #inventory-panel, #session-panel {
             z-index: 5000;
             position: fixed;
             background: rgba(0,0,0,0.95);
@@ -131,11 +241,18 @@
             border: 2px solid #4ec9e0;
         }
         
+        #inventory-panel {
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            min-width: 400px;
+        }
+        
         #session-panel {
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            min-width: 300px;
+            min-width: 320px;
             text-align: center;
         }
         
@@ -147,6 +264,8 @@
             background: #1a2a3a;
             color: white;
             width: 100%;
+            text-align: center;
+            font-size: 18px;
         }
         
         #session-panel button {
@@ -156,6 +275,7 @@
             border: none;
             border-radius: 10px;
             cursor: pointer;
+            font-weight: bold;
         }
         
         #crosshair {
@@ -188,24 +308,42 @@
             white-space: nowrap;
         }
         
+        .inventory-slots-container {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin: 15px 0;
+        }
+        
         .inventory-slot {
             display: inline-block;
             width: 80px;
             padding: 10px;
-            margin: 5px;
             background: rgba(30,50,70,0.8);
             border-radius: 10px;
             text-align: center;
             cursor: pointer;
+            transition: all 0.2s;
         }
         
         .inventory-slot.selected {
             border: 2px solid #ffaa00;
             background: rgba(78,201,224,0.5);
+            transform: scale(1.05);
         }
         
         .slot-icon { font-size: 2rem; }
-        .slot-name { font-size: 0.7rem; }
+        .slot-name { font-size: 0.7rem; margin-top: 5px; }
+        .slot-count { font-size: 0.6rem; color: #ffaa00; margin-top: 3px; }
+        
+        button {
+            cursor: pointer;
+        }
+        
+        button:hover {
+            opacity: 0.9;
+            transform: scale(1.02);
+        }
     </style>
 </head>
 <body>
@@ -221,18 +359,19 @@
     
     <div id="multiplayer-panel">
         <h4>👥 MULTIPLAYER</h4>
-        <button id="host-game-btn" style="width:100%; margin-bottom:10px; padding:5px;">🎮 HOST GAME</button>
-        <button id="join-game-btn" style="width:100%; margin-bottom:10px; padding:5px;">🔗 JOIN GAME</button>
-        <div id="session-code-display" style="font-size:10px; color:#ffaa00; text-align:center;"></div>
+        <button id="host-game-btn" style="width:100%; margin-bottom:8px; padding:8px;">🎮 HOST GAME</button>
+        <button id="join-game-btn" style="width:100%; margin-bottom:8px; padding:8px;">🔗 JOIN GAME</button>
+        <button id="leave-game-btn" style="width:100%; margin-bottom:8px; padding:8px; background:#ff4444;">🚪 LEAVE GAME</button>
+        <div id="session-code-display" style="font-size:11px; color:#ffaa00; text-align:center; margin-top:8px;"></div>
         <hr style="margin:10px 0;">
         <div id="players-list">
-            <div style="color:#888;">No players connected</div>
+            <div style="color:#888;">Not in a game</div>
         </div>
     </div>
     
     <div id="session-panel" style="display: none;">
         <h3 id="session-title">Create Game Session</h3>
-        <input type="text" id="session-code-input" placeholder="Enter 6-digit code" maxlength="6">
+        <input type="text" id="session-code-input" placeholder="Enter 6-digit code" maxlength="6" style="text-transform:uppercase">
         <div>
             <button id="session-create-btn">CREATE</button>
             <button id="session-join-btn">JOIN</button>
@@ -259,14 +398,14 @@
     <div id="blunt-indicator"><span>🚬</span><span>Hold F to smoke blunt</span></div>
     <div id="high-overlay"></div>
     
-    <div id="inventory-panel" style="display: none; top:50%; left:50%; transform:translate(-50%,-50%); min-width:400px;">
+    <div id="inventory-panel" style="display: none;">
         <h3>🎒 INVENTORY</h3>
-        <div id="inventory-slots" style="display:flex; gap:10px; flex-wrap:wrap; margin:15px 0;"></div>
+        <div id="inventory-slots" class="inventory-slots-container"></div>
         <div id="item-info" style="margin:10px 0; padding:10px; background:rgba(0,0,0,0.5); border-radius:10px;">
             <div id="selected-item-name">Select an item</div>
-            <button id="use-item-btn" style="margin-top:10px; padding:5px 15px;">USE ITEM</button>
+            <button id="use-item-btn" style="margin-top:10px; padding:8px 20px;">USE ITEM</button>
         </div>
-        <button id="close-inventory" style="width:100%; padding:8px;">CLOSE</button>
+        <button id="close-inventory" style="width:100%; padding:10px;">CLOSE</button>
     </div>
     
     <div id="notification"></div>
@@ -283,10 +422,21 @@
     <script type="module">
         import * as THREE from 'three';
         
+        console.log("🚀 Game starting...");
+        
         // ==================== SUPABASE CONFIGURATION ====================
         const SUPABASE_URL = 'https://hcvewiwhtxqpbogcrukk.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjdmV3aXdodHhxcGJvZ2NydWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTQ4MzMsImV4cCI6MjA5MDQ3MDgzM30.UsdvDyrGl4OhmbDjonyOagknHf--Zhe-fhCi0LFVoQw';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // ==================== THREE.JS WORLD ====================
+        let scene, camera, renderer;
+        let localPlayerMesh = null;
+        let remotePlayerMeshes = new Map();
+        
+        // World objects
+        let trees = [];
+        let buildings = [];
         
         // ==================== MULTIPLAYER STATE ====================
         let currentSession = null;
@@ -297,24 +447,15 @@
         let heartbeatInterval = null;
         let lastPositionUpdate = 0;
         
-        // ==================== THREE.JS WORLD ====================
-        let scene, camera, renderer;
-        let localPlayerMesh = null;
-        let remotePlayerMeshes = new Map();
-        let vehicles = [];
-        let trees = [];
-        let cityBuildings = [];
-        let houses = [];
-        
-        // Player movement
+        // ==================== PLAYER MOVEMENT ====================
         let keys = { w: false, s: false, a: false, d: false };
         let cameraAngle = 0, cameraPitch = 0;
         let cameraMode = 'tpv';
         let playerVelocityY = 0;
         let isOnGround = true;
         
-        // Game data
-        let gameData = { money: 10000, bank: 2500, ownedVehicles: [], ownedHouses: [], friends: [] };
+        // ==================== GAME DATA ====================
+        let gameData = { money: 10000, bank: 2500 };
         let inventory = {
             slots: [
                 { name: "Weed", icon: "🌿", count: 5, type: "weed" },
@@ -325,14 +466,13 @@
             selectedSlot: 0
         };
         
-        let playerStats = { health: 100, stamina: 100, hunger: 100, thirst: 100, dead: false };
         let isSmoking = false, highEffectActive = false, highEffectTimer = 0;
         let isHoldingF = false, holdTimer = 0;
         
         // Constants
-        const PLAYER_SPEED = 8;
+        const PLAYER_SPEED = 7;
         const GRAVITY = 20;
-        const WORLD_BOUNDS = 280;
+        const WORLD_BOUNDS = 250;
         
         // UI Elements
         const ui = {
@@ -346,24 +486,23 @@
             highOverlay: document.getElementById('high-overlay')
         };
         
-        // ==================== THREE.JS WORLD INITIALIZATION ====================
-        function init3DWorld() {
-            console.log("🎨 Initializing 3D World...");
+        // ==================== 3D WORLD CREATION ====================
+        function create3DWorld() {
+            console.log("🎨 Creating 3D World...");
             
-            // Create scene with sky blue background
+            // Create scene with bright sky
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x87CEEB);
-            scene.fog = new THREE.Fog(0x87CEEB, 100, 300);
+            scene.fog = new THREE.Fog(0x87CEEB, 150, 300);
             
             // Create camera
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 500);
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
             camera.position.set(0, 8, 15);
             
             // Create renderer
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.shadowMap.enabled = true;
-            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             document.body.appendChild(renderer.domElement);
             
             console.log("✅ Renderer created");
@@ -375,33 +514,33 @@
             const sunLight = new THREE.DirectionalLight(0xfff5e6, 1.2);
             sunLight.position.set(50, 100, 30);
             sunLight.castShadow = true;
-            sunLight.receiveShadow = false;
             scene.add(sunLight);
             
-            const fillLight = new THREE.PointLight(0x4466ff, 0.3);
-            fillLight.position.set(0, 20, 0);
-            scene.add(fillLight);
+            const backLight = new THREE.PointLight(0x4466ff, 0.4);
+            backLight.position.set(0, 20, -30);
+            scene.add(backLight);
             
-            // Ground plane
+            // Ground
             const groundMat = new THREE.MeshStandardMaterial({ color: 0x5c9e5c, roughness: 0.8 });
-            const ground = new THREE.Mesh(new THREE.PlaneGeometry(800, 800), groundMat);
+            const ground = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), groundMat);
             ground.rotation.x = -Math.PI / 2;
             ground.position.y = -0.5;
             ground.receiveShadow = true;
             scene.add(ground);
             
             // Grid helper
-            const gridHelper = new THREE.GridHelper(800, 40, 0x88aaff, 0x446688);
+            const gridHelper = new THREE.GridHelper(600, 30, 0x88aaff, 0x446688);
             gridHelper.position.y = -0.4;
             scene.add(gridHelper);
             
-            // Create trees in a circle
+            // Trees - make a forest
             const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
             const leafMat = new THREE.MeshStandardMaterial({ color: 0x4caf50 });
             
-            for (let i = 0; i < 200; i++) {
-                const angle = (i / 200) * Math.PI * 2;
-                const radius = 250;
+            // Circle of trees around the edge
+            for (let i = 0; i < 120; i++) {
+                const angle = (i / 120) * Math.PI * 2;
+                const radius = 260;
                 const x = Math.cos(angle) * radius;
                 const z = Math.sin(angle) * radius;
                 
@@ -417,8 +556,8 @@
                 trees.push(trunk, leaves);
             }
             
-            // Scattered trees inside
-            for (let i = 0; i < 150; i++) {
+            // Random trees inside
+            for (let i = 0; i < 200; i++) {
                 const x = (Math.random() - 0.5) * 500;
                 const z = (Math.random() - 0.5) * 500;
                 if (Math.abs(x) < 100 && Math.abs(z) < 100) continue;
@@ -435,58 +574,82 @@
                 trees.push(trunk, leaves);
             }
             
-            // Create buildings in a city layout
-            const buildingColors = [0xaa8866, 0xccaa88, 0x88aacc, 0x99bb99];
-            for (let x = -200; x <= 200; x += 50) {
-                for (let z = -200; z <= 200; z += 50) {
-                    if (Math.abs(x) < 60 && Math.abs(z) < 60) continue;
-                    const width = 8 + Math.random() * 6;
-                    const depth = 8 + Math.random() * 6;
-                    const height = 10 + Math.random() * 15;
-                    const color = buildingColors[Math.floor(Math.random() * buildingColors.length)];
-                    const buildingMat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.5 });
-                    const building = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), buildingMat);
-                    building.position.set(x + (Math.random() - 0.5) * 20, height / 2, z + (Math.random() - 0.5) * 20);
-                    building.castShadow = true;
-                    building.receiveShadow = true;
-                    scene.add(building);
-                    cityBuildings.push(building);
-                }
+            // Buildings
+            const buildingColors = [0xaa8866, 0xccaa88, 0x88aacc, 0x99bb99, 0xcc8866];
+            for (let i = 0; i < 80; i++) {
+                const x = (Math.random() - 0.5) * 400;
+                const z = (Math.random() - 0.5) * 400;
+                if (Math.abs(x) < 80 && Math.abs(z) < 80) continue;
+                
+                const width = 6 + Math.random() * 8;
+                const depth = 6 + Math.random() * 8;
+                const height = 8 + Math.random() * 15;
+                const color = buildingColors[Math.floor(Math.random() * buildingColors.length)];
+                const buildingMat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.5 });
+                const building = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), buildingMat);
+                building.position.set(x, height / 2, z);
+                building.castShadow = true;
+                building.receiveShadow = true;
+                scene.add(building);
+                buildings.push(building);
             }
             
-            // Create roads
+            // Roads
             const roadMat = new THREE.MeshStandardMaterial({ color: 0x2a3a4a });
-            for (let x = -250; x <= 250; x += 80) {
-                const road = new THREE.Mesh(new THREE.BoxGeometry(14, 0.2, 550), roadMat);
+            for (let x = -200; x <= 200; x += 60) {
+                const road = new THREE.Mesh(new THREE.BoxGeometry(12, 0.2, 500), roadMat);
                 road.position.set(x, -0.3, 0);
                 road.receiveShadow = true;
                 scene.add(road);
             }
-            for (let z = -250; z <= 250; z += 80) {
-                const road = new THREE.Mesh(new THREE.BoxGeometry(550, 0.2, 14), roadMat);
+            for (let z = -200; z <= 200; z += 60) {
+                const road = new THREE.Mesh(new THREE.BoxGeometry(500, 0.2, 12), roadMat);
                 road.position.set(0, -0.3, z);
                 road.receiveShadow = true;
                 scene.add(road);
             }
             
-            // Add floating particles for atmosphere
-            const particleCount = 1500;
+            // Center platform
+            const platformMat = new THREE.MeshStandardMaterial({ color: 0xccaa88, metalness: 0.3 });
+            const platform = new THREE.Mesh(new THREE.BoxGeometry(30, 1, 30), platformMat);
+            platform.position.set(0, -0.2, 0);
+            platform.receiveShadow = true;
+            platform.castShadow = true;
+            scene.add(platform);
+            
+            // Decorative floating orbs
+            const orbColors = [0xff4444, 0xffaa44, 0x44ff44, 0x44aaff, 0xff44ff];
+            for (let i = 0; i < 150; i++) {
+                const color = orbColors[Math.floor(Math.random() * orbColors.length)];
+                const orbMat = new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 0.4 });
+                const orb = new THREE.Mesh(new THREE.SphereGeometry(0.2, 16, 16), orbMat);
+                const angle = Math.random() * Math.PI * 2;
+                const radius = 40 + Math.random() * 200;
+                orb.position.x = Math.cos(angle) * radius;
+                orb.position.z = Math.sin(angle) * radius;
+                orb.position.y = 1 + Math.random() * 12;
+                orb.castShadow = true;
+                scene.add(orb);
+            }
+            
+            // Floating particles
+            const particleCount = 2000;
             const particleGeo = new THREE.BufferGeometry();
             const particlePositions = new Float32Array(particleCount * 3);
             for (let i = 0; i < particleCount; i++) {
-                particlePositions[i*3] = (Math.random() - 0.5) * 600;
-                particlePositions[i*3+1] = Math.random() * 30;
-                particlePositions[i*3+2] = (Math.random() - 0.5) * 600;
+                particlePositions[i*3] = (Math.random() - 0.5) * 550;
+                particlePositions[i*3+1] = Math.random() * 35;
+                particlePositions[i*3+2] = (Math.random() - 0.5) * 550;
             }
             particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
-            const particleMat = new THREE.PointsMaterial({ color: 0xffaa88, size: 0.1 });
+            const particleMat = new THREE.PointsMaterial({ color: 0xffdd99, size: 0.08 });
             const particles = new THREE.Points(particleGeo, particleMat);
             scene.add(particles);
             
-            console.log("✅ 3D World fully built with", trees.length, "trees and", cityBuildings.length, "buildings");
+            console.log("✅ 3D World created with", trees.length, "trees and", buildings.length, "buildings");
         }
         
-        // Create player model for local and remote players
+        // Create player model
         function createPlayerModel(color, isLocal = false) {
             const group = new THREE.Group();
             
@@ -598,7 +761,7 @@
             
             // Create local player model
             localPlayerMesh = createPlayerModel(0x66ff88, true);
-            localPlayerMesh.position.set(startX, 0, startZ);
+            localPlayerMesh.position.set(startX, 0.7, startZ);
             scene.add(localPlayerMesh);
             
             // Load existing players
@@ -611,6 +774,7 @@
             if (heartbeatInterval) clearInterval(heartbeatInterval);
             heartbeatInterval = setInterval(() => sendHeartbeat(), 3000);
             
+            updatePlayersList();
             return true;
         }
         
@@ -625,7 +789,7 @@
             for (let p of data) {
                 if (p.player_id !== myPlayerId && !multiplayerPlayers.has(p.player_id)) {
                     const playerModel = createPlayerModel(0xff8844, false);
-                    playerModel.position.set(p.pos_x, 0, p.pos_z);
+                    playerModel.position.set(p.pos_x, 0.7, p.pos_z);
                     scene.add(playerModel);
                     multiplayerPlayers.set(p.player_id, playerModel);
                 }
@@ -648,7 +812,7 @@
                 }, (payload) => {
                     if (payload.eventType === 'INSERT' && payload.new.player_id !== myPlayerId) {
                         const playerModel = createPlayerModel(0xff8844, false);
-                        playerModel.position.set(payload.new.pos_x, 0, payload.new.pos_z);
+                        playerModel.position.set(payload.new.pos_x, 0.7, payload.new.pos_z);
                         scene.add(playerModel);
                         multiplayerPlayers.set(payload.new.player_id, playerModel);
                         updatePlayersList();
@@ -733,17 +897,17 @@
             const container = document.getElementById('players-list');
             if (!container) return;
             
-            if (multiplayerPlayers.size === 0 && !myPlayerId) {
-                container.innerHTML = '<div style="color:#888;">No players connected</div>';
+            if (!myPlayerId) {
+                container.innerHTML = '<div style="color:#888;">Not in a game</div>';
                 return;
             }
             
-            let html = '';
-            if (myPlayerId) {
-                html += `<div class="player-entry local">👑 YOU (Host: ${isHost})</div>`;
-            }
+            let html = `<div class="player-entry local">👑 YOU (${isHost ? 'Host' : 'Player'})</div>`;
             for (let [id] of multiplayerPlayers) {
-                html += `<div class="player-entry">🎮 Player ${id.slice(0, 6)}</div>`;
+                html += `<div class="player-entry">🎮 ${id.slice(0, 8)}</div>`;
+            }
+            if (multiplayerPlayers.size === 0) {
+                html += '<div style="color:#888;">Waiting for players...</div>';
             }
             container.innerHTML = html;
         }
@@ -839,12 +1003,10 @@
             if (!localPlayerMesh) return;
             
             const move = new THREE.Vector3();
-            if (!playerStats.dead) {
-                if (keys.w) move.z -= 1;
-                if (keys.s) move.z += 1;
-                if (keys.a) move.x -= 1;
-                if (keys.d) move.x += 1;
-            }
+            if (keys.w) move.z -= 1;
+            if (keys.s) move.z += 1;
+            if (keys.a) move.x -= 1;
+            if (keys.d) move.x += 1;
             
             const forwardDir = new THREE.Vector3(Math.sin(cameraAngle), 0, Math.cos(cameraAngle));
             const rightDir = new THREE.Vector3(Math.cos(cameraAngle), 0, -Math.sin(cameraAngle));
@@ -853,21 +1015,14 @@
             localPlayerMesh.position.x += (move.x * rightDir.x + move.z * forwardDir.x) * PLAYER_SPEED * delta;
             localPlayerMesh.position.z += (move.x * rightDir.z + move.z * forwardDir.z) * PLAYER_SPEED * delta;
             
-            // Gravity
-            playerVelocityY -= GRAVITY * delta;
-            localPlayerMesh.position.y += playerVelocityY * delta;
-            const groundY = getGroundHeight(localPlayerMesh.position.x, localPlayerMesh.position.z);
-            if (localPlayerMesh.position.y < groundY + 0.7) {
-                localPlayerMesh.position.y = groundY + 0.7;
-                playerVelocityY = 0;
-                isOnGround = true;
-            }
+            // Simple ground collision
+            localPlayerMesh.position.y = 0.7;
             
             // Boundaries
             localPlayerMesh.position.x = Math.max(-WORLD_BOUNDS, Math.min(WORLD_BOUNDS, localPlayerMesh.position.x));
             localPlayerMesh.position.z = Math.max(-WORLD_BOUNDS, Math.min(WORLD_BOUNDS, localPlayerMesh.position.z));
             
-            // Rotation
+            // Rotation based on movement
             if (move.lengthSq() > 0.05) {
                 const targetAngle = Math.atan2(move.x, -move.z) + cameraAngle;
                 localPlayerMesh.rotation.y = targetAngle;
@@ -891,11 +1046,11 @@
                 camera.rotation.y = cameraAngle;
                 camera.rotation.x = cameraPitch;
             } else {
-                const orbitX = localPlayerMesh.position.x + Math.sin(cameraAngle) * 7;
-                const orbitZ = localPlayerMesh.position.z + Math.cos(cameraAngle) * 7;
-                const orbitY = localPlayerMesh.position.y + 1.8 + cameraPitch * 1.5;
+                const orbitX = localPlayerMesh.position.x + Math.sin(cameraAngle) * 8;
+                const orbitZ = localPlayerMesh.position.z + Math.cos(cameraAngle) * 8;
+                const orbitY = localPlayerMesh.position.y + 2.2 + cameraPitch * 1.2;
                 camera.position.lerp(new THREE.Vector3(orbitX, orbitY, orbitZ), 0.15);
-                camera.lookAt(localPlayerMesh.position.clone().add(new THREE.Vector3(0, 0.8, 0)));
+                camera.lookAt(localPlayerMesh.position);
             }
         }
         
@@ -905,13 +1060,11 @@
         }
         
         // ==================== SESSION UI ====================
-        let sessionMode = null;
-        
         function showSessionPanel(mode) {
-            sessionMode = mode;
             const panel = document.getElementById('session-panel');
             const title = document.getElementById('session-title');
             title.textContent = mode === 'host' ? '🎮 Create Game Session' : '🔗 Join Game Session';
+            document.getElementById('session-code-input').value = '';
             panel.style.display = 'block';
         }
         
@@ -961,9 +1114,6 @@
             users[currentUser].gameData = {
                 money: gameData.money,
                 bank: gameData.bank,
-                ownedVehicles: gameData.ownedVehicles,
-                ownedHouses: gameData.ownedHouses,
-                friends: gameData.friends,
                 inventory: inventory
             };
             localStorage.setItem('gangTurfUsers', JSON.stringify(users));
@@ -974,9 +1124,6 @@
                 const d = users[username].gameData;
                 gameData.money = d.money || 10000;
                 gameData.bank = d.bank || 0;
-                gameData.ownedVehicles = d.ownedVehicles || [];
-                gameData.ownedHouses = d.ownedHouses || [];
-                gameData.friends = d.friends || [];
                 if (d.inventory) inventory = d.inventory;
                 updateInventoryUI();
                 updateMoneyDisplay();
@@ -1010,9 +1157,6 @@
                 gameData: {
                     money: 10000,
                     bank: 2500,
-                    friends: [],
-                    ownedVehicles: [],
-                    ownedHouses: [],
                     inventory: inventory
                 }
             };
@@ -1133,7 +1277,7 @@
             document.getElementById('use-item-btn')?.addEventListener('click', () => {
                 const item = inventory.slots[inventory.selectedSlot];
                 if (item?.type === "blunt") startSmoking();
-                else if (item?.type === "weed") showNotification("🌿 Need to roll into blunt at Weed Shop!", "#ffaa00");
+                else if (item?.type === "weed") showNotification("🌿 Need to roll into blunt!", "#ffaa00");
                 else showNotification("❌ Can't use that!", "#ff5555");
             });
             
@@ -1154,6 +1298,14 @@
                 showSessionPanel('join');
             });
             
+            document.getElementById('leave-game-btn')?.addEventListener('click', async () => {
+                if (currentSession) {
+                    await leaveGameSession();
+                } else {
+                    showNotification('Not in a game session', '#ffaa00');
+                }
+            });
+            
             document.getElementById('session-create-btn')?.addEventListener('click', startHostSession);
             document.getElementById('session-join-btn')?.addEventListener('click', startJoinSession);
             document.getElementById('session-cancel-btn')?.addEventListener('click', () => {
@@ -1165,8 +1317,8 @@
         function init() {
             console.log("🎮 Starting Gang Turf Wars Multiplayer...");
             
-            // Initialize 3D world
-            init3DWorld();
+            // Create 3D world first
+            create3DWorld();
             
             // Initialize event listeners
             initEventListeners();
@@ -1178,8 +1330,9 @@
             // Start animation
             animate();
             
-            console.log("✅ Game initialized! 3D world is ready!");
+            console.log("✅ Game initialized! 3D world is visible!");
             console.log("🎮 Multiplayer: Create or join a game session to play with friends!");
+            console.log("📍 Use WASD to move around the world!");
         }
         
         // Start the game
