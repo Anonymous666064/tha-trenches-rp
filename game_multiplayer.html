@@ -3,13 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>GANG TURF WARS - MULTIPLAYER | Drive with Friends</title>
+    <title>GANG TURF WARS - MULTIPLAYER | Real-time Multiplayer Game</title>
     <style>
-        /* Your original styles remain exactly the same */
-        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
-        body { font-family: -apple-system, 'Segoe UI', system-ui, sans-serif; overflow: hidden; background: #000; color: white; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
         
-        /* Auth Modal - same as original */
+        body {
+            font-family: -apple-system, 'Segoe UI', system-ui, sans-serif;
+            overflow: hidden;
+            background: #000;
+            color: white;
+        }
+        
+        /* Auth Modal */
         #auth-modal {
             position: fixed;
             top: 0;
@@ -35,19 +45,52 @@
         
         .auth-container h2 { text-align: center; color: #4ec9e0; margin-bottom: 25px; }
         .auth-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
-        .auth-tab { flex: 1; padding: 10px; background: rgba(30,50,70,0.8); border: none; color: white; cursor: pointer; border-radius: 10px; }
+        .auth-tab { flex: 1; padding: 10px; background: rgba(30,50,70,0.8); border: none; color: white; cursor: pointer; border-radius: 10px; transition: all 0.2s; }
         .auth-tab.active { background: #4ec9e0; color: #0a1a2a; }
         .auth-form { display: flex; flex-direction: column; gap: 15px; }
-        .auth-form input { padding: 12px 15px; background: rgba(0,0,0,0.5); border: 2px solid #4a8fe0; border-radius: 10px; color: white; }
-        .auth-form button { padding: 12px; background: #4ec9e0; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
-        .auth-message { text-align: center; margin-top: 15px; color: #ffaa00; }
+        .auth-form input { padding: 12px 15px; background: rgba(0,0,0,0.5); border: 2px solid #4a8fe0; border-radius: 10px; color: white; font-size: 16px; }
+        .auth-form input:focus { outline: none; border-color: #4ec9e0; }
+        .auth-form button { padding: 12px; background: #4ec9e0; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 16px; transition: all 0.2s; }
+        .auth-form button:hover { background: #5fd9f0; transform: scale(1.02); }
+        .auth-message { text-align: center; margin-top: 15px; color: #ffaa00; font-size: 14px; }
         
-        /* Player List UI */
+        /* Game UI */
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(5px);
+            padding: 8px 16px;
+            border-radius: 20px;
+            z-index: 100;
+            font-size: 12px;
+            font-family: monospace;
+            border-left: 3px solid #4ec9e0;
+            pointer-events: none;
+        }
+        
+        #money-ui {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(5px);
+            padding: 8px 20px;
+            border-radius: 30px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #ffd700;
+            z-index: 100;
+            font-family: monospace;
+            pointer-events: none;
+        }
+        
         #player-list {
             position: absolute;
             top: 80px;
             right: 20px;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.75);
             backdrop-filter: blur(10px);
             border-radius: 12px;
             padding: 10px 15px;
@@ -55,51 +98,154 @@
             z-index: 100;
             border: 1px solid #4ec9e0;
             font-size: 12px;
+            pointer-events: none;
         }
         
-        #player-list h4 { margin-bottom: 8px; color: #4ec9e0; }
+        #player-list h4 { margin-bottom: 8px; color: #4ec9e0; font-size: 12px; }
         .player-entry { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
-        .player-dot { width: 8px; height: 8px; border-radius: 50%; background: #4ae04a; }
-        .player-name { flex: 1; }
+        .player-dot { width: 8px; height: 8px; border-radius: 50%; background: #4ae04a; box-shadow: 0 0 4px #4ae04a; }
+        .player-name { flex: 1; font-size: 11px; }
         .player-status { font-size: 10px; color: #ffaa00; }
         
-        /* Vehicle passenger indicator */
-        #passenger-indicator {
+        #vehicle-hud {
             position: absolute;
-            bottom: 120px;
-            right: 20px;
-            background: rgba(0,0,0,0.8);
-            border-radius: 12px;
-            padding: 8px 15px;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(10px);
+            border: 2px solid #4ec9e0;
+            border-radius: 20px;
+            padding: 12px 25px;
             display: none;
-            border: 1px solid #ffaa00;
-            font-size: 12px;
+            min-width: 380px;
+            text-align: center;
+            z-index: 100;
+            font-family: monospace;
         }
         
-        /* All your original styles continue below */
-        #info { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 20px; z-index: 100; font-size: 12px; }
-        #money-ui { position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.6); padding: 8px 20px; border-radius: 30px; font-size: 1.3rem; font-weight: bold; color: #ffd700; z-index: 100; }
-        #weed-inventory { position: absolute; bottom: 100px; left: 20px; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 20px; font-size: 0.9rem; z-index: 100; }
-        #vehicle-hud { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); border: 2px solid #4ec9e0; border-radius: 20px; padding: 12px 25px; display: none; min-width: 380px; text-align: center; z-index: 100; }
-        .speedometer { font-size: 2.5rem; font-weight: bold; color: #ffaa00; }
-        .controls-panel { position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.5); padding: 8px 12px; border-radius: 12px; font-size: 10px; z-index: 100; }
-        #camera-mode-indicator { position: absolute; bottom: 100px; right: 20px; background: rgba(0,0,0,0.6); padding: 5px 12px; border-radius: 20px; font-size: 11px; z-index: 100; }
-        #notification { position: absolute; bottom: 40%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); border: 2px solid #4ae04a; border-radius: 30px; padding: 12px 25px; color: #4ae04a; font-weight: bold; z-index: 2000; display: none; white-space: nowrap; }
-        #blunt-indicator { position: absolute; bottom: 150px; right: 30px; background: rgba(0,0,0,0.8); border-radius: 30px; padding: 12px 20px; display: none; align-items: center; gap: 10px; z-index: 200; border: 2px solid #ffaa00; }
-        #high-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; display: none; background: radial-gradient(circle, rgba(0,255,0,0.1) 0%, rgba(0,100,0,0.3) 100%); animation: highPulse 0.5s infinite alternate; }
-        @keyframes highPulse { 0% { opacity: 0.3; } 100% { opacity: 0.6; } }
+        .speedometer { font-size: 2.5rem; font-weight: bold; color: #ffaa00; font-family: monospace; }
         
-        #inventory-panel, #phone-ui, #house-purchase-ui, .dealership-menu {
-            /* Keep original styles */
-            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            background: rgba(10,20,30,0.95); backdrop-filter: blur(20px); border-radius: 20px;
-            border: 3px solid #ffaa00; z-index: 3000; display: none; color: white; padding: 20px;
+        .controls-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(5px);
+            padding: 8px 12px;
+            border-radius: 12px;
+            font-size: 10px;
+            z-index: 100;
+            font-family: monospace;
+            pointer-events: none;
+        }
+        
+        .controls-panel span { color: #ffaa00; font-weight: bold; }
+        
+        #camera-mode-indicator {
+            position: absolute;
+            bottom: 100px;
+            right: 20px;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(5px);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            z-index: 100;
+            font-family: monospace;
+            pointer-events: none;
+        }
+        
+        #notification {
+            position: absolute;
+            bottom: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.9);
+            backdrop-filter: blur(10px);
+            border: 2px solid #4ae04a;
+            border-radius: 30px;
+            padding: 12px 25px;
+            color: #4ae04a;
+            font-weight: bold;
+            z-index: 2000;
+            display: none;
+            white-space: nowrap;
+            font-family: monospace;
+            pointer-events: none;
+        }
+        
+        #status {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.6);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-family: monospace;
+            pointer-events: none;
+            color: #ffaa44;
         }
         
         @media (max-width: 768px) {
             #player-list { top: 70px; right: 10px; min-width: 140px; font-size: 10px; }
-            #info, #money-ui, #weed-inventory { font-size: 10px; }
+            #info, #money-ui { font-size: 10px; }
             #vehicle-hud { min-width: 280px; }
+            .speedometer { font-size: 1.8rem; }
+        }
+        
+        #crosshair {
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 20px;
+            height: 20px;
+            border: 2px solid #00ff00;
+            border-radius: 50%;
+            display: none;
+            pointer-events: none;
+            z-index: 1000;
+            box-shadow: 0 0 10px rgba(0,255,0,0.5);
+        }
+        
+        #crosshair::before, #crosshair::after {
+            content: '';
+            position: absolute;
+            background: #00ff00;
+        }
+        
+        #crosshair::before {
+            top: -6px;
+            left: 50%;
+            width: 2px;
+            height: 6px;
+            transform: translateX(-50%);
+        }
+        
+        #crosshair::after {
+            bottom: -6px;
+            left: 50%;
+            width: 2px;
+            height: 6px;
+            transform: translateX(-50%);
+        }
+        
+        .crosshair-horizontal::before {
+            left: -6px;
+            top: 50%;
+            width: 6px;
+            height: 2px;
+            transform: translateY(-50%);
+        }
+        
+        .crosshair-horizontal::after {
+            right: -6px;
+            top: 50%;
+            width: 6px;
+            height: 2px;
+            transform: translateY(-50%);
         }
     </style>
 </head>
@@ -107,45 +253,51 @@
     <div id="auth-modal">
         <div class="auth-container">
             <h2>🔫 GANG TURF WARS - MULTIPLAYER</h2>
-            <div class="auth-tabs"><button class="auth-tab active" id="login-tab">LOGIN</button><button class="auth-tab" id="signup-tab">SIGN UP</button></div>
-            <div id="login-form" class="auth-form"><input type="text" id="login-username" placeholder="Username"><input type="password" id="login-password" placeholder="Password"><button id="login-btn">LOGIN</button></div>
-            <div id="signup-form" class="auth-form" style="display: none;"><input type="text" id="signup-username" placeholder="Username"><input type="email" id="signup-email" placeholder="Email"><input type="password" id="signup-password" placeholder="Password"><input type="password" id="signup-confirm" placeholder="Confirm Password"><button id="signup-btn">SIGN UP</button></div>
+            <div class="auth-tabs">
+                <button class="auth-tab active" id="login-tab">LOGIN</button>
+                <button class="auth-tab" id="signup-tab">SIGN UP</button>
+            </div>
+            <div id="login-form" class="auth-form">
+                <input type="email" id="login-email" placeholder="Email" autocomplete="email">
+                <input type="password" id="login-password" placeholder="Password" autocomplete="current-password">
+                <button id="login-btn">LOGIN</button>
+            </div>
+            <div id="signup-form" class="auth-form" style="display: none;">
+                <input type="text" id="signup-username" placeholder="Username" autocomplete="username">
+                <input type="email" id="signup-email" placeholder="Email" autocomplete="email">
+                <input type="password" id="signup-password" placeholder="Password" autocomplete="new-password">
+                <input type="password" id="signup-confirm" placeholder="Confirm Password">
+                <button id="signup-btn">SIGN UP</button>
+            </div>
             <div id="auth-message" class="auth-message"></div>
         </div>
     </div>
     
-    <div id="info">🌍 MULTIPLAYER GANG TURF WARS | WASD Drive | Mouse Look | E Enter/Exit Vehicle | TAB Inventory</div>
+    <div id="info">🌍 MULTIPLAYER GANG TURF WARS | WASD Move | Mouse Look | E Enter/Exit Vehicle</div>
     <div id="money-ui">💰 $10,000</div>
-    <div id="player-list"><h4>👥 Players Online</h4><div id="players-container">--</div></div>
-    <div id="passenger-indicator">🚗 Passenger Mode - You're riding along!</div>
-    <div id="weed-inventory">🌿 Weed: 0 | 🚬 Blunts: 0</div>
+    <div id="player-list">
+        <h4>👥 Players Online</h4>
+        <div id="players-container">--</div>
+    </div>
     <div id="vehicle-hud">
         <div style="display:flex;align-items:center;gap:10px;justify-content:center;flex-direction:column;">
             <div class="speedometer" id="speed-display">0</div>
             <div style="font-size:0.9rem;">MPH</div>
-            <div style="width:220px;height:10px;background:rgba(255,255,255,0.08);border-radius:6px;overflow:hidden;"><div id="speed-bar-fill" style="height:100%;width:0%;background:linear-gradient(90deg,#ffaa00,#ff4444);"></div></div>
+            <div style="width:220px;height:10px;background:rgba(255,255,255,0.08);border-radius:6px;overflow:hidden;">
+                <div id="speed-bar-fill" style="height:100%;width:0%;background:linear-gradient(90deg,#ffaa00,#ff4444);"></div>
+            </div>
         </div>
         <div style="margin-top:8px">🚗 <span id="vehicle-name">No Vehicle</span></div>
         <div style="margin-top:6px">⛽ Fuel: <span id="fuel-display">100</span>%</div>
-        <div id="police-light-indicator" style="color:#ff0000; display:none;">🚨 LIGHTS ACTIVE</div>
-        <div id="passenger-list" style="font-size:11px; margin-top:5px;"></div>
     </div>
     <div id="camera-mode-indicator">VIEW: TPV</div>
-    <div id="crosshair" style="position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 20px; height: 20px; border: 2px solid #00ff00; border-radius: 50%; display: none; pointer-events: none; z-index: 1000;"></div>
-    <div class="controls-panel"><span>WASD</span> - Move • <span>Mouse</span> - Look • <span>E</span> - Enter/Exit Vehicle<br><span>F</span> - Smoke Blunt • <span>Q</span> - Police Lights • <span>L</span> - Headlights • <span>Shift+E</span> - Pull Driver • <span>O</span> - Phone</div>
-    
-    <div id="blunt-indicator"><span>🚬</span><span>Hold F to smoke blunt</span></div>
-    <div id="high-overlay"></div>
+    <div id="crosshair"></div>
+    <div class="controls-panel">
+        <span>WASD</span> - Move • <span>Mouse</span> - Look • <span>E</span> - Enter/Exit Vehicle<br>
+        <span>V</span> - Toggle Camera • <span>TAB</span> - Inventory (Coming Soon)
+    </div>
     <div id="notification"></div>
-    
-    <!-- Inventory Panel (same as original) -->
-    <div id="inventory-panel"><div class="inventory-header"><span>🎒 INVENTORY</span><span>Selected: <span id="selected-slot">1</span>/4</span></div>
-    <div class="inventory-slots" id="inventory-slots">[slots]</div><div class="item-description"><h4>📦 Item Info</h4><p id="item-desc-text">Select an item</p><button class="use-item-btn" id="use-item-btn">USE ITEM</button></div>
-    <button class="close-inventory" id="close-inventory">CLOSE</button></div>
-    
-    <!-- Phone UI (simplified) -->
-    <div id="phone-ui"><div style="text-align:center;padding:20px"><h3>📱 GANG PHONE</h3><button id="phone-close">Close</button></div></div>
-    <div id="house-purchase-ui"><h2>🏠 PURCHASE PROPERTY</h2><div class="house-info" id="house-info"></div><button class="buy-house-btn" id="buy-house-btn">💰 PURCHASE</button><button class="close-house-btn" id="close-house-btn">CLOSE</button></div>
+    <div id="status">🟢 Connecting...</div>
 
     <script type="importmap">
         {
@@ -172,29 +324,42 @@
         // ==================== GAME STATE ====================
         let currentUser = null;
         let playerId = null;
-        let playerName = "";
+        let playerUsername = "";
         let scene, camera, renderer, labelRenderer;
         let playerMesh = null;
-        let remotePlayers = new Map(); // id -> { mesh, label, position, rotation, inVehicle, vehicleId }
-        let remoteVehicles = new Map(); // vehicleId -> { mesh, driverId, passengers }
+        let remotePlayers = new Map(); // id -> { mesh, label, username, x, z, y, rot, lastUpdate }
         let playerVehicle = null;
         let isInVehicle = false;
         let isDriver = false;
-        let isPassenger = false;
         let keys = {};
         let cameraAngle = 0, cameraPitch = 0;
         let cameraMode = 'tpv';
         let lastSendTime = 0;
-        let lastUpdateTime = 0;
         let sendInterval = 0.066; // ~15fps
         let moveSpeed = 7.0;
         let vehicleStats = { speed: 0, fuel: 100 };
+        let gameData = { money: 10000, bank: 2500 };
+        
+        // ==================== HELPER FUNCTIONS ====================
+        function showNotification(msg, color = '#4ae04a') {
+            const n = document.getElementById('notification');
+            n.style.borderColor = color;
+            n.style.color = color;
+            n.textContent = msg;
+            n.style.display = 'block';
+            setTimeout(() => n.style.display = 'none', 2000);
+        }
+        
+        function updateMoneyDisplay() {
+            const moneyEl = document.getElementById('money-ui');
+            if (moneyEl) moneyEl.textContent = `💰 $${gameData.money.toLocaleString()}`;
+        }
         
         // ==================== THREE.JS SETUP ====================
         function initThree() {
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x87CEEB);
-            scene.fog = new THREE.Fog(0x87CEEB, 40, 100);
+            scene.fog = new THREE.Fog(0x87CEEB, 80, 200);
             
             camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 500);
             camera.position.set(10, 8, 15);
@@ -212,36 +377,75 @@
             labelRenderer.domElement.style.pointerEvents = 'none';
             document.body.appendChild(labelRenderer.domElement);
             
-            // Simple ground
-            const groundMat = new THREE.MeshStandardMaterial({ color: 0x6c9e4a, roughness: 0.8 });
+            // Ground
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0x5c8c4a, roughness: 0.8 });
             const ground = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), groundMat);
             ground.rotation.x = -Math.PI / 2;
-            ground.position.y = -0.05;
+            ground.position.y = -0.1;
             ground.receiveShadow = true;
             scene.add(ground);
             
-            const grid = new THREE.GridHelper(420, 30, 0x88aa66, 0x446633);
-            grid.position.y = -0.02;
-            scene.add(grid);
+            // Grid helper
+            const gridHelper = new THREE.GridHelper(420, 30, 0x88aa66, 0x446633);
+            gridHelper.position.y = -0.05;
+            scene.add(gridHelper);
+            
+            // Simple buildings
+            const buildingMat = new THREE.MeshStandardMaterial({ color: 0xaa8866, roughness: 0.5 });
+            for (let i = -150; i <= 150; i += 50) {
+                for (let j = -150; j <= 150; j += 50) {
+                    if (Math.abs(i) < 30 && Math.abs(j) < 30) continue;
+                    const height = 2 + Math.random() * 4;
+                    const building = new THREE.Mesh(new THREE.BoxGeometry(8, height, 8), buildingMat);
+                    building.position.set(i, height / 2, j);
+                    building.castShadow = true;
+                    building.receiveShadow = true;
+                    scene.add(building);
+                }
+            }
+            
+            // Trees
+            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8B5A2B });
+            const foliageMat = new THREE.MeshStandardMaterial({ color: 0x4CAF50 });
+            for (let i = 0; i < 200; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const radius = 60 + Math.random() * 100;
+                const x = Math.cos(angle) * radius;
+                const z = Math.sin(angle) * radius;
+                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.5, 1.2, 6), trunkMat);
+                trunk.position.set(x, 0.6, z);
+                trunk.castShadow = true;
+                const foliage = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.2, 8), foliageMat);
+                foliage.position.set(x, 1.3, z);
+                foliage.castShadow = true;
+                scene.add(trunk);
+                scene.add(foliage);
+            }
             
             // Lighting
-            const ambient = new THREE.AmbientLight(0x404060, 0.6);
-            scene.add(ambient);
-            const sun = new THREE.DirectionalLight(0xfff5d1, 1.2);
-            sun.position.set(10, 20, 5);
-            sun.castShadow = true;
-            scene.add(sun);
+            const ambientLight = new THREE.AmbientLight(0x404060, 0.6);
+            scene.add(ambientLight);
             
-            return { scene, camera, renderer };
+            const sunLight = new THREE.DirectionalLight(0xfff5d1, 1.2);
+            sunLight.position.set(10, 20, 5);
+            sunLight.castShadow = true;
+            sunLight.receiveShadow = true;
+            sunLight.shadow.mapSize.width = 1024;
+            sunLight.shadow.mapSize.height = 1024;
+            scene.add(sunLight);
+            
+            const fillLight = new THREE.PointLight(0x4466cc, 0.3);
+            fillLight.position.set(0, 5, 0);
+            scene.add(fillLight);
         }
         
         // ==================== PLAYER MODEL ====================
-        function createPlayerModel(color = 0x44aaff) {
+        function createPlayerModel(color = 0x44aaff, username = "") {
             const group = new THREE.Group();
             
             // Body
             const bodyGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.9, 16);
-            const bodyMat = new THREE.MeshStandardMaterial({ color: color });
+            const bodyMat = new THREE.MeshStandardMaterial({ color: color, metalness: 0.2, roughness: 0.3 });
             const body = new THREE.Mesh(bodyGeo, bodyMat);
             body.castShadow = true;
             body.position.y = 0.45;
@@ -275,71 +479,49 @@
             group.add(hat);
             
             group.castShadow = true;
+            
+            // CSS2D Label
+            const labelDiv = document.createElement('div');
+            labelDiv.textContent = username;
+            labelDiv.style.cssText = 'color:#ffdd99; font-size:12px; font-weight:bold; background:rgba(0,0,0,0.6); padding:2px 10px; border-radius:20px; border:1px solid #ffaa66; font-family:monospace; white-space:nowrap;';
+            const label = new CSS2DObject(labelDiv);
+            label.position.set(0, 1.95, 0);
+            group.add(label);
+            
             return group;
         }
         
         function createVehicleModel(color = 0x44aaff, name = "Test Vehicle") {
             const group = new THREE.Group();
-            const body = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.5, 4.0), new THREE.MeshStandardMaterial({ color: color }));
+            
+            // Body
+            const body = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.5, 4.0), new THREE.MeshStandardMaterial({ color: color, metalness: 0.3, roughness: 0.4 }));
             body.position.y = 0.25;
+            body.castShadow = true;
             group.add(body);
+            
+            // Roof
             const roof = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.4, 2.0), new THREE.MeshStandardMaterial({ color: 0x333333 }));
             roof.position.y = 0.65;
+            roof.castShadow = true;
             group.add(roof);
+            
+            // Wheels
+            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.5 });
+            const positions = [[-0.7, 0.1, -1.2], [0.7, 0.1, -1.2], [-0.7, 0.1, 1.2], [0.7, 0.1, 1.2]];
+            positions.forEach(pos => {
+                const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 0.4, 16), wheelMat);
+                wheel.rotation.z = Math.PI / 2;
+                wheel.position.set(pos[0], pos[1], pos[2]);
+                wheel.castShadow = true;
+                group.add(wheel);
+            });
+            
             group.userData = { name, velocity: new THREE.Vector3(0, 0, 0), fuel: 100 };
             return group;
         }
         
-        // ==================== REMOTE PLAYER MANAGEMENT ====================
-        function addRemotePlayer(id, username, x, z, y, rot) {
-            const mesh = createPlayerModel(0xff8844);
-            mesh.position.set(x, y, z);
-            mesh.rotation.y = rot;
-            scene.add(mesh);
-            
-            const div = document.createElement('div');
-            div.textContent = username;
-            div.style.cssText = 'color:#ffdd99; font-size:12px; background:rgba(0,0,0,0.6); padding:2px 8px; border-radius:16px; border:1px solid #ffaa66; white-space:nowrap;';
-            const label = new CSS2DObject(div);
-            label.position.set(0, 1.9, 0);
-            mesh.add(label);
-            
-            remotePlayers.set(id, { mesh, label, username, x, z, y, rot, inVehicle: false, vehicleId: null });
-            updatePlayerList();
-        }
-        
-        function updateRemotePlayer(id, x, z, y, rot) {
-            const player = remotePlayers.get(id);
-            if (player) {
-                player.targetX = x;
-                player.targetZ = z;
-                player.targetY = y;
-                player.targetRot = rot;
-                player.lastUpdate = Date.now();
-            }
-        }
-        
-        function removeRemotePlayer(id) {
-            const player = remotePlayers.get(id);
-            if (player) {
-                scene.remove(player.mesh);
-                remotePlayers.delete(id);
-                updatePlayerList();
-            }
-        }
-        
-        function updatePlayerList() {
-            const container = document.getElementById('players-container');
-            if (!container) return;
-            let html = '';
-            for (const [id, player] of remotePlayers) {
-                html += `<div class="player-entry"><div class="player-dot"></div><span class="player-name">${player.username}</span><span class="player-status">${player.inVehicle ? '🚗' : '🚶'}</span></div>`;
-            }
-            if (html === '') html = '<div style="color:#888;">No other players</div>';
-            container.innerHTML = html;
-        }
-        
-        // ==================== MOVEMENT & PHYSICS ====================
+        // ==================== MOVEMENT ====================
         function updateLocalMovement(delta) {
             if (!playerMesh) return;
             
@@ -361,7 +543,6 @@
             let newX = playerMesh.position.x + (moveX * right.x + moveZ * forward.x) * moveSpeed * delta;
             let newZ = playerMesh.position.z + (moveX * right.z + moveZ * forward.z) * moveSpeed * delta;
             
-            // Boundary limits
             const limit = 180;
             newX = Math.min(limit, Math.max(-limit, newX));
             newZ = Math.min(limit, Math.max(-limit, newZ));
@@ -369,7 +550,8 @@
             playerMesh.position.set(newX, 0.7, newZ);
             
             if (moveX !== 0 || moveZ !== 0) {
-                playerMesh.rotation.y = Math.atan2(moveX, moveZ) + cameraAngle;
+                const targetRot = Math.atan2(moveX, moveZ) + cameraAngle;
+                playerMesh.rotation.y = targetRot;
             }
         }
         
@@ -399,20 +581,17 @@
                 vehicle.userData.velocity.z -= brakeDir.z * Math.min(brake, Math.abs(vehicle.userData.velocity.z));
             }
             
-            // Steering
             let steer = 0;
             if (keys['KeyA']) steer = 1;
             if (keys['KeyD']) steer = -1;
             const steeringAngle = steer * 1.2 * Math.max(0.3, 1 - vehicle.userData.velocity.length() / 70);
             vehicle.rotation.y += steeringAngle * delta * 1.5;
             
-            // Drag
             vehicle.userData.velocity.multiplyScalar(0.985);
             
             vehicle.position.x += vehicle.userData.velocity.x * delta;
             vehicle.position.z += vehicle.userData.velocity.z * delta;
             
-            // Fuel consumption
             if (throttle > 0 && vehicle.userData.velocity.length() > 1) {
                 vehicle.userData.fuel = Math.max(0, (vehicle.userData.fuel || 100) - 0.045 * delta * 30);
             }
@@ -420,77 +599,90 @@
             vehicleStats.speed = vehicle.userData.velocity.length() * 4.5;
             vehicleStats.fuel = (vehicle.userData.fuel || 100);
             
-            // Boundary
             const limit = 180;
             vehicle.position.x = Math.min(limit, Math.max(-limit, vehicle.position.x));
             vehicle.position.z = Math.min(limit, Math.max(-limit, vehicle.position.z));
+            vehicle.position.y = 0.25;
             
-            // Update HUD
             document.getElementById('speed-display').textContent = Math.floor(vehicleStats.speed);
             document.getElementById('fuel-display').textContent = Math.floor(vehicleStats.fuel);
             document.getElementById('speed-bar-fill').style.width = Math.min(100, (vehicleStats.speed / 180) * 100) + '%';
         }
         
         // ==================== VEHICLE ENTRY/EXIT ====================
-        function enterVehicle(vehicle) {
-            if (isInVehicle) return;
-            playerVehicle = vehicle;
+        function enterVehicle() {
+            if (isInVehicle || !playerVehicle) return;
             isInVehicle = true;
-            
-            // Check if there's a driver already
-            if (vehicle.userData.driverId) {
-                isDriver = false;
-                isPassenger = true;
-                document.getElementById('passenger-indicator').style.display = 'block';
-                showNotification('🚗 You\'re a passenger!', '#ffaa00');
-            } else {
-                isDriver = true;
-                isPassenger = false;
-                vehicle.userData.driverId = playerId;
-                document.getElementById('passenger-indicator').style.display = 'none';
-                showNotification('🚗 You\'re driving!', '#4ae04a');
-            }
-            
+            isDriver = true;
             playerMesh.visible = false;
             document.getElementById('vehicle-hud').style.display = 'block';
+            showNotification('🚗 Entered vehicle! WASD to drive', '#4ae04a');
         }
         
         function exitVehicle() {
             if (!isInVehicle) return;
-            
-            const exitPos = playerVehicle.position.clone().add(new THREE.Vector3(2, 0, 2));
-            playerMesh.position.copy(exitPos);
-            playerMesh.visible = true;
-            
-            if (isDriver) {
-                playerVehicle.userData.driverId = null;
+            if (playerMesh && playerVehicle) {
+                const exitPos = playerVehicle.position.clone().add(new THREE.Vector3(2, 0, 2));
+                playerMesh.position.copy(exitPos);
+                playerMesh.visible = true;
             }
-            
-            playerVehicle = null;
             isInVehicle = false;
             isDriver = false;
-            isPassenger = false;
             document.getElementById('vehicle-hud').style.display = 'none';
-            document.getElementById('passenger-indicator').style.display = 'none';
             showNotification('Exited vehicle', '#ffaa00');
         }
         
-        function checkVehicleEntry() {
-            if (isInVehicle) {
-                exitVehicle();
-                return true;
-            }
+        // ==================== REMOTE PLAYERS ====================
+        function addRemotePlayer(id, username, x, z, y, rot) {
+            if (remotePlayers.has(id)) return;
             
-            // Find nearby vehicle (simplified - in full version you'd check actual vehicles)
-            if (playerMesh && playerVehicle && playerMesh.position.distanceTo(playerVehicle.position) < 2.5) {
-                enterVehicle(playerVehicle);
-                return true;
+            const mesh = createPlayerModel(0xff8844, username);
+            mesh.position.set(x, z || 0, y || 0);
+            mesh.rotation.y = rot || 0;
+            scene.add(mesh);
+            
+            remotePlayers.set(id, { mesh, username, x, z, y, rot, lastUpdate: Date.now() });
+            updatePlayerList();
+        }
+        
+        function updateRemotePlayer(id, x, z, y, rot) {
+            const player = remotePlayers.get(id);
+            if (player) {
+                player.targetX = x;
+                player.targetZ = z;
+                player.targetY = y;
+                player.targetRot = rot;
+                player.lastUpdate = Date.now();
             }
-            return false;
+        }
+        
+        function removeRemotePlayer(id) {
+            const player = remotePlayers.get(id);
+            if (player) {
+                scene.remove(player.mesh);
+                remotePlayers.delete(id);
+                updatePlayerList();
+            }
+        }
+        
+        function updatePlayerList() {
+            const container = document.getElementById('players-container');
+            if (!container) return;
+            
+            let html = '';
+            for (const [id, player] of remotePlayers) {
+                html += `<div class="player-entry">
+                    <div class="player-dot"></div>
+                    <span class="player-name">${player.username}</span>
+                    <span class="player-status">🚶</span>
+                </div>`;
+            }
+            if (html === '') html = '<div style="color:#888; text-align:center;">No other players</div>';
+            container.innerHTML = html;
         }
         
         // ==================== SUPABASE REAL-TIME ====================
-        async function initSupabaseRealtime() {
+        async function setupRealtime() {
             // Subscribe to players table
             supabase
                 .channel('players-channel')
@@ -509,89 +701,117 @@
                 })
                 .subscribe();
             
-            // Subscribe to vehicles table
-            supabase
-                .channel('vehicles-channel')
-                .on('postgres_changes', { event: '*', schema: 'public', table: 'vehicles' }, (payload) => {
-                    if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-                        // Update vehicle position for remote players
-                        updateRemoteVehicle(payload.new);
-                    } else if (payload.eventType === 'DELETE') {
-                        removeRemoteVehicle(payload.old.id);
-                    }
-                })
-                .subscribe();
-            
             // Load existing players
-            const { data: existingPlayers } = await supabase.from('players').select('*').neq('id', playerId);
+            const { data: existingPlayers } = await supabase
+                .from('players')
+                .select('*')
+                .neq('id', playerId);
+            
             if (existingPlayers) {
                 existingPlayers.forEach(p => addRemotePlayer(p.id, p.username, p.x, p.z, p.y, p.rotation_y));
             }
-        }
-        
-        function updateRemoteVehicle(vehicleData) {
-            // Handle remote vehicle updates
-        }
-        
-        function removeRemoteVehicle(vehicleId) {
-            // Handle vehicle removal
+            
+            document.getElementById('status').innerHTML = '🟢 Connected';
+            document.getElementById('status').style.color = '#4ae04a';
         }
         
         async function sendPlayerPosition() {
             if (!playerMesh || !playerId) return;
             
-            const pos = playerMesh.position;
+            const pos = isInVehicle && playerVehicle ? playerVehicle.position : playerMesh.position;
+            const rot = isInVehicle && playerVehicle ? playerVehicle.rotation.y : playerMesh.rotation.y;
+            
             await supabase.from('players').upsert({
                 id: playerId,
-                username: playerName,
+                username: playerUsername,
                 x: pos.x,
                 z: pos.z,
                 y: pos.y,
-                rotation_y: playerMesh.rotation.y,
+                rotation_y: rot,
                 is_in_vehicle: isInVehicle,
-                current_vehicle_id: playerVehicle?.id || null,
                 updated_at: new Date().toISOString()
             });
         }
         
-        // ==================== AUTH SYSTEM ====================
-        let users = JSON.parse(localStorage.getItem('gangTurfUsers')) || {};
-        
-        function showNotification(msg, color = '#4ae04a') {
-            const n = document.getElementById('notification');
-            n.style.borderColor = color;
-            n.style.color = color;
-            n.textContent = msg;
-            n.style.display = 'block';
-            setTimeout(() => n.style.display = 'none', 1800);
+        async function loadPlayerStats() {
+            const { data, error } = await supabase
+                .from('player_stats')
+                .select('*')
+                .eq('player_id', playerId)
+                .single();
+            
+            if (data && !error) {
+                gameData.money = data.money || 10000;
+                gameData.bank = data.bank || 2500;
+                updateMoneyDisplay();
+            }
         }
         
-        function login(username, password) {
-            if (users[username] && users[username].password === password) {
-                currentUser = username;
-                playerName = username;
-                playerId = `player_${username}_${Date.now()}`;
+        // ==================== AUTH ====================
+        async function login(email, password) {
+            try {
+                document.getElementById('auth-message').textContent = 'Logging in...';
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+                
+                if (error) throw error;
+                
+                currentUser = data.user;
+                playerId = data.user.id;
+                
+                // Get username from profiles
+                const { data: profile } = await supabase
+                    .from('profiles')
+                    .select('username')
+                    .eq('id', playerId)
+                    .single();
+                
+                playerUsername = profile?.username || email.split('@')[0];
                 document.getElementById('auth-modal').style.display = 'none';
                 initGame();
-                showNotification(`Welcome to multiplayer, ${username}!`, '#4ae04a');
+                showNotification(`Welcome to multiplayer, ${playerUsername}!`, '#4ae04a');
                 return true;
+            } catch (error) {
+                document.getElementById('auth-message').textContent = error.message;
+                return false;
             }
-            document.getElementById('auth-message').textContent = 'Invalid credentials!';
-            return false;
         }
         
-        function signup(username, email, password, confirm) {
+        async function signup(username, email, password, confirm) {
             if (password !== confirm) {
                 document.getElementById('auth-message').textContent = 'Passwords do not match!';
                 return false;
             }
-            if (users[username]) {
-                document.getElementById('auth-message').textContent = 'Username exists!';
+            
+            if (username.length < 3) {
+                document.getElementById('auth-message').textContent = 'Username must be at least 3 characters!';
                 return false;
             }
-            users[username] = { password, email, money: 10000, bank: 2500 };
-            localStorage.setItem('gangTurfUsers', JSON.stringify(users));
-            return login(username, password);
+            
+            try {
+                document.getElementById('auth-message').textContent = 'Creating account...';
+                const { data, error } = await supabase.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: {
+                            username: username
+                        }
+                    }
+                });
+                
+                if (error) throw error;
+                
+                showNotification('Account created! Please login.', '#4ae04a');
+                document.getElementById('login-tab').click();
+                document.getElementById('login-email').value = email;
+                return true;
+            } catch (error) {
+                document.getElementById('auth-message').textContent = error.message;
+                return false;
+            }
         }
         
         // ==================== GAME INIT ====================
@@ -599,16 +819,16 @@
             initThree();
             
             // Create local player
-            playerMesh = createPlayerModel(0x44aaff);
+            playerMesh = createPlayerModel(0x44aaff, playerUsername);
             playerMesh.position.set(0, 0.7, 0);
             scene.add(playerMesh);
             
-            // Create a test vehicle
+            // Create vehicle
             playerVehicle = createVehicleModel(0x44aaff, "Test Vehicle");
-            playerVehicle.position.set(5, 0, 5);
+            playerVehicle.position.set(5, 0.25, 5);
             scene.add(playerVehicle);
             
-            // Setup camera controls
+            // Camera controls
             const controls = new OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
@@ -618,16 +838,16 @@
             document.addEventListener('keydown', (e) => {
                 keys[e.code] = true;
                 if (e.code === 'KeyE' && !e.repeat) {
-                    checkVehicleEntry();
+                    if (isInVehicle) exitVehicle();
+                    else if (playerMesh.position.distanceTo(playerVehicle.position) < 2.5) enterVehicle();
                 }
                 if (e.code === 'KeyV') {
                     cameraMode = cameraMode === 'tpv' ? 'fpv' : 'tpv';
                     document.getElementById('camera-mode-indicator').textContent = `VIEW: ${cameraMode.toUpperCase()}`;
                 }
-                if (e.code === 'Tab') {
-                    e.preventDefault();
-                    const inv = document.getElementById('inventory-panel');
-                    inv.style.display = inv.style.display === 'none' ? 'block' : 'none';
+                if (e.code === 'KeyR' && !e.repeat && isInVehicle) {
+                    playerVehicle.userData.fuel = 100;
+                    showNotification('⛽ Refueled!', '#4ae04a');
                 }
             });
             
@@ -645,22 +865,9 @@
             
             renderer.domElement.addEventListener('click', () => renderer.domElement.requestPointerLock());
             
-            // UI Event Listeners
-            document.getElementById('login-btn')?.addEventListener('click', () => login(document.getElementById('login-username').value, document.getElementById('login-password').value));
-            document.getElementById('signup-btn')?.addEventListener('click', () => signup(document.getElementById('signup-username').value, document.getElementById('signup-email').value, document.getElementById('signup-password').value, document.getElementById('signup-confirm').value));
-            document.getElementById('login-tab')?.addEventListener('click', () => { document.getElementById('login-form').style.display = 'flex'; document.getElementById('signup-form').style.display = 'none'; });
-            document.getElementById('signup-tab')?.addEventListener('click', () => { document.getElementById('login-form').style.display = 'none'; document.getElementById('signup-form').style.display = 'flex'; });
-            document.getElementById('close-inventory')?.addEventListener('click', () => document.getElementById('inventory-panel').style.display = 'none');
-            document.getElementById('phone-close')?.addEventListener('click', () => document.getElementById('phone-ui').style.display = 'none');
-            document.getElementById('close-house-btn')?.addEventListener('click', () => document.getElementById('house-purchase-ui').style.display = 'none');
-            
-            // Phone button
-            document.querySelector('.app-icon')?.addEventListener('click', () => {
-                document.getElementById('phone-ui').style.display = 'block';
-            });
-            
-            // Initialize Supabase real-time
-            initSupabaseRealtime();
+            // Setup real-time
+            setupRealtime();
+            loadPlayerStats();
             
             // Animation loop
             let lastTime = performance.now();
@@ -670,7 +877,7 @@
                 let delta = Math.min(0.033, (now - lastTime) / 1000);
                 lastTime = now;
                 
-                if (isInVehicle && playerVehicle) {
+                if (isInVehicle && playerVehicle && isDriver) {
                     updateVehicleMovement(delta, playerVehicle);
                     playerMesh.position.copy(playerVehicle.position);
                 } else {
@@ -678,14 +885,14 @@
                 }
                 
                 // Update camera
-                const target = isInVehicle && playerVehicle ? playerVehicle : playerMesh;
-                if (cameraMode === 'fpv') {
+                const target = (isInVehicle && playerVehicle) ? playerVehicle : playerMesh;
+                if (cameraMode === 'fpv' && target) {
                     camera.position.copy(target.position);
                     camera.position.y += 0.8;
                     camera.rotation.order = 'YXZ';
                     camera.rotation.y = cameraAngle;
                     camera.rotation.x = cameraPitch;
-                } else {
+                } else if (target) {
                     const orbitX = target.position.x + Math.sin(cameraAngle) * 8;
                     const orbitZ = target.position.z + Math.cos(cameraAngle) * 8;
                     const orbitY = target.position.y + 2 + cameraPitch * 1.2;
@@ -693,7 +900,7 @@
                     camera.lookAt(target.position.clone().add(new THREE.Vector3(0, 0.8, 0)));
                 }
                 
-                // Send position to server
+                // Send position
                 if (now - lastSendTime > sendInterval * 1000) {
                     lastSendTime = now;
                     sendPlayerPosition();
@@ -704,7 +911,9 @@
                     if (player.targetX !== undefined) {
                         player.mesh.position.x += (player.targetX - player.mesh.position.x) * 0.2;
                         player.mesh.position.z += (player.targetZ - player.mesh.position.z) * 0.2;
-                        player.mesh.rotation.y += (player.targetRot - player.mesh.rotation.y) * 0.2;
+                        if (player.targetRot !== undefined) {
+                            player.mesh.rotation.y += (player.targetRot - player.mesh.rotation.y) * 0.2;
+                        }
                     }
                 }
                 
@@ -716,46 +925,49 @@
             animate();
         }
         
-        // Simple inventory UI setup
-        function setupInventoryUI() {
-            const slotsContainer = document.getElementById('inventory-slots');
-            if (slotsContainer) {
-                slotsContainer.innerHTML = `
-                    <div class="inventory-slot" data-slot="0"><div class="slot-icon">🔫</div><div class="slot-name">Glock 17</div></div>
-                    <div class="inventory-slot" data-slot="1"><div class="slot-icon">🌿</div><div class="slot-name">Weed</div><div class="slot-count">x3</div></div>
-                    <div class="inventory-slot" data-slot="2"><div class="slot-icon">🚬</div><div class="slot-name">Blunt</div><div class="slot-count">x1</div></div>
-                    <div class="inventory-slot" data-slot="3"><div class="slot-icon">⚡</div><div class="slot-name">Taser</div></div>
-                `;
-                document.querySelectorAll('.inventory-slot').forEach(slot => {
-                    slot.addEventListener('click', () => {
-                        document.querySelectorAll('.inventory-slot').forEach(s => s.classList.remove('selected'));
-                        slot.classList.add('selected');
-                        document.getElementById('selected-slot').textContent = parseInt(slot.dataset.slot) + 1;
-                    });
+        // ==================== UI EVENT LISTENERS ====================
+        document.getElementById('login-btn')?.addEventListener('click', () => {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            if (email && password) login(email, password);
+            else document.getElementById('auth-message').textContent = 'Please enter email and password';
+        });
+        
+        document.getElementById('signup-btn')?.addEventListener('click', () => {
+            const username = document.getElementById('signup-username').value;
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const confirm = document.getElementById('signup-confirm').value;
+            signup(username, email, password, confirm);
+        });
+        
+        document.getElementById('login-tab')?.addEventListener('click', () => {
+            document.getElementById('login-form').style.display = 'flex';
+            document.getElementById('signup-form').style.display = 'none';
+            document.getElementById('login-tab').classList.add('active');
+            document.getElementById('signup-tab').classList.remove('active');
+        });
+        
+        document.getElementById('signup-tab')?.addEventListener('click', () => {
+            document.getElementById('login-form').style.display = 'none';
+            document.getElementById('signup-form').style.display = 'flex';
+            document.getElementById('signup-tab').classList.add('active');
+            document.getElementById('login-tab').classList.remove('active');
+        });
+        
+        // Check for existing session
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            if (session?.user) {
+                currentUser = session.user;
+                playerId = session.user.id;
+                supabase.from('profiles').select('username').eq('id', playerId).single().then(({ data }) => {
+                    playerUsername = data?.username || 'Player';
+                    document.getElementById('auth-modal').style.display = 'none';
+                    initGame();
+                    showNotification(`Welcome back, ${playerUsername}!`, '#4ae04a');
                 });
             }
-        }
-        
-        setupInventoryUI();
-        
-        // Simple blunt smoking
-        document.addEventListener('keydown', (e) => {
-            if (e.code === 'KeyF' && !e.repeat) {
-                showNotification('🚬 Smoking blunt... (effect demo)', '#88ff88');
-                const overlay = document.getElementById('high-overlay');
-                overlay.style.display = 'block';
-                setTimeout(() => overlay.style.display = 'none', 5000);
-            }
         });
-        
-        // Phone UI
-        document.addEventListener('keydown', (e) => {
-            if (e.code === 'KeyO') {
-                document.getElementById('phone-ui').style.display = 'block';
-            }
-        });
-        
-        console.log('Multiplayer Gang Turf Wars loaded!');
     </script>
 </body>
 </html>
