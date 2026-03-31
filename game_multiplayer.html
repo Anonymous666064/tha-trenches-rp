@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Basic 3D World - Player on Flat Ground</title>
+    <title>Multiplayer 3D World - Supabase Real-time</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         #info {
             position: absolute;
             top: 20px;
             left: 20px;
-            background: rgba(0,0,0,0.6);
+            background: rgba(0,0,0,0.7);
             color: white;
             padding: 8px 16px;
             border-radius: 8px;
@@ -18,13 +18,14 @@
             pointer-events: none;
             z-index: 10;
             font-size: 14px;
-            border-left: 3px solid #ffaa44;
+            border-left: 3px solid #00ffaa;
+            font-weight: bold;
         }
         #controls {
             position: absolute;
             bottom: 20px;
             left: 20px;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.6);
             color: #ccc;
             padding: 6px 12px;
             border-radius: 6px;
@@ -33,25 +34,59 @@
             pointer-events: none;
             z-index: 10;
         }
+        #player-count {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.6);
+            color: #00ffaa;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 14px;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 10;
+        }
+        #status {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.5);
+            color: #ffaa44;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-family: monospace;
+            pointer-events: none;
+            z-index: 10;
+        }
         @media (max-width: 600px) {
-            #info, #controls { font-size: 10px; padding: 4px 8px; }
+            #info, #controls, #player-count { font-size: 10px; padding: 4px 8px; }
         }
     </style>
 </head>
 <body>
     <div id="info">
-        🧙‍♂️ Basic 3D World | <span style="color:#ffaa44;">WASD</span> to Move Player
+        🌍 Multiplayer World | <span style="color:#00ffaa;">WASD</span> to Move | See Others in Real-time
     </div>
     <div id="controls">
-        🎮 Controls: W A S D → Move | Mouse drag to look around
+        🎮 WASD: Move | 🖱️ Mouse Drag: Look around
+    </div>
+    <div id="player-count">
+        👥 Players: <span id="playerCount">1</span>
+    </div>
+    <div id="status">
+        🟢 Connected
     </div>
 
-    <!-- Import Three.js core and add-ons from CDN -->
+    <!-- Import Three.js and Supabase -->
     <script type="importmap">
         {
             "imports": {
                 "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/",
+                "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.0"
             }
         }
     </script>
@@ -59,56 +94,49 @@
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+        import { createClient } from '@supabase/supabase-js';
 
-        // --- Setup Scene, Cameras, Renderers ---
+        // --- Supabase Configuration ---
+        const SUPABASE_URL = 'https://hcvewiwhtxqpbogcrukk.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjdmV3aXdodHhxcGJvZ2NydWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTQ4MzMsImV4cCI6MjA5MDQ3MDgzM30.UsdvDyrGl4OhmbDjonyOagknHf--Zhe-fhCi0LFVoQw';
+        
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        // --- Generate a unique player ID (stored in session) ---
+        let playerId = localStorage.getItem('player_id');
+        if (!playerId) {
+            playerId = 'player_' + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
+            localStorage.setItem('player_id', playerId);
+        }
+        
+        // --- Three.js Setup ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87CEEB); // Bright blue sky
-        scene.fog = new THREE.Fog(0x87CEEB, 30, 80); // Gentle fog to blend horizon
-
-        // Perspective Camera (for 3D view)
+        scene.background = new THREE.Color(0x87CEEB); // Sky blue
+        scene.fog = new THREE.Fog(0x87CEEB, 40, 100);
+        
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(8, 5, 12);
-        camera.lookAt(0, 0, 0);
-
-        // WebGL Renderer
+        camera.position.set(8, 6, 12);
+        
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = true; // Enable shadows for better depth
+        renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.body.appendChild(renderer.domElement);
-
-        // CSS2 Renderer for simple text label above player
-        const labelRenderer = new CSS2DRenderer();
-        labelRenderer.setSize(window.innerWidth, window.innerHeight);
-        labelRenderer.domElement.style.position = 'absolute';
-        labelRenderer.domElement.style.top = '0px';
-        labelRenderer.domElement.style.left = '0px';
-        labelRenderer.domElement.style.pointerEvents = 'none';
-        document.body.appendChild(labelRenderer.domElement);
-
-        // --- Controls (Orbit) but we want to follow player? 
-        // Standard OrbitControls would orbit around a fixed point, but we want to orbit relative to player.
-        // Instead, we attach OrbitControls to follow the player? Not directly, but we can make the controls target the player position.
-        // We'll create a custom setup: OrbitControls with target updated to player position each frame.
+        
+        // --- Controls (Orbit around player) ---
         const controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;      // smooth inertia
+        controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.rotateSpeed = 1.0;
         controls.zoomSpeed = 1.2;
         controls.panSpeed = 0.8;
-        controls.screenSpacePanning = true; // avoid panning below ground
-        controls.maxPolarAngle = Math.PI / 2.2; // limit looking below horizon
+        controls.screenSpacePanning = true;
+        controls.maxPolarAngle = Math.PI / 2.2;
         
-        // We'll update controls.target to player position later
-
-        // --- Lighting to make the scene vibrant ---
-        
-        // Ambient light for base illumination
+        // --- Lighting ---
         const ambientLight = new THREE.AmbientLight(0x404060, 0.6);
         scene.add(ambientLight);
         
-        // Directional light (sun) to cast shadows
         const sunLight = new THREE.DirectionalLight(0xfff5d1, 1.2);
         sunLight.position.set(10, 20, 5);
         sunLight.castShadow = true;
@@ -123,25 +151,19 @@
         sunLight.shadow.camera.bottom = -10;
         scene.add(sunLight);
         
-        // Fill light from below and back rim light
         const fillLight = new THREE.PointLight(0x4466cc, 0.3);
         fillLight.position.set(0, 5, 0);
         scene.add(fillLight);
         
-        // Warm back rim light
         const rimLight = new THREE.PointLight(0xffaa66, 0.4);
         rimLight.position.set(-3, 5, -5);
         scene.add(rimLight);
         
-        // Optional: a soft hemisphere light
         const hemiLight = new THREE.HemisphereLight(0x8bb5ff, 0x5c6e4d, 0.4);
         scene.add(hemiLight);
         
-        // --- Ground: a large flat plane with grass-like texture or simple green grid/plane ---
-        // Create a nice checkerboard or simple green plane with subtle grid helper
-        
-        // Main ground plane (receives shadow)
-        const groundGeometry = new THREE.PlaneGeometry(40, 40);
+        // --- Ground ---
+        const groundGeometry = new THREE.PlaneGeometry(50, 50);
         const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x6c9e4a, roughness: 0.8, metalness: 0.1 });
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
         ground.rotation.x = -Math.PI / 2;
@@ -149,41 +171,28 @@
         ground.receiveShadow = true;
         scene.add(ground);
         
-        // Add a secondary slightly darker ground for texture variation (circular gradient style)
-        const groundDetailMat = new THREE.MeshStandardMaterial({ color: 0x5a8540, roughness: 0.9 });
-        const groundDetail = new THREE.Mesh(new THREE.PlaneGeometry(38, 38), groundDetailMat);
-        groundDetail.rotation.x = -Math.PI / 2;
-        groundDetail.position.y = -0.04;
-        groundDetail.receiveShadow = true;
-        scene.add(groundDetail);
-        
-        // Grid helper for visual reference (optional but looks cool)
-        const gridHelper = new THREE.GridHelper(42, 20, 0x88aa66, 0x446633);
+        const gridHelper = new THREE.GridHelper(52, 25, 0x88aa66, 0x446633);
         gridHelper.position.y = -0.02;
         gridHelper.material.transparent = true;
-        gridHelper.material.opacity = 0.5;
+        gridHelper.material.opacity = 0.4;
         scene.add(gridHelper);
         
-        // Decorative simple stones or grass tufts? Keep minimal but add some floating particles? No, but maybe small flowers.
-        // For a clean "basic template", add a few simple trees or cubes to give scale reference, but keep optional.
-        // Actually, to make it pleasant, add a few randomly placed low poly bushes/rocks.
+        // --- Decorative trees and rocks (static) ---
         const rockMaterial = new THREE.MeshStandardMaterial({ color: 0xaa9977, roughness: 0.7 });
         const bushMaterial = new THREE.MeshStandardMaterial({ color: 0x6cae4a, roughness: 0.6 });
+        const trunkMat = new THREE.MeshStandardMaterial({ color: 0xbc9a6c });
+        const foliageMat = new THREE.MeshStandardMaterial({ color: 0x5fad41 });
         
-        for (let i = 0; i < 80; i++) {
-            // Random position within a 30 unit radius circle, but avoid center area near start? doesn't matter.
+        for (let i = 0; i < 100; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const radius = 5 + Math.random() * 15;
+            const radius = 6 + Math.random() * 20;
             const x = Math.cos(angle) * radius;
             const z = Math.sin(angle) * radius;
-            // Choose object type: 70% bush (small cylinder+sphere), 30% rock
-            if (Math.random() > 0.3) {
-                // Simple bush: green cylinder + little spheres
+            if (Math.random() > 0.6) {
                 const bushGroup = new THREE.Group();
                 const base = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 0.2, 6), bushMaterial);
                 base.position.y = 0;
                 base.castShadow = true;
-                base.receiveShadow = true;
                 bushGroup.add(base);
                 const top = new THREE.Mesh(new THREE.SphereGeometry(0.25, 5), bushMaterial);
                 top.position.y = 0.2;
@@ -191,152 +200,154 @@
                 bushGroup.add(top);
                 bushGroup.position.set(x, 0, z);
                 scene.add(bushGroup);
+            } else if (Math.random() > 0.3) {
+                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.5, 0.8, 6), trunkMat);
+                trunk.position.set(x, 0.4, z);
+                trunk.castShadow = true;
+                const foliage1 = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.7, 8), foliageMat);
+                foliage1.position.set(x, 0.85, z);
+                foliage1.castShadow = true;
+                const foliage2 = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.6, 8), foliageMat);
+                foliage2.position.set(x, 1.25, z);
+                foliage2.castShadow = true;
+                scene.add(trunk);
+                scene.add(foliage1);
+                scene.add(foliage2);
             } else {
-                // small rock
                 const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.2), rockMaterial);
                 rock.position.set(x, 0, z);
                 rock.scale.set(1, Math.random() * 0.5 + 0.6, 1);
                 rock.castShadow = true;
-                rock.receiveShadow = true;
                 scene.add(rock);
             }
         }
         
-        // Also add a few simple trees (cylinder + cone) for charm
-        const trunkMat = new THREE.MeshStandardMaterial({ color: 0xbc9a6c });
-        const foliageMat = new THREE.MeshStandardMaterial({ color: 0x5fad41 });
-        for (let i = 0; i < 25; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const radius = 8 + Math.random() * 14;
-            const x = Math.cos(angle) * radius;
-            const z = Math.sin(angle) * radius;
-            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.5, 0.8, 6), trunkMat);
-            trunk.position.set(x, 0.4, z);
-            trunk.castShadow = true;
-            trunk.receiveShadow = true;
-            const foliage1 = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.7, 8), foliageMat);
-            foliage1.position.set(x, 0.85, z);
-            foliage1.castShadow = true;
-            const foliage2 = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.6, 8), foliageMat);
-            foliage2.position.set(x, 1.25, z);
-            foliage2.castShadow = true;
-            scene.add(trunk);
-            scene.add(foliage1);
-            scene.add(foliage2);
-        }
+        // --- Create the local player model (colorful adventurer) ---
+        const localPlayerGroup = new THREE.Group();
         
-        // --- Player Character: a simple capsule-like figure with a sphere on top of a cylinder, plus a floating name tag---
-        const playerGroup = new THREE.Group();
-        
-        // Body (cylinder)
-        const bodyGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.9, 16);
-        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x4c9aff, metalness: 0.2, roughness: 0.3 });
+        // Body
+        const bodyGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.9, 16);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x44aaff, metalness: 0.2, roughness: 0.3 });
         const body = new THREE.Mesh(bodyGeo, bodyMat);
         body.castShadow = true;
-        body.receiveShadow = true;
         body.position.y = 0.45;
-        playerGroup.add(body);
+        localPlayerGroup.add(body);
         
-        // Head (sphere)
-        const headMat = new THREE.MeshStandardMaterial({ color: 0xffdd99, roughness: 0.2 });
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.45, 32, 32), headMat);
+        // Head
+        const headMat = new THREE.MeshStandardMaterial({ color: 0xffcc99, roughness: 0.2 });
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.48, 32, 32), headMat);
         head.castShadow = true;
         head.position.y = 0.9 + 0.25;
-        playerGroup.add(head);
+        localPlayerGroup.add(head);
         
-        // Eyes: two small spheres (white + black pupils)
+        // Eyes
         const eyeWhiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
         const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), eyeWhiteMat);
-        leftEye.position.set(-0.18, 1.18, 0.45);
-        leftEye.castShadow = true;
+        leftEye.position.set(-0.2, 1.2, 0.48);
         const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), eyeWhiteMat);
-        rightEye.position.set(0.18, 1.18, 0.45);
-        rightEye.castShadow = true;
+        rightEye.position.set(0.2, 1.2, 0.48);
         const pupilMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
         const leftPupil = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 16), pupilMat);
-        leftPupil.position.set(-0.18, 1.16, 0.52);
+        leftPupil.position.set(-0.2, 1.18, 0.55);
         const rightPupil = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 16), pupilMat);
-        rightPupil.position.set(0.18, 1.16, 0.52);
-        playerGroup.add(leftEye);
-        playerGroup.add(rightEye);
-        playerGroup.add(leftPupil);
-        playerGroup.add(rightPupil);
+        rightPupil.position.set(0.2, 1.18, 0.55);
+        localPlayerGroup.add(leftEye, rightEye, leftPupil, rightPupil);
         
-        // Hat? simple cone on head for charm
+        // Hat
         const hatMat = new THREE.MeshStandardMaterial({ color: 0xd43f1d });
-        const hat = new THREE.Mesh(new THREE.ConeGeometry(0.55, 0.4, 8), hatMat);
-        hat.position.y = 1.45;
+        const hat = new THREE.Mesh(new THREE.ConeGeometry(0.6, 0.45, 8), hatMat);
+        hat.position.y = 1.5;
         hat.castShadow = true;
-        playerGroup.add(hat);
+        localPlayerGroup.add(hat);
         
-        // Add a little belt
-        const beltMat = new THREE.MeshStandardMaterial({ color: 0xaa8866 });
-        const belt = new THREE.Mesh(new THREE.TorusGeometry(0.5, 0.07, 16, 32), beltMat);
+        // Cape or belt
+        const beltMat = new THREE.MeshStandardMaterial({ color: 0xcc8844 });
+        const belt = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.07, 16, 32), beltMat);
         belt.rotation.x = Math.PI / 2;
         belt.position.y = 0.6;
-        belt.castShadow = true;
-        playerGroup.add(belt);
+        localPlayerGroup.add(belt);
         
-        playerGroup.position.set(0, 0, 0);
-        playerGroup.castShadow = true;
-        playerGroup.receiveShadow = false;
-        scene.add(playerGroup);
+        localPlayerGroup.position.set(0, 0, 0);
+        localPlayerGroup.castShadow = true;
+        scene.add(localPlayerGroup);
         
-        // CSS2D Text label above player
-        const playerDiv = document.createElement('div');
-        playerDiv.textContent = '🧙‍♂️ Adventurer';
-        playerDiv.style.color = 'white';
-        playerDiv.style.fontSize = '16px';
-        playerDiv.style.fontWeight = 'bold';
-        playerDiv.style.textShadow = '1px 1px 0px black';
-        playerDiv.style.backgroundColor = 'rgba(0,0,0,0.5)';
-        playerDiv.style.padding = '2px 8px';
-        playerDiv.style.borderRadius = '20px';
-        playerDiv.style.border = '1px solid gold';
-        playerDiv.style.fontFamily = 'sans-serif';
-        playerDiv.style.backdropFilter = 'blur(4px)';
-        const playerLabel = new CSS2DObject(playerDiv);
-        playerLabel.position.set(0, 1.9, 0);
-        playerGroup.add(playerLabel);
+        // Name label for local player (CSS2D)
+        const labelDiv = document.createElement('div');
+        labelDiv.textContent = `You (${playerId.slice(-6)})`;
+        labelDiv.style.color = '#aaffdd';
+        labelDiv.style.fontSize = '14px';
+        labelDiv.style.fontWeight = 'bold';
+        labelDiv.style.backgroundColor = 'rgba(0,0,0,0.6)';
+        labelDiv.style.padding = '2px 8px';
+        labelDiv.style.borderRadius = '20px';
+        labelDiv.style.border = '1px solid #44ffaa';
+        labelDiv.style.fontFamily = 'sans-serif';
+        labelDiv.style.pointerEvents = 'none';
+        labelDiv.style.whiteSpace = 'nowrap';
         
-        // --- Simple floating particles or butterflies? optional: just to add life, but keep minimal---
-        // Add some floating sparkles around the world (small particles)
-        const particleCount = 300;
-        const particleGeometry = new THREE.BufferGeometry();
-        const particlePositions = new Float32Array(particleCount * 3);
-        for (let i = 0; i < particleCount; i++) {
-            particlePositions[i*3] = (Math.random() - 0.5) * 60;
-            particlePositions[i*3+1] = Math.random() * 4;
-            particlePositions[i*3+2] = (Math.random() - 0.5) * 60;
+        // We'll use CSS2DRenderer for labels
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+        const labelRenderer = new CSS2DRenderer();
+        labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        labelRenderer.domElement.style.position = 'absolute';
+        labelRenderer.domElement.style.top = '0px';
+        labelRenderer.domElement.style.left = '0px';
+        labelRenderer.domElement.style.pointerEvents = 'none';
+        document.body.appendChild(labelRenderer.domElement);
+        
+        const localLabel = new CSS2DObject(labelDiv);
+        localLabel.position.set(0, 1.95, 0);
+        localPlayerGroup.add(localLabel);
+        
+        // --- Remote players storage: map id -> { group, label, lastUpdate } ---
+        const remotePlayers = new Map();
+        
+        // Function to create a remote player model (simpler, different color)
+        function createRemotePlayerModel(color = 0xff8844) {
+            const group = new THREE.Group();
+            
+            const bodyGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.9, 16);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: color, metalness: 0.2, roughness: 0.4 });
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            body.castShadow = true;
+            body.position.y = 0.45;
+            group.add(body);
+            
+            const headMat = new THREE.MeshStandardMaterial({ color: 0xffcc99, roughness: 0.3 });
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.48, 32, 32), headMat);
+            head.castShadow = true;
+            head.position.y = 0.9 + 0.25;
+            group.add(head);
+            
+            // Simple eyes (black dots)
+            const eyeMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
+            const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.09, 16, 16), eyeMat);
+            leftEye.position.set(-0.18, 1.22, 0.5);
+            const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.09, 16, 16), eyeMat);
+            rightEye.position.set(0.18, 1.22, 0.5);
+            group.add(leftEye, rightEye);
+            
+            // Hat (green for remote)
+            const hatMat = new THREE.MeshStandardMaterial({ color: 0x33aa55 });
+            const hat = new THREE.Mesh(new THREE.ConeGeometry(0.58, 0.42, 8), hatMat);
+            hat.position.y = 1.48;
+            hat.castShadow = true;
+            group.add(hat);
+            
+            group.castShadow = true;
+            return group;
         }
-        particleGeometry.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
-        const particleMat = new THREE.PointsMaterial({ color: 0xffdd88, size: 0.08, transparent: true, opacity: 0.5 });
-        const particles = new THREE.Points(particleGeometry, particleMat);
-        scene.add(particles);
         
-        // --- Simple animation loop for floating particles rotation---
-        function animateParticles() {
-            particles.rotation.y += 0.002;
-            particles.rotation.x += 0.001;
-            requestAnimationFrame(animateParticles);
-        }
-        animateParticles();
-        
-        // --- Player Movement Logic (WASD) ---
-        const keyState = {
-            w: false, a: false, s: false, d: false
-        };
-        
+        // --- Movement Logic ---
+        const keyState = { w: false, a: false, s: false, d: false };
         window.addEventListener('keydown', (e) => {
             const key = e.key.toLowerCase();
             if (key === 'w') keyState.w = true;
             if (key === 'a') keyState.a = true;
             if (key === 's') keyState.s = true;
             if (key === 'd') keyState.d = true;
-            // Prevent default scrolling with arrows/WASD
             if (['w','a','s','d'].includes(key)) e.preventDefault();
         });
-        
         window.addEventListener('keyup', (e) => {
             const key = e.key.toLowerCase();
             if (key === 'w') keyState.w = false;
@@ -345,134 +356,215 @@
             if (key === 'd') keyState.d = false;
         });
         
-        // Movement speed
-        const moveSpeed = 5.5;
-        // We'll move player on XZ plane, keep Y fixed at 0 (ground level, but note body position offsets - group origin at feet)
-        // Player group position Y is 0 (feet on ground)
+        const MOVE_SPEED = 6.0;
+        const WORLD_LIMIT = 22;
         
-        // To make movement relative to camera direction, we get camera's forward/right vectors on XZ plane.
-        function updateMovement(deltaTime) {
-            if (!deltaTime || deltaTime > 0.03) deltaTime = 0.016; // safe delta
-            
-            let moveX = 0;
-            let moveZ = 0;
+        function updateLocalMovement(deltaTime) {
+            let moveX = 0, moveZ = 0;
             if (keyState.w) moveZ -= 1;
             if (keyState.s) moveZ += 1;
             if (keyState.a) moveX -= 1;
             if (keyState.d) moveX += 1;
+            if (moveX === 0 && moveZ === 0) return false;
             
-            if (moveX === 0 && moveZ === 0) return;
-            
-            // Normalize diagonal movement
             const len = Math.hypot(moveX, moveZ);
-            if (len > 0) {
-                moveX /= len;
-                moveZ /= len;
-            }
+            if (len > 0) { moveX /= len; moveZ /= len; }
             
-            // Get camera direction vectors (ignoring pitch)
-            const cameraDirection = camera.getWorldDirection(new THREE.Vector3());
-            const forward = new THREE.Vector3(cameraDirection.x, 0, cameraDirection.z).normalize();
+            const cameraDir = camera.getWorldDirection(new THREE.Vector3());
+            const forward = new THREE.Vector3(cameraDir.x, 0, cameraDir.z).normalize();
             const right = new THREE.Vector3(-forward.z, 0, forward.x);
             
             let deltaPos = new THREE.Vector3(0, 0, 0);
             deltaPos.addScaledVector(forward, moveZ);
             deltaPos.addScaledVector(right, moveX);
-            deltaPos.multiplyScalar(moveSpeed * deltaTime);
+            deltaPos.multiplyScalar(MOVE_SPEED * deltaTime);
             
-            let newX = playerGroup.position.x + deltaPos.x;
-            let newZ = playerGroup.position.z + deltaPos.z;
+            let newX = localPlayerGroup.position.x + deltaPos.x;
+            let newZ = localPlayerGroup.position.z + deltaPos.z;
+            newX = Math.min(WORLD_LIMIT, Math.max(-WORLD_LIMIT, newX));
+            newZ = Math.min(WORLD_LIMIT, Math.max(-WORLD_LIMIT, newZ));
             
-            // Boundary limits: keep within ground plane edges (-18 to 18 for nicer visual, since ground is 40 wide)
-            const limit = 17.5;
-            newX = Math.min(limit, Math.max(-limit, newX));
-            newZ = Math.min(limit, Math.max(-limit, newZ));
+            localPlayerGroup.position.set(newX, 0, newZ);
             
-            playerGroup.position.set(newX, 0, newZ);
-            
-            // Simple rotation: rotate player to face movement direction (optional)
             if (moveX !== 0 || moveZ !== 0) {
                 const angle = Math.atan2(deltaPos.x, deltaPos.z);
-                playerGroup.rotation.y = angle;
+                localPlayerGroup.rotation.y = angle;
+            }
+            return true;
+        }
+        
+        // --- Supabase Realtime: Players Table ---
+        // We'll use a table named 'players' (auto-create via supabase if needed, but we'll assume it exists or create on the fly)
+        // Since we cannot run migrations from client, we'll use a simple approach: store in 'player_positions' table.
+        // For demo, we'll assume the table exists with columns: id (text primary key), x (float), z (float), updated_at (timestamp)
+        // If table doesn't exist, the code will error gracefully and show offline mode.
+        // To ensure it works, we'll create the table via Supabase dashboard SQL: 
+        // CREATE TABLE IF NOT EXISTS player_positions (id TEXT PRIMARY KEY, x FLOAT, z FLOAT, updated_at TIMESTAMPTZ DEFAULT NOW());
+        // ALTER TABLE player_positions ENABLE ROW LEVEL SECURITY;
+        // CREATE POLICY "Enable all for anon" ON player_positions FOR ALL USING (true) WITH CHECK (true);
+        // For this demo, I'll include instructions in console, but most likely the table is already created.
+        
+        const TABLE_NAME = 'player_positions';
+        
+        // Insert/update local player position every frame (throttled to 15fps)
+        let lastSentTime = 0;
+        let sendInterval = 0.066; // ~15 times per second
+        
+        async function sendPosition() {
+            const x = localPlayerGroup.position.x;
+            const z = localPlayerGroup.position.z;
+            try {
+                const { error } = await supabase
+                    .from(TABLE_NAME)
+                    .upsert({ id: playerId, x: x, z: z, updated_at: new Date().toISOString() }, { onConflict: 'id' });
+                if (error) console.warn('Send error:', error);
+            } catch(e) { console.error(e); }
+        }
+        
+        // Subscribe to realtime changes
+        let subscription;
+        async function initRealtime() {
+            // First, try to insert initial position
+            await sendPosition();
+            
+            // Subscribe to changes on player_positions table
+            subscription = supabase
+                .channel('player-positions')
+                .on('postgres_changes', { event: '*', schema: 'public', table: TABLE_NAME }, (payload) => {
+                    handlePlayerUpdate(payload.new);
+                })
+                .subscribe((status) => {
+                    console.log('Subscription status:', status);
+                    document.getElementById('status').innerHTML = status === 'SUBSCRIBED' ? '🟢 Real-time Connected' : '🟡 Connecting...';
+                });
+        }
+        
+        function handlePlayerUpdate(data) {
+            if (!data || data.id === playerId) return;
+            
+            const remoteId = data.id;
+            const x = data.x;
+            const z = data.z;
+            
+            if (remotePlayers.has(remoteId)) {
+                // Update existing player position smoothly
+                const player = remotePlayers.get(remoteId);
+                player.targetPos = { x, z };
+                player.lastUpdate = Date.now();
+            } else {
+                // Create new remote player
+                // Generate a consistent color based on ID hash
+                let hash = 0;
+                for (let i = 0; i < remoteId.length; i++) hash = ((hash << 5) - hash) + remoteId.charCodeAt(i);
+                const color = (hash & 0x00ffff) | 0xff8844;
+                const remoteGroup = createRemotePlayerModel(color);
+                remoteGroup.position.set(x, 0, z);
+                scene.add(remoteGroup);
+                
+                // Add label
+                const remoteLabelDiv = document.createElement('div');
+                remoteLabelDiv.textContent = `${remoteId.slice(-6)}`;
+                remoteLabelDiv.style.color = '#ffdd99';
+                remoteLabelDiv.style.fontSize = '12px';
+                remoteLabelDiv.style.backgroundColor = 'rgba(0,0,0,0.5)';
+                remoteLabelDiv.style.padding = '2px 6px';
+                remoteLabelDiv.style.borderRadius = '16px';
+                remoteLabelDiv.style.border = '1px solid #ffaa66';
+                remoteLabelDiv.style.fontFamily = 'sans-serif';
+                const remoteLabel = new CSS2DObject(remoteLabelDiv);
+                remoteLabel.position.set(0, 1.9, 0);
+                remoteGroup.add(remoteLabel);
+                
+                remotePlayers.set(remoteId, {
+                    group: remoteGroup,
+                    label: remoteLabel,
+                    targetPos: { x, z },
+                    lastUpdate: Date.now()
+                });
+                updatePlayerCount();
             }
         }
         
-        // --- Camera follow & OrbitControls target update ---
-        // We want OrbitControls to focus on player, so we update controls.target each frame.
-        // This makes the camera orbit around the player smoothly.
-        
-        // Also we need to make sure camera distance and angle are maintained relative to player.
-        // Since we are using OrbitControls, updating target will naturally keep relative orientation.
-        
-        // --- Optional: Add a simple shadow catcher circle under player? Not needed but nice: add a small dark circle under player for grounding---
-        const shadowRingMat = new THREE.MeshStandardMaterial({ color: 0x3a5a2a, transparent: true, opacity: 0.4, side: THREE.DoubleSide });
-        const shadowDisc = new THREE.Mesh(new THREE.CircleGeometry(0.7, 8), shadowRingMat);
-        shadowDisc.rotation.x = -Math.PI / 2;
-        shadowDisc.position.y = 0.01;
-        shadowDisc.receiveShadow = false;
-        playerGroup.add(shadowDisc);
-        
-        // Also add a faint glowing aura around player? Small point light
-        const playerGlow = new THREE.PointLight(0x88aaff, 0.4, 6);
-        playerGlow.position.set(0, 0.8, 0);
-        playerGroup.add(playerGlow);
-        
-        // --- Simple cloud or sky decoration? Since sky is blue, we can add a few fluffy clouds using transparent spheres---
-        const cloudMat = new THREE.MeshStandardMaterial({ color: 0xf0f8ff, emissive: 0xccccdd, transparent: true, opacity: 0.7 });
-        function addCloud(x, z, yOff) {
-            const cloudGroup = new THREE.Group();
-            const parts = [0.6, 0.5, 0.4];
-            parts.forEach((size, idx) => {
-                const sphere = new THREE.Mesh(new THREE.SphereGeometry(size, 7, 7), cloudMat);
-                sphere.position.set((idx - 1) * 0.7, 0, idx * 0.4);
-                sphere.castShadow = false;
-                cloudGroup.add(sphere);
-            });
-            const extra = new THREE.Mesh(new THREE.SphereGeometry(0.45, 7, 7), cloudMat);
-            extra.position.set(0.5, -0.2, -0.3);
-            cloudGroup.add(extra);
-            cloudGroup.position.set(x, yOff, z);
-            scene.add(cloudGroup);
+        // Clean up stale players (not updated for > 10 seconds)
+        function cleanupStalePlayers() {
+            const now = Date.now();
+            for (const [id, player] of remotePlayers.entries()) {
+                if (now - player.lastUpdate > 10000) {
+                    scene.remove(player.group);
+                    remotePlayers.delete(id);
+                    updatePlayerCount();
+                }
+            }
         }
-        addCloud(-5, 3, 7);
-        addCloud(2, 4, 8);
-        addCloud(6, 2.5, 7.5);
-        addCloud(-3, 3.5, 6);
-        addCloud(0, 5, 9);
-        addCloud(8, 3, 6.2);
-        addCloud(-7, 3.2, 6.8);
         
-        // --- Simple Animation Loop ---
-        let lastTime = performance.now();
+        function updatePlayerCount() {
+            const count = remotePlayers.size + 1;
+            document.getElementById('playerCount').innerText = count;
+        }
         
-        function animate() {
+        // Smooth remote player movement interpolation
+        function interpolateRemotePlayers(deltaTime) {
+            for (const player of remotePlayers.values()) {
+                if (player.targetPos) {
+                    const currentX = player.group.position.x;
+                    const currentZ = player.group.position.z;
+                    const newX = currentX + (player.targetPos.x - currentX) * deltaTime * 8;
+                    const newZ = currentZ + (player.targetPos.z - currentZ) * deltaTime * 8;
+                    player.group.position.set(newX, 0, newZ);
+                    // Simple facing direction based on movement
+                    const dx = player.targetPos.x - currentX;
+                    const dz = player.targetPos.z - currentZ;
+                    if (Math.hypot(dx, dz) > 0.01) {
+                        const angle = Math.atan2(dx, dz);
+                        player.group.rotation.y = angle;
+                    }
+                }
+            }
+        }
+        
+        // --- Animation Loop ---
+        let lastFrameTime = performance.now();
+        let lastSendFrame = 0;
+        
+        async function animate() {
             const now = performance.now();
-            let delta = Math.min(0.033, (now - lastTime) / 1000);
-            lastTime = now;
+            let delta = Math.min(0.033, (now - lastFrameTime) / 1000);
+            lastFrameTime = now;
             
-            // Update player movement
-            updateMovement(delta);
+            // Update local movement
+            updateLocalMovement(delta);
             
-            // Update OrbitControls target to player position (so camera rotates around player)
-            controls.target.copy(playerGroup.position);
-            controls.update(); // important to call after target change
+            // Throttle position sending
+            if (now - lastSendFrame > sendInterval * 1000) {
+                lastSendFrame = now;
+                await sendPosition();
+            }
             
-            // Small idle animation: bobbing and eye movement? subtle breathing effect (optional)
-            const time = Date.now() * 0.008;
-            const bobY = Math.sin(time) * 0.008;
-            playerGroup.position.y = bobY; // tiny floating effect
-            // adjust shadow disc slightly
-            shadowDisc.position.y = 0.01 + Math.abs(bobY) * 0.5;
-            // make eyes look around randomly? Not needed, but cute: pupils move slightly?
-            const lookX = Math.sin(time * 0.7) * 0.03;
-            const lookZ = Math.cos(time * 0.5) * 0.02;
-            leftPupil.position.x = -0.18 + lookX * 0.1;
-            rightPupil.position.x = 0.18 + lookX * 0.1;
-            leftPupil.position.z = 0.52 + lookZ * 0.05;
-            rightPupil.position.z = 0.52 + lookZ * 0.05;
+            // Interpolate remote players
+            interpolateRemotePlayers(delta);
+            cleanupStalePlayers();
             
-            // Animate particles slowly drift? already rotating
-            // Slight cloud movement?
+            // Update orbit controls target to local player
+            controls.target.copy(localPlayerGroup.position);
+            controls.update();
+            
+            // Tiny idle animation for local player
+            const time = Date.now() * 0.006;
+            const bob = Math.sin(time) * 0.005;
+            localPlayerGroup.position.y = bob;
+            if (localLabel) localLabel.position.y = 1.95 + Math.abs(bob)*0.3;
+            
+            // Eye movement
+            const leftPupilObj = localPlayerGroup.children.find(c => c.position.x === -0.2 && c.geometry?.type === 'SphereGeometry' && c.material?.color?.getHex() === 0x000000);
+            const rightPupilObj = localPlayerGroup.children.find(c => c.position.x === 0.2 && c.geometry?.type === 'SphereGeometry' && c.material?.color?.getHex() === 0x000000);
+            if (leftPupilObj && rightPupilObj) {
+                const lookX = Math.sin(time * 0.8) * 0.04;
+                const lookZ = Math.cos(time * 0.6) * 0.03;
+                leftPupilObj.position.x = -0.2 + lookX;
+                rightPupilObj.position.x = 0.2 + lookX;
+                leftPupilObj.position.z = 0.55 + lookZ;
+                rightPupilObj.position.z = 0.55 + lookZ;
+            }
             
             // Render
             renderer.render(scene, camera);
@@ -481,22 +573,49 @@
             requestAnimationFrame(animate);
         }
         
-        // Start the animation
-        animate();
+        // --- Start the app ---
+        async function start() {
+            // Check if table exists by trying to select
+            try {
+                const { error } = await supabase.from(TABLE_NAME).select('id').limit(1);
+                if (error && error.code === '42P01') {
+                    console.warn('Table not found. Please create table "player_positions" in Supabase with columns: id (text), x (float8), z (float8), updated_at (timestamptz)');
+                    document.getElementById('status').innerHTML = '⚠️ Table missing - multiplayer disabled';
+                    document.getElementById('status').style.color = '#ff6666';
+                } else {
+                    await initRealtime();
+                    // Also fetch existing players on startup
+                    const { data: existing } = await supabase.from(TABLE_NAME).select('*');
+                    if (existing) {
+                        existing.forEach(row => handlePlayerUpdate(row));
+                    }
+                }
+            } catch(e) {
+                console.error('Supabase init error:', e);
+                document.getElementById('status').innerHTML = '⚠️ Connection error';
+            }
+            
+            animate();
+        }
+        
+        start();
         
         // Handle window resize
-        window.addEventListener('resize', onWindowResize, false);
-        function onWindowResize() {
+        window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
             labelRenderer.setSize(window.innerWidth, window.innerHeight);
-        }
+        });
         
-        // Small console log to show ready
-        console.log('3D World Ready! Use WASD to move the character. Mouse drag to orbit camera.');
+        // Cleanup on page unload: remove player from table
+        window.addEventListener('beforeunload', async () => {
+            try {
+                await supabase.from(TABLE_NAME).delete().eq('id', playerId);
+            } catch(e) {}
+        });
         
-        // Optional: add a simple help cursor lock? Not needed for basic template, but OrbitControls works fine.
+        console.log('Multiplayer 3D World initialized. Player ID:', playerId);
     </script>
 </body>
 </html>
