@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>3D World - Multiplayer Game</title>
+    <title>3D World - Multiplayer with Vehicles</title>
     <style>
         * {
             margin: 0;
@@ -53,11 +53,6 @@
             color: #00ff88;
         }
 
-        #ui p {
-            font-size: 10px;
-            color: #ccc;
-        }
-
         #info-panel {
             position: absolute;
             top: 20px;
@@ -75,7 +70,7 @@
             border-right: 3px solid #00ff88;
         }
 
-        #coordinates {
+        #coordinates, #vehicle-speed {
             font-size: 10px;
             color: #88ff88;
             margin-top: 5px;
@@ -128,10 +123,6 @@
             color: white !important;
         }
 
-        #leave-game-btn:hover {
-            background: #ff6666 !important;
-        }
-
         #session-code-display {
             font-size: 10px;
             color: #ffaa00;
@@ -159,7 +150,7 @@
             color: #ffaa00;
         }
 
-        /* Session Panel - FIXED for keyboard input */
+        /* Session Panel */
         #session-panel {
             position: fixed;
             top: 50%;
@@ -177,12 +168,6 @@
             box-shadow: 0 0 50px rgba(0,0,0,0.5);
         }
 
-        #session-panel h3 {
-            color: #4ec9e0;
-            margin-bottom: 15px;
-            font-size: 18px;
-        }
-
         #session-panel input {
             padding: 12px;
             margin: 15px 0;
@@ -195,37 +180,144 @@
             font-size: 20px;
             font-weight: bold;
             letter-spacing: 2px;
-            pointer-events: auto;
-            cursor: text;
         }
 
-        #session-panel input:focus {
-            outline: none;
-            border-color: #ffaa44;
-            box-shadow: 0 0 10px rgba(78,201,224,0.5);
+        /* Phone UI */
+        #phone-ui {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 380px;
+            height: 600px;
+            background: radial-gradient(circle at top, #1a1f2e, #0a0a0f);
+            border-radius: 36px;
+            border: 1px solid rgba(78, 201, 224, 0.3);
+            z-index: 5000;
+            display: none;
+            flex-direction: column;
+            overflow: hidden;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
 
-        #session-panel button {
-            padding: 10px 20px;
-            margin: 5px;
-            background: #4ec9e0;
-            border: none;
-            border-radius: 8px;
+        .phone-notch {
+            width: 150px;
+            height: 25px;
+            background: #000;
+            border-radius: 20px;
+            margin: 10px auto 5px;
+        }
+
+        .phone-status {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 20px;
+            color: white;
+            font-size: 12px;
+        }
+
+        .phone-app-grid {
+            flex: 1;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .phone-app {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            padding: 15px 10px;
+            text-align: center;
             cursor: pointer;
-            font-weight: bold;
-            font-size: 14px;
-            pointer-events: auto;
             transition: all 0.2s;
         }
 
-        #session-panel button:hover {
-            background: #6ee0ff;
-            transform: scale(1.02);
+        .phone-app:hover {
+            background: rgba(78, 201, 224, 0.3);
+            transform: scale(1.05);
         }
 
-        #session-cancel-btn {
-            background: #ff4444 !important;
-            color: white !important;
+        .phone-app-icon {
+            font-size: 2.5rem;
+            margin-bottom: 8px;
+        }
+
+        .phone-app-name {
+            font-size: 11px;
+            color: white;
+        }
+
+        .phone-home-indicator {
+            width: 140px;
+            height: 5px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 3px;
+            margin: 12px auto;
+        }
+
+        /* Dealership Menu */
+        .dealership-menu {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            border-radius: 20px;
+            padding: 20px;
+            border: 2px solid #ffaa44;
+            z-index: 6000;
+            min-width: 350px;
+            max-width: 90vw;
+            max-height: 80vh;
+            overflow-y: auto;
+            color: white;
+            font-family: monospace;
+        }
+
+        .dealership-menu h3 {
+            color: #ffaa44;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .vehicle-card {
+            background: rgba(50, 70, 90, 0.8);
+            border-radius: 12px;
+            padding: 12px;
+            margin: 10px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .vehicle-card button {
+            background: #4ae04a;
+            border: none;
+            padding: 6px 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .vehicle-card button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+
+        .close-menu {
+            background: #ff4444;
+            color: white;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 15px;
+            width: 100%;
+            font-weight: bold;
         }
 
         /* Mobile Controls */
@@ -239,14 +331,6 @@
             padding: 15px;
             z-index: 200;
             pointer-events: none;
-        }
-
-        .control-zone {
-            background: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(8px);
-            border-radius: 60px;
-            pointer-events: auto;
-            touch-action: none;
         }
 
         #joystick-area {
@@ -275,7 +359,6 @@
             left: 45px;
             top: 45px;
             transition: transform 0.05s linear;
-            box-shadow: 0 0 10px rgba(78, 201, 224, 0.5);
         }
 
         .action-buttons {
@@ -294,28 +377,8 @@
             align-items: center;
             justify-content: center;
             font-size: 24px;
-            font-weight: bold;
-            color: white;
             border: 2px solid rgba(255, 255, 255, 0.3);
             cursor: pointer;
-            transition: all 0.1s;
-            user-select: none;
-            touch-action: manipulation;
-        }
-
-        .action-btn:active {
-            transform: scale(0.95);
-            background: rgba(78, 201, 224, 0.8);
-        }
-
-        #jump-btn {
-            background: rgba(78, 201, 224, 0.6);
-            border-color: #4ec9e0;
-        }
-
-        #sprint-btn {
-            background: rgba(255, 170, 68, 0.6);
-            border-color: #ffaa44;
         }
 
         #look-area {
@@ -328,7 +391,6 @@
             display: none;
             background: transparent;
             pointer-events: auto;
-            touch-action: none;
         }
 
         #crosshair {
@@ -342,7 +404,27 @@
             border-radius: 50%;
             z-index: 1000;
             pointer-events: none;
-            box-shadow: 0 0 0 2px rgba(0,0,0,0.5), 0 0 0 4px rgba(255,255,255,0.3);
+        }
+
+        #vehicle-hud {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.85);
+            border: 2px solid #ffaa44;
+            border-radius: 15px;
+            padding: 10px 20px;
+            display: none;
+            text-align: center;
+            z-index: 100;
+            font-family: monospace;
+        }
+
+        #vehicle-speed {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffaa44;
         }
 
         .controls-indicator {
@@ -354,7 +436,6 @@
             border-radius: 8px;
             font-size: 9px;
             color: #aaa;
-            font-family: monospace;
             z-index: 100;
             pointer-events: none;
         }
@@ -369,7 +450,6 @@
             border-radius: 20px;
             font-size: 10px;
             color: #4ec9e0;
-            font-family: monospace;
             z-index: 100;
             pointer-events: none;
         }
@@ -390,26 +470,13 @@
             white-space: nowrap;
             font-size: 14px;
             pointer-events: none;
-            font-family: monospace;
-        }
-
-        @media (max-width: 768px) {
-            #ui { font-size: 10px; padding: 8px 12px; }
-            #info-panel { font-size: 9px; padding: 8px 12px; }
-            .action-btn { width: 55px; height: 55px; font-size: 20px; }
-            #joystick-area { width: 120px; height: 120px; }
-            #joystick-base { width: 100px; height: 100px; left: 10px; top: 10px; }
-            #joystick-thumb { width: 40px; height: 40px; left: 40px; top: 40px; }
-            #multiplayer-panel { min-width: 180px; top: 90px; }
-            #session-panel { min-width: 280px; padding: 20px; }
-            #session-panel input { font-size: 18px; padding: 10px; }
         }
     </style>
 </head>
 <body>
     <div id="ui">
-        <h2>🎮 3D MULTIPLAYER WORLD</h2>
-        <p>Play with friends | Move around | See each other in real-time</p>
+        <h2>🎮 3D MULTIPLAYER WITH VEHICLES</h2>
+        <p>Press O for Phone | Buy cars | Drive around with friends!</p>
     </div>
 
     <div id="info-panel">
@@ -418,6 +485,13 @@
         <div style="margin-top: 6px;">🎯 FPS: <span id="fps">--</span></div>
         <div>🏃 Speed: <span id="speed">0</span></div>
         <div style="margin-top: 6px;">👥 Online: <span id="player-count">1</span></div>
+        <div>💰 Money: <span id="money-display">∞</span></div>
+    </div>
+
+    <div id="vehicle-hud">
+        <div>🚗 <span id="vehicle-name">No Vehicle</span></div>
+        <div id="vehicle-speed">0 MPH</div>
+        <div>⛽ Fuel: <span id="fuel-display">100</span>%</div>
     </div>
 
     <div id="crosshair"></div>
@@ -429,7 +503,7 @@
         <button id="join-game-btn">🔗 JOIN GAME</button>
         <button id="leave-game-btn">🚪 LEAVE GAME</button>
         <div id="session-code-display"></div>
-        <hr style="margin: 6px 0;">
+        <hr>
         <div id="players-list">
             <div style="color:#888;">Not in a game</div>
         </div>
@@ -437,7 +511,7 @@
 
     <div id="session-panel">
         <h3 id="session-title">Create Game Session</h3>
-        <input type="text" id="session-code-input" placeholder="Enter 6-digit code" maxlength="6" autocomplete="off" style="text-transform:uppercase">
+        <input type="text" id="session-code-input" placeholder="Enter 6-digit code" maxlength="6">
         <div>
             <button id="session-create-btn">CREATE</button>
             <button id="session-join-btn">JOIN</button>
@@ -445,9 +519,37 @@
         </div>
     </div>
 
+    <!-- Phone UI -->
+    <div id="phone-ui">
+        <div class="phone-notch"></div>
+        <div class="phone-status">
+            <span>9:41</span>
+            <span>📶 🔋</span>
+        </div>
+        <div class="phone-app-grid">
+            <div class="phone-app" data-app="dealership">
+                <div class="phone-app-icon">🚗</div>
+                <div class="phone-app-name">Dealership</div>
+            </div>
+            <div class="phone-app" data-app="garage">
+                <div class="phone-app-icon">🏠</div>
+                <div class="phone-app-name">My Garage</div>
+            </div>
+            <div class="phone-app" data-app="spawn">
+                <div class="phone-app-icon">🚙</div>
+                <div class="phone-app-name">Spawn Vehicle</div>
+            </div>
+            <div class="phone-app" data-app="close">
+                <div class="phone-app-icon">❌</div>
+                <div class="phone-app-name">Close</div>
+            </div>
+        </div>
+        <div class="phone-home-indicator"></div>
+    </div>
+
     <!-- Mobile Controls -->
     <div id="mobile-controls">
-        <div class="control-zone" id="joystick-area">
+        <div id="joystick-area">
             <div id="joystick-base"></div>
             <div id="joystick-thumb"></div>
         </div>
@@ -458,9 +560,7 @@
     </div>
     <div id="look-area"></div>
 
-    <div class="controls-indicator" id="controls-hint">
-        💻 PC: WASD + Mouse | 📱 Mobile: Touch joystick + Drag to look
-    </div>
+    <div class="controls-indicator">💻 PC: WASD + Mouse | O - Phone | E - Enter/Exit Vehicle</div>
     <div id="device-mode">💻 PC Mode</div>
     <div id="notification"></div>
 
@@ -468,20 +568,22 @@
     <script type="importmap">
         {
             "imports": {
-                "three": "https://unpkg.com/three@0.128.0/build/three.module.js"
+                "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
             }
         }
     </script>
 
     <script type="module">
         import * as THREE from 'three';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
-        // ==================== SUPABASE CONFIGURATION ====================
+        // ==================== SUPABASE CONFIG ====================
         const SUPABASE_URL = 'https://hcvewiwhtxqpbogcrukk.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjdmV3aXdodHhxcGJvZ2NydWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTQ4MzMsImV4cCI6MjA5MDQ3MDgzM30.UsdvDyrGl4OhmbDjonyOagknHf--Zhe-fhCi0LFVoQw';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
-        // ==================== MULTIPLAYER STATE ====================
+        // ==================== GAME STATE ====================
         let currentSession = null;
         let myPlayerId = null;
         let isHost = false;
@@ -489,6 +591,25 @@
         let subscription = null;
         let heartbeatInterval = null;
         let lastPositionUpdate = 0;
+        
+        // ==================== VEHICLE SYSTEM ====================
+        let vehicles = [];
+        let currentVehicle = null;
+        let isInVehicle = false;
+        let ownedVehicles = ["Sports Car", "Police Car", "SUV"];
+        let vehicleModels = {
+            "Sports Car": { color: 0xff3333, speed: 15, handling: 0.9, modelUrl: null },
+            "Police Car": { color: 0x3366ff, speed: 12, handling: 0.85, modelUrl: null },
+            "SUV": { color: 0x44aa44, speed: 10, handling: 0.7, modelUrl: null }
+        };
+        
+        let vehicleStats = { speed: 0, fuel: 100 };
+        
+        // Vehicle physics
+        const ENGINE_FORCE = 1200;
+        const BRAKE_FORCE = 800;
+        const STEERING_SPEED = 2.5;
+        const MAX_STEER = 0.8;
         
         // ==================== THREE.JS WORLD ====================
         let scene, camera, renderer;
@@ -502,7 +623,10 @@
         let isJumping = false;
         let cameraAngleY = 0, cameraAngleX = 0;
         let isPointerLockActive = false;
-        let ignoreKeyboardForInput = false;
+        
+        // Vehicle controls
+        let accelerate = false, brake = false, steerLeft = false, steerRight = false;
+        let currentSteer = 0;
         
         // Movement settings
         const WALK_SPEED = 5;
@@ -516,6 +640,11 @@
         const fpsEl = document.getElementById('fps');
         const speedEl = document.getElementById('speed');
         const playerCountEl = document.getElementById('player-count');
+        const moneyDisplay = document.getElementById('money-display');
+        const vehicleHud = document.getElementById('vehicle-hud');
+        const vehicleNameEl = document.getElementById('vehicle-name');
+        const vehicleSpeedEl = document.getElementById('vehicle-speed');
+        const fuelDisplay = document.getElementById('fuel-display');
         
         // FPS counter
         let frameCount = 0;
@@ -524,9 +653,10 @@
         
         // Device detection
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        
-        // Touch controls state
         let touchLook = { active: false, lastX: 0, lastY: 0 };
+        
+        // GLTF Loader
+        const gltfLoader = new GLTFLoader();
         
         // ==================== CREATE 3D WORLD ====================
         function init3DWorld() {
@@ -565,7 +695,6 @@
             ground.receiveShadow = true;
             scene.add(ground);
             
-            // Grid helper
             const gridHelper = new THREE.GridHelper(200, 40, 0x88aaff, 0x446688);
             gridHelper.position.y = -0.4;
             scene.add(gridHelper);
@@ -603,6 +732,61 @@
             scene.add(centerMarker);
             
             console.log("✅ 3D World created!");
+        }
+        
+        // ==================== CREATE VEHICLE MODEL ====================
+        function createVehicleModel(type, x, z) {
+            const config = vehicleModels[type];
+            const group = new THREE.Group();
+            
+            // Body
+            const bodyMat = new THREE.MeshStandardMaterial({ color: config.color, roughness: 0.4, metalness: 0.6 });
+            const body = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.5, 4.2), bodyMat);
+            body.position.y = 0.35;
+            body.castShadow = true;
+            group.add(body);
+            
+            // Roof
+            const roofMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+            const roof = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.4, 2.2), roofMat);
+            roof.position.y = 0.8;
+            roof.castShadow = true;
+            group.add(roof);
+            
+            // Wheels
+            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8 });
+            const wheelGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.3, 16);
+            const wheelPositions = [[-0.8, 0.2, -1.5], [0.8, 0.2, -1.5], [-0.8, 0.2, 1.5], [0.8, 0.2, 1.5]];
+            wheelPositions.forEach(pos => {
+                const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+                wheel.rotation.z = Math.PI / 2;
+                wheel.position.set(pos[0], pos[1], pos[2]);
+                wheel.castShadow = true;
+                group.add(wheel);
+            });
+            
+            // Lights
+            const lightMat = new THREE.MeshStandardMaterial({ color: 0xffaa66, emissive: 0xff4400 });
+            const headlight = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), lightMat);
+            headlight.position.set(0.6, 0.3, 2.1);
+            group.add(headlight);
+            const headlight2 = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 8), lightMat);
+            headlight2.position.set(-0.6, 0.3, 2.1);
+            group.add(headlight2);
+            
+            group.position.set(x, 0, z);
+            group.userData = {
+                type: type,
+                velocity: new THREE.Vector3(0, 0, 0),
+                fuel: 100,
+                maxFuel: 100,
+                speed: config.speed,
+                handling: config.handling
+            };
+            
+            scene.add(group);
+            vehicles.push(group);
+            return group;
         }
         
         // ==================== CREATE PLAYER MODEL ====================
@@ -672,6 +856,120 @@
             
             group.castShadow = true;
             return group;
+        }
+        
+        // ==================== VEHICLE PHYSICS ====================
+        function updateVehiclePhysics(vehicle, delta) {
+            if (!vehicle.userData.velocity) vehicle.userData.velocity = new THREE.Vector3(0, 0, 0);
+            
+            const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(vehicle.quaternion);
+            const right = new THREE.Vector3(1, 0, 0).applyQuaternion(vehicle.quaternion);
+            
+            let throttle = 0;
+            if (accelerate && vehicle.userData.fuel > 0) throttle = 1;
+            if (brake) throttle = -0.5;
+            
+            // Steering
+            let steer = 0;
+            if (steerLeft) steer = 1;
+            if (steerRight) steer = -1;
+            currentSteer += (steer - currentSteer) * 0.1;
+            
+            const speed = vehicle.userData.velocity.length();
+            const steeringAngle = currentSteer * MAX_STEER * Math.max(0.3, 1 - speed / 50);
+            const turnRadius = 2.5 / Math.tan(steeringAngle);
+            const angularVelocity = steeringAngle === 0 ? 0 : speed / turnRadius;
+            vehicle.rotation.y += angularVelocity * delta;
+            
+            const driveForce = throttle * ENGINE_FORCE;
+            vehicle.userData.velocity.x += forward.x * driveForce * delta / 800;
+            vehicle.userData.velocity.z += forward.z * driveForce * delta / 800;
+            
+            // Braking
+            if (brake && speed > 1) {
+                const brakeForce = BRAKE_FORCE * delta / 800;
+                const brakeDir = vehicle.userData.velocity.clone().normalize();
+                vehicle.userData.velocity.x -= brakeDir.x * Math.min(brakeForce, Math.abs(vehicle.userData.velocity.x));
+                vehicle.userData.velocity.z -= brakeDir.z * Math.min(brakeForce, Math.abs(vehicle.userData.velocity.z));
+            }
+            
+            // Drag
+            vehicle.userData.velocity.x *= 0.98;
+            vehicle.userData.velocity.z *= 0.98;
+            
+            vehicle.position.x += vehicle.userData.velocity.x * delta;
+            vehicle.position.z += vehicle.userData.velocity.z * delta;
+            
+            // Fuel consumption
+            if (throttle > 0 && speed > 1) {
+                vehicle.userData.fuel -= 0.02 * delta * 30;
+                vehicle.userData.fuel = Math.max(0, vehicle.userData.fuel);
+            }
+            
+            vehicleStats.speed = speed * 4.5;
+            vehicleStats.fuel = (vehicle.userData.fuel / vehicle.userData.maxFuel) * 100;
+            
+            // Update HUD
+            if (isInVehicle && currentVehicle === vehicle) {
+                vehicleSpeedEl.textContent = Math.floor(vehicleStats.speed) + " MPH";
+                fuelDisplay.textContent = Math.floor(vehicleStats.fuel);
+            }
+            
+            // Boundaries
+            const bound = 95;
+            vehicle.position.x = Math.max(-bound, Math.min(bound, vehicle.position.x));
+            vehicle.position.z = Math.max(-bound, Math.min(bound, vehicle.position.z));
+            
+            // Ground height
+            vehicle.position.y = -0.2;
+        }
+        
+        // ==================== VEHICLE ENTRY/EXIT ====================
+        function enterNearestVehicle() {
+            let nearest = null;
+            let nearestDist = Infinity;
+            const playerPos = isInVehicle ? currentVehicle.position : playerPosition;
+            
+            vehicles.forEach(v => {
+                const dist = Math.hypot(playerPos.x - v.position.x, playerPos.z - v.position.z);
+                if (dist < 3 && dist < nearestDist) {
+                    nearestDist = dist;
+                    nearest = v;
+                }
+            });
+            
+            if (nearest && !isInVehicle) {
+                isInVehicle = true;
+                currentVehicle = nearest;
+                localPlayerMesh.visible = false;
+                vehicleHud.style.display = 'block';
+                vehicleNameEl.textContent = currentVehicle.userData.type;
+                showNotification(`Entered ${currentVehicle.userData.type}`, '#4ae04a');
+                // Reset vehicle controls
+                accelerate = false;
+                brake = false;
+                steerLeft = false;
+                steerRight = false;
+                currentSteer = 0;
+            } else if (isInVehicle) {
+                isInVehicle = false;
+                playerPosition.copy(currentVehicle.position);
+                playerPosition.y += 1.5;
+                localPlayerMesh.position.copy(playerPosition);
+                localPlayerMesh.visible = true;
+                currentVehicle = null;
+                vehicleHud.style.display = 'none';
+                showNotification('Exited vehicle', '#ffaa00');
+            }
+        }
+        
+        // ==================== VEHICLE SPAWNING ====================
+        function spawnVehicle(type) {
+            const spawnX = playerPosition.x + Math.sin(cameraAngleY) * 5;
+            const spawnZ = playerPosition.z + Math.cos(cameraAngleY) * 5;
+            const vehicle = createVehicleModel(type, spawnX, spawnZ);
+            showNotification(`Spawned ${type}! Press E to enter`, '#4ae04a');
+            return vehicle;
         }
         
         // ==================== MULTIPLAYER FUNCTIONS ====================
@@ -808,14 +1106,16 @@
         }
         
         async function sendHeartbeat() {
-            if (!currentSession || !myPlayerId || !localPlayerMesh) return;
+            if (!currentSession || !myPlayerId) return;
+            
+            const pos = isInVehicle && currentVehicle ? currentVehicle.position : playerPosition;
             
             try {
                 await supabase
                     .from('players')
                     .update({
-                        pos_x: localPlayerMesh.position.x,
-                        pos_z: localPlayerMesh.position.z,
+                        pos_x: pos.x,
+                        pos_z: pos.z,
                         last_seen: new Date()
                     })
                     .eq('player_id', myPlayerId);
@@ -876,9 +1176,6 @@
             for (let [id] of multiplayerPlayers) {
                 html += `<div class="player-entry">🎮 ${id.slice(0, 8)}</div>`;
             }
-            if (multiplayerPlayers.size === 0) {
-                html += '<div style="color:#888;">Waiting for players...</div>';
-            }
             container.innerHTML = html;
         }
         
@@ -900,6 +1197,16 @@
         // ==================== MOVEMENT SYSTEM ====================
         function updateMovement(deltaTime) {
             if (!localPlayerMesh) return;
+            
+            if (isInVehicle && currentVehicle) {
+                updateVehiclePhysics(currentVehicle, deltaTime);
+                camera.position.copy(currentVehicle.position);
+                camera.position.y += 1.2;
+                camera.rotation.order = 'YXZ';
+                camera.rotation.y = cameraAngleY;
+                camera.rotation.x = cameraAngleX;
+                return;
+            }
             
             const speed = isSprinting ? SPRINT_SPEED : WALK_SPEED;
             let moveX = 0, moveZ = 0;
@@ -980,53 +1287,143 @@
             }
         }
         
-        // ==================== PC CONTROLS ====================
+        // ==================== PHONE SYSTEM ====================
+        function togglePhone() {
+            const phone = document.getElementById('phone-ui');
+            phone.style.display = phone.style.display === 'none' ? 'flex' : 'none';
+        }
+        
+        function showDealership() {
+            const menu = document.createElement('div');
+            menu.className = 'dealership-menu';
+            menu.innerHTML = `
+                <h3>🚗 DEALERSHIP</h3>
+                <div style="color:#ffaa44; margin-bottom:10px;">💰 INFINITE MONEY - Free Cars!</div>
+                ${Object.keys(vehicleModels).map(type => `
+                    <div class="vehicle-card">
+                        <div>
+                            <strong>${type}</strong><br>
+                            Speed: ${vehicleModels[type].speed*10} MPH | Handling: ${vehicleModels[type].handling*100}%
+                        </div>
+                        <button onclick="window.buyVehicle('${type}')">BUY (FREE)</button>
+                    </div>
+                `).join('')}
+                <button class="close-menu" onclick="this.parentElement.remove()">CLOSE</button>
+            `;
+            document.body.appendChild(menu);
+            
+            window.buyVehicle = (type) => {
+                if (!ownedVehicles.includes(type)) {
+                    ownedVehicles.push(type);
+                    showNotification(`✅ Purchased ${type}!`, '#4ae04a');
+                    menu.remove();
+                } else {
+                    showNotification(`You already own ${type}!`, '#ffaa00');
+                }
+            };
+        }
+        
+        function showGarage() {
+            const menu = document.createElement('div');
+            menu.className = 'dealership-menu';
+            menu.innerHTML = `
+                <h3>🏠 MY GARAGE</h3>
+                <div>Owned Vehicles: ${ownedVehicles.length}</div>
+                ${ownedVehicles.map(type => `
+                    <div class="vehicle-card">
+                        <div><strong>${type}</strong></div>
+                        <button onclick="window.spawnOwnedVehicle('${type}')">SPAWN</button>
+                    </div>
+                `).join('')}
+                <button class="close-menu" onclick="this.parentElement.remove()">CLOSE</button>
+            `;
+            document.body.appendChild(menu);
+            
+            window.spawnOwnedVehicle = (type) => {
+                spawnVehicle(type);
+                menu.remove();
+            };
+        }
+        
+        function showSpawnMenu() {
+            const menu = document.createElement('div');
+            menu.className = 'dealership-menu';
+            menu.innerHTML = `
+                <h3>🚙 SPAWN VEHICLE</h3>
+                ${Object.keys(vehicleModels).map(type => `
+                    <div class="vehicle-card">
+                        <div><strong>${type}</strong></div>
+                        <button onclick="window.spawnAnyVehicle('${type}')">SPAWN</button>
+                    </div>
+                `).join('')}
+                <button class="close-menu" onclick="this.parentElement.remove()">CLOSE</button>
+            `;
+            document.body.appendChild(menu);
+            
+            window.spawnAnyVehicle = (type) => {
+                spawnVehicle(type);
+                menu.remove();
+            };
+        }
+        
+        // ==================== CONTROLS ====================
         function initPCControls() {
             window.addEventListener('keydown', (e) => {
-                // Don't capture keyboard input if an input field is focused
-                if (document.activeElement && document.activeElement.tagName === 'INPUT') {
-                    return;
-                }
+                if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
                 
                 const key = e.code;
+                
+                // Player controls
+                if (!isInVehicle) {
+                    switch(key) {
+                        case 'KeyW': moveForward = true; e.preventDefault(); break;
+                        case 'KeyS': moveBack = true; e.preventDefault(); break;
+                        case 'KeyA': moveLeft = true; e.preventDefault(); break;
+                        case 'KeyD': moveRight = true; e.preventDefault(); break;
+                        case 'ShiftLeft': case 'ShiftRight': isSprinting = true; e.preventDefault(); break;
+                        case 'Space': if (isOnGround && !isJumping) isJumping = true; e.preventDefault(); break;
+                    }
+                } else {
+                    // Vehicle controls
+                    switch(key) {
+                        case 'KeyW': accelerate = true; e.preventDefault(); break;
+                        case 'KeyS': brake = true; e.preventDefault(); break;
+                        case 'KeyA': steerLeft = true; e.preventDefault(); break;
+                        case 'KeyD': steerRight = true; e.preventDefault(); break;
+                    }
+                }
+                
+                // Common controls
                 switch(key) {
-                    case 'KeyW': moveForward = true; e.preventDefault(); break;
-                    case 'KeyS': moveBack = true; e.preventDefault(); break;
-                    case 'KeyA': moveLeft = true; e.preventDefault(); break;
-                    case 'KeyD': moveRight = true; e.preventDefault(); break;
-                    case 'ShiftLeft': case 'ShiftRight': isSprinting = true; e.preventDefault(); break;
-                    case 'Space': 
-                        if (isOnGround && !isJumping) {
-                            isJumping = true;
-                        }
-                        e.preventDefault();
-                        break;
+                    case 'KeyE': enterNearestVehicle(); e.preventDefault(); break;
+                    case 'KeyO': togglePhone(); e.preventDefault(); break;
                 }
             });
             
             window.addEventListener('keyup', (e) => {
-                if (document.activeElement && document.activeElement.tagName === 'INPUT') {
-                    return;
-                }
-                
                 const key = e.code;
-                switch(key) {
-                    case 'KeyW': moveForward = false; break;
-                    case 'KeyS': moveBack = false; break;
-                    case 'KeyA': moveLeft = false; break;
-                    case 'KeyD': moveRight = false; break;
-                    case 'ShiftLeft': case 'ShiftRight': isSprinting = false; break;
+                
+                if (!isInVehicle) {
+                    switch(key) {
+                        case 'KeyW': moveForward = false; break;
+                        case 'KeyS': moveBack = false; break;
+                        case 'KeyA': moveLeft = false; break;
+                        case 'KeyD': moveRight = false; break;
+                        case 'ShiftLeft': case 'ShiftRight': isSprinting = false; break;
+                    }
+                } else {
+                    switch(key) {
+                        case 'KeyW': accelerate = false; break;
+                        case 'KeyS': brake = false; break;
+                        case 'KeyA': steerLeft = false; break;
+                        case 'KeyD': steerRight = false; break;
+                    }
                 }
             });
             
             renderer.domElement.addEventListener('click', () => {
-                // Don't lock pointer if an input is focused
-                if (document.activeElement && document.activeElement.tagName === 'INPUT') {
-                    return;
-                }
-                if (!isMobile) {
-                    renderer.domElement.requestPointerLock();
-                }
+                if (document.activeElement && document.activeElement.tagName === 'INPUT') return;
+                if (!isMobile) renderer.domElement.requestPointerLock();
             });
             
             document.addEventListener('pointerlockchange', () => {
@@ -1066,36 +1463,22 @@
                 const rect = joystickArea.getBoundingClientRect();
                 const centerX = rect.left + rect.width / 2;
                 const centerY = rect.top + rect.height / 2;
-                
                 let dx = touchX - centerX;
                 let dy = touchY - centerY;
                 const distance = Math.hypot(dx, dy);
-                
-                if (distance > maxDist) {
-                    dx = dx * maxDist / distance;
-                    dy = dy * maxDist / distance;
-                }
-                
+                if (distance > maxDist) { dx = dx * maxDist / distance; dy = dy * maxDist / distance; }
                 return { x: dx, y: dy, distance: Math.min(distance, maxDist) };
             }
             
-            function updateJoystickVisual(x, y) {
-                joystickThumb.style.transform = `translate(${x}px, ${y}px)`;
-            }
+            function updateJoystickVisual(x, y) { joystickThumb.style.transform = `translate(${x}px, ${y}px)`; }
             
             function updateMovementFromJoystick(dx, dy, distance) {
                 const angle = Math.atan2(dy, dx);
                 const strength = distance / maxDist;
-                
-                moveForward = false;
-                moveBack = false;
-                moveLeft = false;
-                moveRight = false;
-                
+                moveForward = moveBack = moveLeft = moveRight = false;
                 if (strength > 0.1) {
                     const forwardInput = Math.cos(angle);
                     const rightInput = Math.sin(angle);
-                    
                     if (forwardInput < -0.3) moveForward = true;
                     if (forwardInput > 0.3) moveBack = true;
                     if (rightInput > 0.3) moveRight = true;
@@ -1106,8 +1489,7 @@
             joystickArea.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 joystickActive = true;
-                const touch = e.touches[0];
-                const pos = getJoystickPosition(touch.clientX, touch.clientY);
+                const pos = getJoystickPosition(e.touches[0].clientX, e.touches[0].clientY);
                 updateJoystickVisual(pos.x, pos.y);
                 updateMovementFromJoystick(pos.x, pos.y, pos.distance);
             });
@@ -1115,8 +1497,7 @@
             joystickArea.addEventListener('touchmove', (e) => {
                 e.preventDefault();
                 if (!joystickActive) return;
-                const touch = e.touches[0];
-                const pos = getJoystickPosition(touch.clientX, touch.clientY);
+                const pos = getJoystickPosition(e.touches[0].clientX, e.touches[0].clientY);
                 updateJoystickVisual(pos.x, pos.y);
                 updateMovementFromJoystick(pos.x, pos.y, pos.distance);
             });
@@ -1125,45 +1506,33 @@
                 e.preventDefault();
                 joystickActive = false;
                 updateJoystickVisual(0, 0);
-                moveForward = false;
-                moveBack = false;
-                moveLeft = false;
-                moveRight = false;
+                moveForward = moveBack = moveLeft = moveRight = false;
             });
             
             lookArea.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 touchLook.active = true;
-                const touch = e.touches[0];
-                touchLook.lastX = touch.clientX;
-                touchLook.lastY = touch.clientY;
+                touchLook.lastX = e.touches[0].clientX;
+                touchLook.lastY = e.touches[0].clientY;
             });
             
             lookArea.addEventListener('touchmove', (e) => {
                 e.preventDefault();
                 if (!touchLook.active) return;
-                const touch = e.touches[0];
-                const deltaX = touch.clientX - touchLook.lastX;
-                const deltaY = touch.clientY - touchLook.lastY;
-                
+                const deltaX = e.touches[0].clientX - touchLook.lastX;
+                const deltaY = e.touches[0].clientY - touchLook.lastY;
                 cameraAngleY -= deltaX * 0.008;
                 cameraAngleX -= deltaY * 0.008;
                 cameraAngleX = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, cameraAngleX));
-                
-                touchLook.lastX = touch.clientX;
-                touchLook.lastY = touch.clientY;
+                touchLook.lastX = e.touches[0].clientX;
+                touchLook.lastY = e.touches[0].clientY;
             });
             
-            lookArea.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                touchLook.active = false;
-            });
+            lookArea.addEventListener('touchend', (e) => { e.preventDefault(); touchLook.active = false; });
             
             jumpBtn.addEventListener('touchstart', (e) => {
                 e.preventDefault();
-                if (isOnGround && !isJumping) {
-                    isJumping = true;
-                }
+                if (isOnGround && !isJumping) isJumping = true;
             });
             
             let sprintActive = false;
@@ -1171,7 +1540,7 @@
                 e.preventDefault();
                 sprintActive = !sprintActive;
                 isSprinting = sprintActive;
-                sprintBtn.style.background = sprintActive ? 'rgba(255, 170, 68, 0.9)' : 'rgba(255, 170, 68, 0.6)';
+                sprintBtn.style.background = sprintActive ? 'rgba(255,170,68,0.9)' : 'rgba(255,170,68,0.6)';
             });
         }
         
@@ -1181,94 +1550,79 @@
             const codeInput = document.getElementById('session-code-input');
             
             document.getElementById('host-game-btn')?.addEventListener('click', () => {
-                if (currentSession) {
-                    showNotification('Already in a session! Leave first.', '#ff5555');
-                    return;
-                }
+                if (currentSession) { showNotification('Already in a session! Leave first.', '#ff5555'); return; }
                 sessionPanel.style.display = 'block';
                 document.getElementById('session-title').textContent = '🎮 Create Game Session';
                 codeInput.focus();
             });
             
             document.getElementById('join-game-btn')?.addEventListener('click', () => {
-                if (currentSession) {
-                    showNotification('Already in a session! Leave first.', '#ff5555');
-                    return;
-                }
+                if (currentSession) { showNotification('Already in a session! Leave first.', '#ff5555'); return; }
                 sessionPanel.style.display = 'block';
                 document.getElementById('session-title').textContent = '🔗 Join Game Session';
                 codeInput.focus();
             });
             
             document.getElementById('leave-game-btn')?.addEventListener('click', async () => {
-                if (currentSession) {
-                    await leaveGameSession();
-                } else {
-                    showNotification('Not in a game session', '#ffaa00');
-                }
+                if (currentSession) await leaveGameSession();
+                else showNotification('Not in a game session', '#ffaa00');
             });
             
             document.getElementById('session-create-btn')?.addEventListener('click', async () => {
-                const code = codeInput.value;
-                
                 try {
-                    const sessionCode = await createGameSession(code);
+                    const sessionCode = await createGameSession(codeInput.value);
                     currentSession = sessionCode;
                     await addPlayerToSession(sessionCode, true);
                     sessionPanel.style.display = 'none';
                     document.getElementById('session-code-display').innerHTML = `<strong>🔑 ${sessionCode}</strong><br>Share this code!`;
                     codeInput.value = '';
-                } catch (err) {
-                    showNotification(`Error: ${err.message}`, '#ff5555');
-                }
+                } catch (err) { showNotification(`Error: ${err.message}`, '#ff5555'); }
             });
             
             document.getElementById('session-join-btn')?.addEventListener('click', async () => {
-                const code = codeInput.value;
-                
-                if (!code || code.length !== 6) {
+                if (!codeInput.value || codeInput.value.length !== 6) {
                     showNotification('Please enter a 6-digit code', '#ff5555');
                     return;
                 }
-                
                 try {
-                    const sessionCode = await joinGameSession(code);
+                    const sessionCode = await joinGameSession(codeInput.value);
                     currentSession = sessionCode;
                     await addPlayerToSession(sessionCode, false);
                     sessionPanel.style.display = 'none';
                     document.getElementById('session-code-display').innerHTML = `<strong>🎮 ${sessionCode}</strong>`;
                     codeInput.value = '';
-                } catch (err) {
-                    showNotification(`Error: ${err.message}`, '#ff5555');
-                }
+                } catch (err) { showNotification(`Error: ${err.message}`, '#ff5555'); }
             });
             
             document.getElementById('session-cancel-btn')?.addEventListener('click', () => {
                 sessionPanel.style.display = 'none';
                 codeInput.value = '';
             });
-            
-            // Close panel when clicking outside (optional)
-            sessionPanel.addEventListener('click', (e) => {
-                if (e.target === sessionPanel) {
-                    sessionPanel.style.display = 'none';
-                    codeInput.value = '';
-                }
+        }
+        
+        // ==================== PHONE APP LISTENERS ====================
+        function initPhoneApps() {
+            document.querySelectorAll('.phone-app').forEach(app => {
+                app.addEventListener('click', () => {
+                    const appName = app.dataset.app;
+                    document.getElementById('phone-ui').style.display = 'none';
+                    if (appName === 'dealership') showDealership();
+                    else if (appName === 'garage') showGarage();
+                    else if (appName === 'spawn') showSpawnMenu();
+                    else if (appName === 'close') document.getElementById('phone-ui').style.display = 'none';
+                });
             });
         }
         
         // ==================== DEVICE DETECTION ====================
         function detectDevice() {
             const deviceMode = document.getElementById('device-mode');
-            
             if (isMobile) {
-                deviceMode.innerHTML = `📱 Mobile Mode - Touch controls active`;
+                deviceMode.innerHTML = `📱 Mobile Mode`;
                 initMobileControls();
-                document.getElementById('controls-hint').innerHTML = `📱 Touch left side to move | Right side to look | Jump & Sprint buttons`;
             } else {
-                deviceMode.innerHTML = `💻 PC Mode - WASD + Mouse`;
+                deviceMode.innerHTML = `💻 PC Mode`;
                 initPCControls();
-                document.getElementById('controls-hint').innerHTML = `💻 WASD to move | Mouse to look | Shift to sprint | Space to jump`;
             }
         }
         
@@ -1284,30 +1638,29 @@
             updateFPS();
             
             const particles = scene.children.find(c => c.isPoints);
-            if (particles) {
-                particles.rotation.y += 0.002;
-            }
+            if (particles) particles.rotation.y += 0.002;
             
             renderer.render(scene, camera);
             requestAnimationFrame(animate);
         }
         
-        // ==================== RESIZE HANDLER ====================
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
-        
         // ==================== INITIALIZATION ====================
         function init() {
+            moneyDisplay.textContent = '∞';
             init3DWorld();
             detectDevice();
             addMultiplayerEventListeners();
-            animate();
+            initPhoneApps();
             
-            console.log("✅ Game ready! Create or join a game to play with friends!");
-            console.log("📍 Use WASD (PC) or touch joystick (mobile) to move around!");
+            // Spawn a few test vehicles
+            setTimeout(() => {
+                createVehicleModel("Sports Car", 15, 10);
+                createVehicleModel("Police Car", -15, 10);
+                createVehicleModel("SUV", 0, -15);
+            }, 1000);
+            
+            animate();
+            console.log("✅ Game ready! Press O for phone, buy cars, drive with friends!");
         }
         
         init();
