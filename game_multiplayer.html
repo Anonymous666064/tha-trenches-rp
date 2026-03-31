@@ -2,19 +2,32 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>3D World - Multiplayer Game</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>3D World - Cross-Platform Controls</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             overflow: hidden;
             background: #000;
+            touch-action: none;
+        }
+
+        canvas {
+            display: block;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
         }
 
         /* UI Overlay */
@@ -24,49 +37,155 @@
             left: 20px;
             background: rgba(0, 0, 0, 0.75);
             backdrop-filter: blur(10px);
-            padding: 15px 20px;
+            padding: 12px 18px;
             border-radius: 12px;
             color: white;
             z-index: 100;
             border-left: 4px solid #00ff88;
-            font-size: 14px;
-            pointer-events: none;
+            font-size: 12px;
             font-family: monospace;
+            pointer-events: none;
         }
 
         #ui h2 {
-            font-size: 18px;
-            margin-bottom: 8px;
+            font-size: 16px;
+            margin-bottom: 5px;
             color: #00ff88;
         }
 
         #ui p {
-            margin: 4px 0;
-            font-size: 12px;
+            font-size: 10px;
             color: #ccc;
         }
 
-        #controls {
+        #info-panel {
             position: absolute;
-            bottom: 20px;
-            left: 20px;
+            top: 20px;
+            right: 20px;
             background: rgba(0, 0, 0, 0.7);
             backdrop-filter: blur(10px);
-            padding: 12px 18px;
+            padding: 10px 15px;
             border-radius: 10px;
             color: white;
-            font-size: 12px;
+            font-size: 11px;
             font-family: monospace;
             z-index: 100;
             pointer-events: none;
-            border-top: 2px solid #ffaa44;
+            text-align: right;
+            border-right: 3px solid #00ff88;
         }
 
-        #controls span {
-            color: #ffaa44;
+        #coordinates {
+            font-size: 10px;
+            color: #88ff88;
+            margin-top: 5px;
+        }
+
+        /* Mobile Controls */
+        #mobile-controls {
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            right: 0;
+            display: none;
+            justify-content: space-between;
+            padding: 15px;
+            z-index: 200;
+            pointer-events: none;
+        }
+
+        .control-zone {
+            background: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(8px);
+            border-radius: 60px;
+            pointer-events: auto;
+            touch-action: none;
+        }
+
+        #joystick-area {
+            width: 140px;
+            height: 140px;
+            position: relative;
+        }
+
+        #joystick-base {
+            position: absolute;
+            width: 120px;
+            height: 120px;
+            background: rgba(30, 30, 40, 0.8);
+            border-radius: 60px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            left: 10px;
+            top: 10px;
+        }
+
+        #joystick-thumb {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: rgba(78, 201, 224, 0.9);
+            border-radius: 25px;
+            left: 45px;
+            top: 45px;
+            transition: transform 0.05s linear;
+            box-shadow: 0 0 10px rgba(78, 201, 224, 0.5);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            align-items: flex-end;
+        }
+
+        .action-btn {
+            width: 70px;
+            height: 70px;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            border-radius: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
             font-weight: bold;
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            transition: all 0.1s;
+            user-select: none;
+            touch-action: manipulation;
         }
 
+        .action-btn:active {
+            transform: scale(0.95);
+            background: rgba(78, 201, 224, 0.8);
+        }
+
+        #jump-btn {
+            background: rgba(78, 201, 224, 0.6);
+            border-color: #4ec9e0;
+        }
+
+        #sprint-btn {
+            background: rgba(255, 170, 68, 0.6);
+            border-color: #ffaa44;
+        }
+
+        /* Look controls for mobile */
+        #look-area {
+            position: fixed;
+            right: 0;
+            top: 0;
+            width: 50%;
+            height: 100%;
+            z-index: 150;
+            display: none;
+            background: transparent;
+            pointer-events: auto;
+            touch-action: none;
+        }
+
+        /* Crosshair */
         #crosshair {
             position: fixed;
             left: 50%;
@@ -81,227 +200,80 @@
             box-shadow: 0 0 0 2px rgba(0,0,0,0.5), 0 0 0 4px rgba(255,255,255,0.3);
         }
 
-        #info-panel {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(10px);
-            padding: 12px 18px;
-            border-radius: 10px;
-            color: white;
-            font-size: 12px;
-            font-family: monospace;
-            z-index: 100;
-            pointer-events: none;
-            text-align: right;
-            border-right: 3px solid #00ff88;
-        }
-
-        #coordinates {
-            font-size: 11px;
-            color: #88ff88;
-            margin-top: 5px;
-        }
-
-        /* Multiplayer Panel */
-        #multiplayer-panel {
-            position: absolute;
-            top: 100px;
-            right: 20px;
-            background: rgba(0, 0, 0, 0.85);
-            backdrop-filter: blur(10px);
-            padding: 12px;
-            border-radius: 12px;
-            border: 2px solid #4ec9e0;
-            min-width: 200px;
-            z-index: 200;
-            font-size: 11px;
-            pointer-events: auto;
-        }
-
-        #multiplayer-panel h4 {
-            color: #4ec9e0;
-            margin-bottom: 8px;
-            font-size: 12px;
-        }
-
-        #multiplayer-panel button {
-            width: 100%;
-            margin-bottom: 6px;
-            padding: 6px;
-            background: #4ec9e0;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 11px;
-            pointer-events: auto;
-            transition: all 0.2s;
-        }
-
-        #multiplayer-panel button:hover {
-            background: #6ee0ff;
-            transform: scale(1.02);
-        }
-
-        #leave-game-btn {
-            background: #ff4444 !important;
-        }
-
-        #leave-game-btn:hover {
-            background: #ff6666 !important;
-        }
-
-        #session-code-display {
-            font-size: 10px;
-            color: #ffaa00;
-            text-align: center;
-            margin-top: 5px;
-            word-break: break-all;
-        }
-
-        #players-list {
-            max-height: 120px;
-            overflow-y: auto;
-            margin-top: 8px;
-            font-size: 10px;
-        }
-
-        .player-entry {
-            padding: 3px 6px;
-            margin: 2px 0;
-            border-radius: 4px;
-            background: rgba(78, 201, 224, 0.2);
-        }
-
-        .player-entry.local {
-            background: rgba(78, 201, 224, 0.5);
-            color: #ffaa00;
-        }
-
-        #session-panel {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0, 0, 0, 0.95);
-            border-radius: 15px;
-            padding: 20px;
-            border: 2px solid #4ec9e0;
-            z-index: 5000;
-            min-width: 280px;
-            text-align: center;
-            pointer-events: auto;
-            display: none;
-        }
-
-        #session-panel input {
-            padding: 8px;
-            margin: 10px 0;
-            border-radius: 8px;
-            border: 1px solid #4ec9e0;
-            background: #1a2a3a;
-            color: white;
-            width: 100%;
-            text-align: center;
-            font-size: 16px;
-        }
-
-        #session-panel button {
-            padding: 8px 16px;
-            margin: 5px;
-            background: #4ec9e0;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        .instruction {
+        /* Controls indicator */
+        .controls-indicator {
             position: absolute;
             bottom: 20px;
             right: 20px;
             background: rgba(0,0,0,0.5);
-            padding: 8px 12px;
+            padding: 6px 10px;
             border-radius: 8px;
-            font-size: 10px;
+            font-size: 9px;
             color: #aaa;
             font-family: monospace;
+            z-index: 100;
             pointer-events: none;
         }
 
-        #notification {
-            position: fixed;
-            bottom: 30%;
+        /* Device indicator */
+        #device-mode {
+            position: absolute;
+            bottom: 20px;
             left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.9);
-            border: 2px solid #4ae04a;
-            border-radius: 30px;
-            padding: 10px 20px;
-            color: #4ae04a;
-            font-weight: bold;
-            z-index: 2000;
-            display: none;
-            white-space: nowrap;
-            font-size: 14px;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.6);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 10px;
+            color: #4ec9e0;
+            font-family: monospace;
+            z-index: 100;
             pointer-events: none;
+        }
+
+        @media (max-width: 768px) {
+            #ui { font-size: 10px; padding: 8px 12px; }
+            #info-panel { font-size: 9px; padding: 8px 12px; }
+            .action-btn { width: 55px; height: 55px; font-size: 20px; }
+            #joystick-area { width: 120px; height: 120px; }
+            #joystick-base { width: 100px; height: 100px; left: 10px; top: 10px; }
+            #joystick-thumb { width: 40px; height: 40px; left: 40px; top: 40px; }
         }
     </style>
 </head>
 <body>
     <div id="ui">
-        <h2>🎮 3D MULTIPLAYER WORLD</h2>
-        <p>Explore with friends | WASD to move | Mouse to look around</p>
-        <p>Click on the game to lock mouse cursor</p>
-    </div>
-
-    <div id="controls">
-        🎮 <span>WASD</span> - Move Forward/Back/Left/Right<br>
-        🖱️ <span>Mouse</span> - Look around<br>
-        🔒 <span>Click</span> - Lock/Unlock mouse<br>
-        🏃 <span>Shift</span> - Sprint<br>
-        🔄 <span>ESC</span> - Unlock mouse
+        <h2>🎮 3D WORLD</h2>
+        <p>Cross-platform controls | Explore the open world</p>
     </div>
 
     <div id="info-panel">
         <div>📍 POSITION</div>
-        <div id="coordinates">X: 0.0 | Z: 0.0 | Y: 0.0</div>
-        <div style="margin-top: 8px;">🎯 FPS: <span id="fps">--</span></div>
-        <div style="margin-top: 5px;">🏃 Speed: <span id="speed">0</span></div>
-        <div style="margin-top: 5px;">👥 Players: <span id="player-count">1</span></div>
+        <div id="coordinates">X: 0.0 | Z: 0.0</div>
+        <div style="margin-top: 6px;">🎯 FPS: <span id="fps">--</span></div>
+        <div>🏃 Speed: <span id="speed">0</span></div>
     </div>
 
     <div id="crosshair"></div>
 
-    <!-- Multiplayer Panel -->
-    <div id="multiplayer-panel">
-        <h4>👥 MULTIPLAYER</h4>
-        <button id="host-game-btn">🎮 HOST GAME</button>
-        <button id="join-game-btn">🔗 JOIN GAME</button>
-        <button id="leave-game-btn">🚪 LEAVE GAME</button>
-        <div id="session-code-display"></div>
-        <hr style="margin: 6px 0;">
-        <div id="players-list">
-            <div style="color:#888;">Not in a game</div>
+    <!-- Mobile Controls -->
+    <div id="mobile-controls">
+        <div class="control-zone" id="joystick-area">
+            <div id="joystick-base"></div>
+            <div id="joystick-thumb"></div>
+        </div>
+        <div class="action-buttons">
+            <div class="action-btn" id="jump-btn">🦘</div>
+            <div class="action-btn" id="sprint-btn">🏃</div>
         </div>
     </div>
+    <div id="look-area"></div>
 
-    <div id="session-panel">
-        <h3 id="session-title">Create Game Session</h3>
-        <input type="text" id="session-code-input" placeholder="Enter 6-digit code" maxlength="6" style="text-transform:uppercase">
-        <div>
-            <button id="session-create-btn">CREATE</button>
-            <button id="session-join-btn">JOIN</button>
-            <button id="session-cancel-btn">CANCEL</button>
-        </div>
+    <div class="controls-indicator" id="controls-hint">
+        💻 PC: WASD + Mouse | 📱 Mobile: Touch joystick + Drag to look
     </div>
+    <div id="device-mode">💻 PC Mode</div>
 
-    <div id="notification"></div>
-    <div class="instruction">💡 Click to lock mouse | ESC to release | Create/Join game to play with friends!</div>
-
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script type="importmap">
         {
             "imports": {
@@ -313,49 +285,45 @@
     <script type="module">
         import * as THREE from 'three';
 
-        // ==================== SUPABASE CONFIGURATION ====================
-        const SUPABASE_URL = 'https://hcvewiwhtxqpbogcrukk.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjdmV3aXdodHhxcGJvZ2NydWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTQ4MzMsImV4cCI6MjA5MDQ3MDgzM30.UsdvDyrGl4OhmbDjonyOagknHf--Zhe-fhCi0LFVoQw';
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        
-        // ==================== MULTIPLAYER STATE ====================
-        let currentSession = null;
-        let myPlayerId = null;
-        let isHost = false;
-        let multiplayerPlayers = new Map(); // Stores remote player meshes
-        let subscription = null;
-        let heartbeatInterval = null;
-        let lastPositionUpdate = 0;
-        
         // ==================== THREE.JS WORLD ====================
         let scene, camera, renderer;
+        
+        // Player state
         let playerPosition = new THREE.Vector3(0, 1.6, 0);
         let playerVelocity = new THREE.Vector3(0, 0, 0);
-        
-        // ==================== PLAYER CONTROLS ====================
-        const keys = { w: false, s: false, a: false, d: false, shift: false };
         let cameraAngleY = 0, cameraAngleX = 0;
-        let isPointerLock = false;
+        let isOnGround = true;
         
-        // Movement settings
+        // Movement state
+        let moveForward = false, moveBack = false, moveLeft = false, moveRight = false;
+        let isSprinting = false;
+        let isJumping = false;
+        
+        // Settings
         const WALK_SPEED = 5;
         const SPRINT_SPEED = 9;
         const JUMP_FORCE = 6;
         const GRAVITY = 15;
-        let isOnGround = true;
         
         // UI elements
         const coordsEl = document.getElementById('coordinates');
         const fpsEl = document.getElementById('fps');
         const speedEl = document.getElementById('speed');
-        const playerCountEl = document.getElementById('player-count');
         
         // FPS counter
         let frameCount = 0;
         let lastTime = performance.now();
         let fps = 0;
         
-        // ==================== CREATE 3D WORLD ====================
+        // Device detection
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        let isPointerLockActive = false;
+        
+        // Touch controls state
+        let touchJoystick = { active: false, x: 0, y: 0, startX: 0, startY: 0 };
+        let touchLook = { active: false, lastX: 0, lastY: 0 };
+        
+        // ==================== CREATE SIMPLE 3D WORLD ====================
         function init3DWorld() {
             console.log("🎨 Creating 3D World...");
             
@@ -371,8 +339,8 @@
             renderer.shadowMap.enabled = true;
             document.body.appendChild(renderer.domElement);
             
-            // Lighting
-            const ambientLight = new THREE.AmbientLight(0x404060, 0.6);
+            // Simple lighting
+            const ambientLight = new THREE.AmbientLight(0x404060, 0.7);
             scene.add(ambientLight);
             
             const sunLight = new THREE.DirectionalLight(0xfff5e6, 1.2);
@@ -380,15 +348,11 @@
             sunLight.castShadow = true;
             scene.add(sunLight);
             
-            const fillLight = new THREE.PointLight(0x4466ff, 0.4);
-            fillLight.position.set(0, 10, 0);
+            const fillLight = new THREE.PointLight(0x88aaff, 0.4);
+            fillLight.position.set(0, 15, 0);
             scene.add(fillLight);
             
-            const warmLight = new THREE.PointLight(0xffaa66, 0.5);
-            warmLight.position.set(15, 8, 10);
-            scene.add(warmLight);
-            
-            // Ground
+            // Ground plane with grid
             const groundMat = new THREE.MeshStandardMaterial({ color: 0x5c9e5c, roughness: 0.8 });
             const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), groundMat);
             ground.rotation.x = -Math.PI / 2;
@@ -396,470 +360,55 @@
             ground.receiveShadow = true;
             scene.add(ground);
             
+            // Grid helper for reference
             const gridHelper = new THREE.GridHelper(200, 40, 0x88aaff, 0x446688);
             gridHelper.position.y = -0.4;
             scene.add(gridHelper);
             
-            // Trees
-            function createTree(x, z) {
-                const group = new THREE.Group();
-                const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
-                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.7, 1.8, 6), trunkMat);
-                trunk.position.y = 0.9;
-                trunk.castShadow = true;
-                group.add(trunk);
-                
-                const leafMat = new THREE.MeshStandardMaterial({ color: 0x4caf50 });
-                const leaves1 = new THREE.Mesh(new THREE.ConeGeometry(0.8, 1.2, 8), leafMat);
-                leaves1.position.y = 1.6;
-                leaves1.castShadow = true;
-                group.add(leaves1);
-                
-                const leaves2 = new THREE.Mesh(new THREE.ConeGeometry(0.65, 1, 8), leafMat);
-                leaves2.position.y = 2.2;
-                leaves2.castShadow = true;
-                group.add(leaves2);
-                
-                group.position.set(x, -0.2, z);
-                scene.add(group);
-                return group;
+            // Simple decorative grass patches (small green cylinders)
+            const grassMat = new THREE.MeshStandardMaterial({ color: 0x6cae5a });
+            for (let i = 0; i < 500; i++) {
+                const x = (Math.random() - 0.5) * 180;
+                const z = (Math.random() - 0.5) * 180;
+                if (Math.abs(x) < 15 && Math.abs(z) < 15) continue;
+                const grass = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 0.2, 3), grassMat);
+                grass.position.set(x, -0.4, z);
+                grass.castShadow = false;
+                scene.add(grass);
             }
             
-            for (let i = 0; i < 60; i++) {
-                const angle = (i / 60) * Math.PI * 2;
-                const radius = 85;
-                createTree(Math.cos(angle) * radius, Math.sin(angle) * radius);
-            }
-            
-            for (let i = 0; i < 80; i++) {
-                const x = (Math.random() - 0.5) * 160;
-                const z = (Math.random() - 0.5) * 160;
-                if (Math.abs(x) < 30 && Math.abs(z) < 30) continue;
-                createTree(x, z);
-            }
-            
-            // Buildings
-            const buildingColors = [0xaa8866, 0xccaa88, 0x88aacc, 0x99bb99];
-            for (let x = -80; x <= 80; x += 35) {
-                for (let z = -80; z <= 80; z += 35) {
-                    if (Math.abs(x) < 25 && Math.abs(z) < 25) continue;
-                    const buildingMat = new THREE.MeshStandardMaterial({ color: buildingColors[Math.floor(Math.random() * buildingColors.length)] });
-                    const building = new THREE.Mesh(new THREE.BoxGeometry(5, 8 + Math.random() * 8, 5), buildingMat);
-                    building.position.set(x + (Math.random() - 0.5) * 10, (4 + Math.random() * 4), z + (Math.random() - 0.5) * 10);
-                    building.castShadow = true;
-                    building.receiveShadow = true;
-                    scene.add(building);
-                }
-            }
-            
-            // Roads
-            const roadMat = new THREE.MeshStandardMaterial({ color: 0x2a3a4a });
-            for (let x = -60; x <= 60; x += 30) {
-                const road = new THREE.Mesh(new THREE.BoxGeometry(8, 0.2, 180), roadMat);
-                road.position.set(x, -0.3, 0);
-                scene.add(road);
-            }
-            for (let z = -60; z <= 60; z += 30) {
-                const road = new THREE.Mesh(new THREE.BoxGeometry(180, 0.2, 8), roadMat);
-                road.position.set(0, -0.3, z);
-                scene.add(road);
-            }
-            
-            // Center plaza
-            const plazaMat = new THREE.MeshStandardMaterial({ color: 0xccaa88 });
-            const plaza = new THREE.Mesh(new THREE.BoxGeometry(40, 0.5, 40), plazaMat);
-            plaza.position.set(0, -0.25, 0);
-            scene.add(plaza);
-            
-            // Center marker
-            const markerMat = new THREE.MeshStandardMaterial({ color: 0xff3333, emissive: 0x330000 });
-            const centerMarker = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1.5, 1.5), markerMat);
-            centerMarker.position.set(0, 0.5, 0);
-            scene.add(centerMarker);
-            
-            // Floating particles
-            const particleCount = 1500;
+            // Floating particles for ambiance
+            const particleCount = 800;
             const particleGeo = new THREE.BufferGeometry();
             const particlePositions = new Float32Array(particleCount * 3);
             for (let i = 0; i < particleCount; i++) {
-                particlePositions[i*3] = (Math.random() - 0.5) * 200;
-                particlePositions[i*3+1] = Math.random() * 15;
-                particlePositions[i*3+2] = (Math.random() - 0.5) * 200;
+                particlePositions[i*3] = (Math.random() - 0.5) * 180;
+                particlePositions[i*3+1] = Math.random() * 12;
+                particlePositions[i*3+2] = (Math.random() - 0.5) * 180;
             }
             particleGeo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
-            const particleMat = new THREE.PointsMaterial({ color: 0xffdd99, size: 0.08 });
+            const particleMat = new THREE.PointsMaterial({ color: 0xffdd99, size: 0.06 });
             const particles = new THREE.Points(particleGeo, particleMat);
             scene.add(particles);
             
-            console.log("✅ 3D World created!");
+            // Simple center marker (floating orb)
+            const markerMat = new THREE.MeshStandardMaterial({ color: 0xffaa44, emissive: 0x442200 });
+            const centerMarker = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), markerMat);
+            centerMarker.position.set(0, 0.5, 0);
+            scene.add(centerMarker);
+            
+            console.log("✅ Simple 3D World created!");
         }
         
-        // ==================== CREATE PLAYER MODEL ====================
-        function createPlayerModel(color, playerId = null, isLocal = false) {
-            const group = new THREE.Group();
-            
-            // Body
-            const bodyMat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.3 });
-            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 1.2, 8), bodyMat);
-            body.position.y = 0.6;
-            body.castShadow = true;
-            group.add(body);
-            
-            // Head
-            const headMat = new THREE.MeshStandardMaterial({ color: 0xffccaa, roughness: 0.2 });
-            const head = new THREE.Mesh(new THREE.SphereGeometry(0.45, 32, 32), headMat);
-            head.position.y = 1.25;
-            head.castShadow = true;
-            group.add(head);
-            
-            // Eyes
-            const eyeMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-            const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 24, 24), eyeMat);
-            leftEye.position.set(-0.18, 1.38, 0.48);
-            group.add(leftEye);
-            const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 24, 24), eyeMat);
-            rightEye.position.set(0.18, 1.38, 0.48);
-            group.add(rightEye);
-            
-            const pupilMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
-            const leftPupil = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 16), pupilMat);
-            leftPupil.position.set(0, 0, 0.08);
-            leftEye.add(leftPupil);
-            const rightPupil = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 16), pupilMat);
-            rightPupil.position.set(0, 0, 0.08);
-            rightEye.add(rightPupil);
-            
-            // Crown for local player
-            if (isLocal) {
-                const crownMat = new THREE.MeshStandardMaterial({ color: 0xffaa44, emissive: 0x442200 });
-                const crownBase = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.6, 0.2, 8), crownMat);
-                crownBase.position.y = 1.55;
-                group.add(crownBase);
-                for (let i = 0; i < 5; i++) {
-                    const spike = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.35, 6), crownMat);
-                    const angle = (i / 5) * Math.PI * 2;
-                    spike.position.x = Math.cos(angle) * 0.5;
-                    spike.position.z = Math.sin(angle) * 0.5;
-                    spike.position.y = 1.7;
-                    group.add(spike);
-                }
-            } else if (playerId) {
-                // Name tag for remote players
-                const canvas = document.createElement('canvas');
-                canvas.width = 128;
-                canvas.height = 32;
-                const ctx = canvas.getContext('2d');
-                ctx.fillStyle = 'rgba(0,0,0,0.7)';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
-                ctx.fillStyle = '#ffaa00';
-                ctx.font = 'Bold 10px Arial';
-                ctx.textAlign = 'center';
-                ctx.fillText(playerId.slice(0, 8), canvas.width/2, 20);
-                
-                const texture = new THREE.CanvasTexture(canvas);
-                const nameMaterial = new THREE.SpriteMaterial({ map: texture });
-                const nameTag = new THREE.Sprite(nameMaterial);
-                nameTag.scale.set(1, 0.25, 1);
-                nameTag.position.y = 1.8;
-                group.add(nameTag);
-            }
-            
-            group.castShadow = true;
-            return group;
-        }
-        
-        // ==================== MULTIPLAYER FUNCTIONS ====================
-        async function createGameSession(customCode) {
-            let code = customCode?.toUpperCase().trim();
-            if (!code || code.length !== 6) {
-                code = Math.random().toString(36).substring(2, 8).toUpperCase();
-            }
-            
-            const { data: existing } = await supabase
-                .from('game_sessions')
-                .select('session_code')
-                .eq('session_code', code);
-            
-            if (existing && existing.length > 0) {
-                throw new Error('Code already taken!');
-            }
-            
-            const { error } = await supabase
-                .from('game_sessions')
-                .insert({ session_code: code });
-            
-            if (error) throw error;
-            return code;
-        }
-        
-        async function joinGameSession(code) {
-            const { data, error } = await supabase
-                .from('game_sessions')
-                .select('session_code')
-                .eq('session_code', code.toUpperCase())
-                .maybeSingle();
-            
-            if (error || !data) throw new Error('Game not found!');
-            return code.toUpperCase();
-        }
-        
-        async function addPlayerToSession(sessionCode, isHostPlayer = false) {
-            myPlayerId = 'p_' + Math.random().toString(36).substring(2, 12);
-            isHost = isHostPlayer;
-            
-            const startX = (Math.random() - 0.5) * 40;
-            const startZ = (Math.random() - 0.5) * 40;
-            playerPosition.set(startX, 1.6, startZ);
-            
-            const { error } = await supabase
-                .from('players')
-                .insert({
-                    player_id: myPlayerId,
-                    session_id: sessionCode,
-                    pos_x: startX,
-                    pos_z: startZ,
-                    last_seen: new Date()
-                });
-            
-            if (error) throw error;
-            
-            await loadPlayersInSession(sessionCode);
-            subscribeToSession(sessionCode);
-            
-            if (heartbeatInterval) clearInterval(heartbeatInterval);
-            heartbeatInterval = setInterval(() => sendHeartbeat(), 2000);
-            
-            updatePlayersUI();
-            showNotification(`✅ Joined game! Code: ${sessionCode}`, '#4ae04a');
-            return true;
-        }
-        
-        async function loadPlayersInSession(sessionCode) {
-            const { data, error } = await supabase
-                .from('players')
-                .select('*')
-                .eq('session_id', sessionCode);
-            
-            if (error) return;
-            
-            for (let p of data) {
-                if (p.player_id !== myPlayerId && !multiplayerPlayers.has(p.player_id)) {
-                    const playerModel = createPlayerModel(0xff8844, p.player_id, false);
-                    playerModel.position.set(p.pos_x, 0.7, p.pos_z);
-                    scene.add(playerModel);
-                    multiplayerPlayers.set(p.player_id, playerModel);
-                }
-            }
-            updatePlayersUI();
-            updatePlayerCount();
-        }
-        
-        function subscribeToSession(sessionCode) {
-            if (subscription) {
-                supabase.removeChannel(subscription);
-            }
-            
-            subscription = supabase
-                .channel(`game:${sessionCode}`)
-                .on('postgres_changes', {
-                    event: '*',
-                    schema: 'public',
-                    table: 'players',
-                    filter: `session_id=eq.${sessionCode}`
-                }, (payload) => {
-                    if (payload.eventType === 'INSERT' && payload.new.player_id !== myPlayerId && scene) {
-                        const playerModel = createPlayerModel(0xff8844, payload.new.player_id, false);
-                        playerModel.position.set(payload.new.pos_x, 0.7, payload.new.pos_z);
-                        scene.add(playerModel);
-                        multiplayerPlayers.set(payload.new.player_id, playerModel);
-                        updatePlayersUI();
-                        updatePlayerCount();
-                        showNotification(`👤 Player joined!`, '#4ec9e0');
-                    }
-                    else if (payload.eventType === 'UPDATE' && payload.new.player_id !== myPlayerId) {
-                        const playerModel = multiplayerPlayers.get(payload.new.player_id);
-                        if (playerModel) {
-                            // Smooth interpolation
-                            playerModel.position.x += (payload.new.pos_x - playerModel.position.x) * 0.3;
-                            playerModel.position.z += (payload.new.pos_z - playerModel.position.z) * 0.3;
-                        }
-                    }
-                    else if (payload.eventType === 'DELETE' && payload.old.player_id !== myPlayerId) {
-                        const playerModel = multiplayerPlayers.get(payload.old.player_id);
-                        if (playerModel && scene) {
-                            scene.remove(playerModel);
-                            multiplayerPlayers.delete(payload.old.player_id);
-                            updatePlayersUI();
-                            updatePlayerCount();
-                            showNotification(`👋 Player left`, '#ffaa00');
-                        }
-                    }
-                })
-                .subscribe();
-        }
-        
-        async function sendHeartbeat() {
-            if (!currentSession || !myPlayerId) return;
-            
-            try {
-                await supabase
-                    .from('players')
-                    .update({
-                        pos_x: playerPosition.x,
-                        pos_z: playerPosition.z,
-                        last_seen: new Date()
-                    })
-                    .eq('player_id', myPlayerId);
-            } catch (e) {
-                console.warn('Heartbeat failed:', e);
-            }
-        }
-        
-        async function leaveGameSession() {
-            if (heartbeatInterval) {
-                clearInterval(heartbeatInterval);
-                heartbeatInterval = null;
-            }
-            
-            if (myPlayerId) {
-                await supabase.from('players').delete().eq('player_id', myPlayerId);
-            }
-            
-            if (isHost && currentSession) {
-                await supabase.from('game_sessions').delete().eq('session_code', currentSession);
-            }
-            
-            if (subscription) {
-                supabase.removeChannel(subscription);
-            }
-            
-            for (let [id, model] of multiplayerPlayers) {
-                if (scene) scene.remove(model);
-            }
-            multiplayerPlayers.clear();
-            
-            currentSession = null;
-            myPlayerId = null;
-            isHost = false;
-            
-            updatePlayersUI();
-            updatePlayerCount();
-            document.getElementById('session-code-display').innerHTML = '';
-            showNotification('Left game session', '#ffaa00');
-        }
-        
-        function updatePlayersUI() {
-            const container = document.getElementById('players-list');
-            if (!container) return;
-            
-            if (!myPlayerId) {
-                container.innerHTML = '<div style="color:#888;">Not in a game</div>';
-                return;
-            }
-            
-            let html = `<div class="player-entry local">👑 YOU (${isHost ? 'Host' : 'Player'})</div>`;
-            for (let [id] of multiplayerPlayers) {
-                html += `<div class="player-entry">🎮 ${id.slice(0, 8)}</div>`;
-            }
-            if (multiplayerPlayers.size === 0) {
-                html += '<div style="color:#888;">Waiting for players...</div>';
-            }
-            container.innerHTML = html;
-        }
-        
-        function updatePlayerCount() {
-            if (playerCountEl) {
-                playerCountEl.textContent = 1 + multiplayerPlayers.size;
-            }
-        }
-        
-        function showNotification(msg, color) {
-            const n = document.getElementById('notification');
-            n.style.borderColor = color;
-            n.style.color = color;
-            n.textContent = msg;
-            n.style.display = 'block';
-            setTimeout(() => n.style.display = 'none', 2000);
-        }
-        
-        function addMultiplayerEventListeners() {
-            document.getElementById('host-game-btn')?.addEventListener('click', () => {
-                if (currentSession) {
-                    showNotification('Already in a session! Leave first.', '#ff5555');
-                    return;
-                }
-                document.getElementById('session-panel').style.display = 'block';
-                document.getElementById('session-title').textContent = '🎮 Create Game Session';
-            });
-            
-            document.getElementById('join-game-btn')?.addEventListener('click', () => {
-                if (currentSession) {
-                    showNotification('Already in a session! Leave first.', '#ff5555');
-                    return;
-                }
-                document.getElementById('session-panel').style.display = 'block';
-                document.getElementById('session-title').textContent = '🔗 Join Game Session';
-            });
-            
-            document.getElementById('leave-game-btn')?.addEventListener('click', async () => {
-                if (currentSession) {
-                    await leaveGameSession();
-                } else {
-                    showNotification('Not in a game session', '#ffaa00');
-                }
-            });
-            
-            document.getElementById('session-create-btn')?.addEventListener('click', async () => {
-                const codeInput = document.getElementById('session-code-input');
-                const code = codeInput.value;
-                
-                try {
-                    const sessionCode = await createGameSession(code);
-                    currentSession = sessionCode;
-                    await addPlayerToSession(sessionCode, true);
-                    document.getElementById('session-panel').style.display = 'none';
-                    document.getElementById('session-code-display').innerHTML = `<strong>🔑 ${sessionCode}</strong><br>Share this code!`;
-                    codeInput.value = '';
-                } catch (err) {
-                    showNotification(`Error: ${err.message}`, '#ff5555');
-                }
-            });
-            
-            document.getElementById('session-join-btn')?.addEventListener('click', async () => {
-                const codeInput = document.getElementById('session-code-input');
-                const code = codeInput.value;
-                
-                if (!code || code.length !== 6) {
-                    showNotification('Please enter a 6-digit code', '#ff5555');
-                    return;
-                }
-                
-                try {
-                    const sessionCode = await joinGameSession(code);
-                    currentSession = sessionCode;
-                    await addPlayerToSession(sessionCode, false);
-                    document.getElementById('session-panel').style.display = 'none';
-                    document.getElementById('session-code-display').innerHTML = `<strong>🎮 ${sessionCode}</strong>`;
-                    codeInput.value = '';
-                } catch (err) {
-                    showNotification(`Error: ${err.message}`, '#ff5555');
-                }
-            });
-            
-            document.getElementById('session-cancel-btn')?.addEventListener('click', () => {
-                document.getElementById('session-panel').style.display = 'none';
-            });
-        }
-        
-        // ==================== PLAYER MOVEMENT ====================
+        // ==================== MOVEMENT SYSTEM ====================
         function updateMovement(deltaTime) {
-            const speed = keys.shift ? SPRINT_SPEED : WALK_SPEED;
+            const speed = isSprinting ? SPRINT_SPEED : WALK_SPEED;
             let moveX = 0, moveZ = 0;
             
-            if (keys.w) moveZ -= 1;
-            if (keys.s) moveZ += 1;
-            if (keys.a) moveX -= 1;
-            if (keys.d) moveX += 1;
+            if (moveForward) moveZ -= 1;
+            if (moveBack) moveZ += 1;
+            if (moveLeft) moveX -= 1;
+            if (moveRight) moveX += 1;
             
             if (moveX !== 0 || moveZ !== 0) {
                 const len = Math.hypot(moveX, moveZ);
@@ -885,8 +434,16 @@
                 playerPosition.y = groundY + 1.6;
                 playerVelocity.y = 0;
                 isOnGround = true;
+                if (isJumping) isJumping = false;
             } else {
                 isOnGround = false;
+            }
+            
+            // Handle jump
+            if (isJumping && isOnGround) {
+                playerVelocity.y = JUMP_FORCE;
+                isOnGround = false;
+                isJumping = false;
             }
             
             // Boundaries
@@ -900,19 +457,10 @@
             camera.rotation.y = cameraAngleY;
             camera.rotation.x = cameraAngleX;
             
-            // Send position update for multiplayer
-            if (currentSession && myPlayerId) {
-                const now = Date.now();
-                if (now - lastPositionUpdate > 66) {
-                    sendHeartbeat();
-                    lastPositionUpdate = now;
-                }
-            }
-            
             // Update UI
             const currentSpeed = Math.hypot(playerVelocity.x, playerVelocity.z);
             speedEl.textContent = Math.floor(currentSpeed * 3.6);
-            coordsEl.innerHTML = `X: ${playerPosition.x.toFixed(1)} | Z: ${playerPosition.z.toFixed(1)} | Y: ${playerPosition.y.toFixed(1)}`;
+            coordsEl.innerHTML = `X: ${playerPosition.x.toFixed(1)} | Z: ${playerPosition.z.toFixed(1)}`;
         }
         
         // ==================== FPS COUNTER ====================
@@ -929,67 +477,268 @@
             }
         }
         
-        // ==================== EVENT LISTENERS ====================
-        function initEventListeners() {
+        // ==================== PC CONTROLS ====================
+        function initPCControls() {
             window.addEventListener('keydown', (e) => {
                 const key = e.code;
                 switch(key) {
-                    case 'KeyW': keys.w = true; break;
-                    case 'KeyS': keys.s = true; break;
-                    case 'KeyA': keys.a = true; break;
-                    case 'KeyD': keys.d = true; break;
-                    case 'ShiftLeft': case 'ShiftRight': keys.shift = true; break;
+                    case 'KeyW': moveForward = true; break;
+                    case 'KeyS': moveBack = true; break;
+                    case 'KeyA': moveLeft = true; break;
+                    case 'KeyD': moveRight = true; break;
+                    case 'ShiftLeft': case 'ShiftRight': isSprinting = true; break;
                     case 'Space': 
-                        if (isOnGround && !keys.space) {
-                            playerVelocity.y = JUMP_FORCE;
-                            isOnGround = false;
+                        if (isOnGround && !isJumping) {
+                            isJumping = true;
                         }
-                        keys.space = true;
                         break;
                 }
+                e.preventDefault();
             });
             
             window.addEventListener('keyup', (e) => {
                 const key = e.code;
                 switch(key) {
-                    case 'KeyW': keys.w = false; break;
-                    case 'KeyS': keys.s = false; break;
-                    case 'KeyA': keys.a = false; break;
-                    case 'KeyD': keys.d = false; break;
-                    case 'ShiftLeft': case 'ShiftRight': keys.shift = false; break;
-                    case 'Space': keys.space = false; break;
+                    case 'KeyW': moveForward = false; break;
+                    case 'KeyS': moveBack = false; break;
+                    case 'KeyA': moveLeft = false; break;
+                    case 'KeyD': moveRight = false; break;
+                    case 'ShiftLeft': case 'ShiftRight': isSprinting = false; break;
                 }
             });
             
+            // Mouse look (PC)
             renderer.domElement.addEventListener('click', () => {
-                renderer.domElement.requestPointerLock();
+                if (!isMobile) {
+                    renderer.domElement.requestPointerLock();
+                }
             });
             
-            document.addEventListener('pointerlockchange', lockChange);
-            document.addEventListener('mozpointerlockchange', lockChange);
-            
-            function lockChange() {
+            document.addEventListener('pointerlockchange', () => {
                 if (document.pointerLockElement === renderer.domElement) {
-                    isPointerLock = true;
+                    isPointerLockActive = true;
                     document.addEventListener('mousemove', onMouseMove);
                 } else {
-                    isPointerLock = false;
+                    isPointerLockActive = false;
                     document.removeEventListener('mousemove', onMouseMove);
                 }
-            }
+            });
             
             function onMouseMove(e) {
-                if (!isPointerLock) return;
+                if (!isPointerLockActive) return;
                 cameraAngleY -= e.movementX * 0.002;
                 cameraAngleX -= e.movementY * 0.002;
                 cameraAngleX = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, cameraAngleX));
             }
+        }
+        
+        // ==================== MOBILE CONTROLS ====================
+        function initMobileControls() {
+            const mobileControls = document.getElementById('mobile-controls');
+            const lookArea = document.getElementById('look-area');
+            const joystickArea = document.getElementById('joystick-area');
+            const joystickThumb = document.getElementById('joystick-thumb');
+            const jumpBtn = document.getElementById('jump-btn');
+            const sprintBtn = document.getElementById('sprint-btn');
             
-            window.addEventListener('resize', () => {
-                camera.aspect = window.innerWidth / window.innerHeight;
-                camera.updateProjectionMatrix();
-                renderer.setSize(window.innerWidth, window.innerHeight);
+            mobileControls.style.display = 'flex';
+            lookArea.style.display = 'block';
+            
+            // Joystick logic
+            let joystickActive = false;
+            let joystickCenter = { x: 0, y: 0 };
+            const maxDist = 40;
+            
+            function getJoystickPosition(touchX, touchY) {
+                const rect = joystickArea.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                
+                let dx = touchX - centerX;
+                let dy = touchY - centerY;
+                const distance = Math.hypot(dx, dy);
+                
+                if (distance > maxDist) {
+                    dx = dx * maxDist / distance;
+                    dy = dy * maxDist / distance;
+                }
+                
+                return { x: dx, y: dy, distance: Math.min(distance, maxDist) };
+            }
+            
+            function updateJoystickVisual(x, y) {
+                joystickThumb.style.transform = `translate(${x}px, ${y}px)`;
+            }
+            
+            function updateMovementFromJoystick(dx, dy, distance) {
+                const angle = Math.atan2(dy, dx);
+                const strength = distance / maxDist;
+                
+                moveForward = false;
+                moveBack = false;
+                moveLeft = false;
+                moveRight = false;
+                
+                if (strength > 0.1) {
+                    const forwardInput = Math.cos(angle);
+                    const rightInput = Math.sin(angle);
+                    
+                    if (forwardInput < -0.3) moveForward = true;
+                    if (forwardInput > 0.3) moveBack = true;
+                    if (rightInput > 0.3) moveRight = true;
+                    if (rightInput < -0.3) moveLeft = true;
+                }
+            }
+            
+            joystickArea.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                joystickActive = true;
+                const touch = e.touches[0];
+                const rect = joystickArea.getBoundingClientRect();
+                joystickCenter = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+                const pos = getJoystickPosition(touch.clientX, touch.clientY);
+                updateJoystickVisual(pos.x, pos.y);
+                updateMovementFromJoystick(pos.x, pos.y, pos.distance);
             });
+            
+            joystickArea.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (!joystickActive) return;
+                const touch = e.touches[0];
+                const pos = getJoystickPosition(touch.clientX, touch.clientY);
+                updateJoystickVisual(pos.x, pos.y);
+                updateMovementFromJoystick(pos.x, pos.y, pos.distance);
+            });
+            
+            joystickArea.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                joystickActive = false;
+                updateJoystickVisual(0, 0);
+                moveForward = false;
+                moveBack = false;
+                moveLeft = false;
+                moveRight = false;
+            });
+            
+            // Touch look (drag on right side of screen)
+            lookArea.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                touchLook.active = true;
+                const touch = e.touches[0];
+                touchLook.lastX = touch.clientX;
+                touchLook.lastY = touch.clientY;
+            });
+            
+            lookArea.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (!touchLook.active) return;
+                const touch = e.touches[0];
+                const deltaX = touch.clientX - touchLook.lastX;
+                const deltaY = touch.clientY - touchLook.lastY;
+                
+                cameraAngleY -= deltaX * 0.008;
+                cameraAngleX -= deltaY * 0.008;
+                cameraAngleX = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, cameraAngleX));
+                
+                touchLook.lastX = touch.clientX;
+                touchLook.lastY = touch.clientY;
+            });
+            
+            lookArea.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                touchLook.active = false;
+            });
+            
+            // Jump button
+            jumpBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (isOnGround && !isJumping) {
+                    isJumping = true;
+                }
+            });
+            
+            // Sprint button (toggle)
+            let sprintActive = false;
+            sprintBtn.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                sprintActive = !sprintActive;
+                isSprinting = sprintActive;
+                sprintBtn.style.background = sprintActive ? 'rgba(255, 170, 68, 0.9)' : 'rgba(255, 170, 68, 0.6)';
+            });
+            
+            // Prevent default touch events on canvas to avoid interference
+            renderer.domElement.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+            });
+        }
+        
+        // ==================== REMOTE CONTROLS (WebSocket/Network) ====================
+        // This sets up a simple WebSocket server for remote control
+        // For a full implementation, you'd need a backend server
+        
+        let remoteControlActive = false;
+        let wsConnection = null;
+        
+        function initRemoteControls() {
+            // You can connect to a WebSocket server here
+            // For demo purposes, we'll simulate remote control via URL params
+            const urlParams = new URLSearchParams(window.location.search);
+            const remoteHost = urlParams.get('remote');
+            
+            if (remoteHost) {
+                console.log(`🔌 Attempting to connect to remote controller at ${remoteHost}`);
+                document.getElementById('device-mode').innerHTML = `📡 Remote Mode (${remoteHost})`;
+                
+                // Simulate WebSocket connection
+                // In production, you'd connect to a real WebSocket server:
+                // wsConnection = new WebSocket(`ws://${remoteHost}:8080`);
+                // wsConnection.onmessage = handleRemoteMessage;
+            }
+        }
+        
+        function handleRemoteMessage(data) {
+            // Parse remote control commands
+            try {
+                const cmd = JSON.parse(data);
+                switch(cmd.type) {
+                    case 'move':
+                        moveForward = cmd.forward || false;
+                        moveBack = cmd.back || false;
+                        moveLeft = cmd.left || false;
+                        moveRight = cmd.right || false;
+                        break;
+                    case 'look':
+                        cameraAngleY += cmd.yaw || 0;
+                        cameraAngleX += cmd.pitch || 0;
+                        cameraAngleX = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, cameraAngleX));
+                        break;
+                    case 'sprint':
+                        isSprinting = cmd.active || false;
+                        break;
+                    case 'jump':
+                        if (isOnGround && !isJumping) {
+                            isJumping = true;
+                        }
+                        break;
+                }
+            } catch(e) {
+                console.warn('Invalid remote command');
+            }
+        }
+        
+        // ==================== DEVICE DETECTION ====================
+        function detectDevice() {
+            const deviceMode = document.getElementById('device-mode');
+            
+            if (isMobile) {
+                deviceMode.innerHTML = `📱 Mobile Mode - Touch controls active`;
+                initMobileControls();
+                document.getElementById('controls-hint').innerHTML = `📱 Touch left side to move | Right side to look | Jump & Sprint buttons`;
+            } else {
+                deviceMode.innerHTML = `💻 PC Mode - WASD + Mouse`;
+                initPCControls();
+                document.getElementById('controls-hint').innerHTML = `💻 WASD to move | Mouse to look | Shift to sprint | Space to jump`;
+            }
         }
         
         // ==================== ANIMATION LOOP ====================
@@ -1003,19 +752,32 @@
             updateMovement(deltaTime);
             updateFPS();
             
+            // Simple animation for particles
+            const particles = scene.children.find(c => c.isPoints);
+            if (particles) {
+                particles.rotation.y += 0.002;
+            }
+            
             renderer.render(scene, camera);
             requestAnimationFrame(animate);
         }
         
+        // ==================== RESIZE HANDLER ====================
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
         // ==================== INITIALIZATION ====================
         function init() {
             init3DWorld();
-            initEventListeners();
-            addMultiplayerEventListeners();
+            detectDevice();
+            initRemoteControls();
             animate();
             
-            console.log("✅ Game ready! Create or join a game to play with friends!");
-            console.log("📍 Use WASD to move, mouse to look around!");
+            console.log("✅ Game ready! Controls active for your device.");
+            console.log("📍 Use WASD (PC) or touch joystick (mobile) to move around!");
         }
         
         init();
