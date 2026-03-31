@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>3D Multiplayer - Driver & Passenger System</title>
+    <title>3D Multiplayer - Working Sync with Vehicles</title>
     <style>
         * {
             margin: 0;
@@ -87,7 +87,6 @@
             border-radius: 8px;
             cursor: pointer;
             font-weight: bold;
-            font-size: 11px;
         }
 
         #leave-game-btn {
@@ -177,14 +176,6 @@
             padding: 15px 10px;
             text-align: center;
             cursor: pointer;
-        }
-
-        .phone-app:hover {
-            background: rgba(78, 201, 224, 0.3);
-        }
-
-        .phone-app-icon {
-            font-size: 2.5rem;
         }
 
         .dealership-menu {
@@ -354,8 +345,8 @@
 </head>
 <body>
     <div id="ui">
-        <h2>🎮 3D MULTIPLAYER - DRIVER & PASSENGER</h2>
-        <p>E - Driver | Shift+E - Passenger | O - Phone</p>
+        <h2>🎮 3D MULTIPLAYER WITH VEHICLES</h2>
+        <p>WASD - Move | E - Enter/Exit Vehicle | O - Phone</p>
     </div>
 
     <div id="info-panel">
@@ -386,7 +377,7 @@
     </div>
 
     <div id="session-panel">
-        <h3 id="session-title">Create Game Session</h3>
+        <h3>Create Game Session</h3>
         <input type="text" id="session-code-input" placeholder="Enter 6-digit code" maxlength="6">
         <div>
             <button id="session-create-btn">CREATE</button>
@@ -424,7 +415,7 @@
     </div>
     <div id="look-area"></div>
 
-    <div class="controls-indicator">💻 PC: WASD + Mouse | E - Driver | Shift+E - Passenger | O - Phone</div>
+    <div class="controls-indicator">💻 PC: WASD + Mouse | E - Enter/Exit Vehicle | O - Phone</div>
     <div id="device-mode">💻 PC Mode</div>
     <div id="notification"></div>
 
@@ -444,29 +435,28 @@
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjdmV3aXdodHhxcGJvZ2NydWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTQ4MzMsImV4cCI6MjA5MDQ3MDgzM30.UsdvDyrGl4OhmbDjonyOagknHf--Zhe-fhCi0LFVoQw';
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
-        // Game State
+        // ==================== MULTIPLAYER STATE ====================
         let currentSession = null;
         let myPlayerId = null;
         let isHost = false;
-        let remotePlayers = new Map(); // player_id -> { mesh, lastX, lastZ, isInVehicle, vehicleId }
+        let remotePlayers = new Map();
         let subscription = null;
         let heartbeatInterval = null;
         let lastPositionUpdate = 0;
         
-        // Vehicle System
+        // ==================== VEHICLE STATE ====================
         let vehicles = [];
         let currentVehicle = null;
-        let isDriver = false;
-        let isPassenger = false;
+        let isInVehicle = false;
         let ownedVehicles = ["Sports Car", "Police Car", "SUV"];
         
-        // Three.js
+        // ==================== THREE.JS WORLD ====================
         let scene, camera, renderer;
         let localPlayerMesh = null;
         let playerPosition = new THREE.Vector3(0, 1.6, 0);
         let playerVelocity = new THREE.Vector3(0, 0, 0);
         
-        // Controls
+        // ==================== PLAYER CONTROLS ====================
         let moveForward = false, moveBack = false, moveLeft = false, moveRight = false;
         let isSprinting = false;
         let isJumping = false;
@@ -488,7 +478,7 @@
         const BRAKE_FORCE = 800;
         const MAX_STEER = 0.8;
         
-        // UI
+        // UI Elements
         const coordsEl = document.getElementById('coordinates');
         const fpsEl = document.getElementById('fps');
         const playerCountEl = document.getElementById('player-count');
@@ -504,7 +494,7 @@
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
         let touchLook = { active: false, lastX: 0, lastY: 0 };
         
-        // ==================== 3D WORLD ====================
+        // ==================== CREATE 3D WORLD ====================
         function init3DWorld() {
             scene = new THREE.Scene();
             scene.background = new THREE.Color(0x87CEEB);
@@ -538,45 +528,7 @@
             scene.add(gridHelper);
         }
         
-        function createVehicleModel(type, x, z, vehicleId) {
-            const colors = { "Sports Car": 0xff3333, "Police Car": 0x3366ff, "SUV": 0x44aa44 };
-            const group = new THREE.Group();
-            
-            const bodyMat = new THREE.MeshStandardMaterial({ color: colors[type], roughness: 0.4 });
-            const body = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.5, 4.2), bodyMat);
-            body.position.y = 0.35;
-            body.castShadow = true;
-            group.add(body);
-            
-            const roofMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
-            const roof = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.4, 2.2), roofMat);
-            roof.position.y = 0.8;
-            group.add(roof);
-            
-            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
-            const wheelGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.3, 16);
-            const wheelPositions = [[-0.8, 0.2, -1.5], [0.8, 0.2, -1.5], [-0.8, 0.2, 1.5], [0.8, 0.2, 1.5]];
-            wheelPositions.forEach(pos => {
-                const wheel = new THREE.Mesh(wheelGeo, wheelMat);
-                wheel.rotation.z = Math.PI / 2;
-                wheel.position.set(pos[0], pos[1], pos[2]);
-                group.add(wheel);
-            });
-            
-            group.position.set(x, 0, z);
-            group.userData = {
-                vehicleId: vehicleId,
-                type: type,
-                velocity: new THREE.Vector3(0, 0, 0),
-                driverId: null,
-                passengerId: null
-            };
-            
-            scene.add(group);
-            vehicles.push(group);
-            return group;
-        }
-        
+        // ==================== CREATE PLAYER MODEL ====================
         function createPlayerModel(color, isLocal = false, playerName = "") {
             const group = new THREE.Group();
             
@@ -619,6 +571,44 @@
             return group;
         }
         
+        // ==================== CREATE VEHICLE ====================
+        function createVehicleModel(type, x, z) {
+            const colors = { "Sports Car": 0xff3333, "Police Car": 0x3366ff, "SUV": 0x44aa44 };
+            const group = new THREE.Group();
+            
+            const bodyMat = new THREE.MeshStandardMaterial({ color: colors[type], roughness: 0.4 });
+            const body = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.5, 4.2), bodyMat);
+            body.position.y = 0.35;
+            body.castShadow = true;
+            group.add(body);
+            
+            const roofMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+            const roof = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.4, 2.2), roofMat);
+            roof.position.y = 0.8;
+            group.add(roof);
+            
+            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+            const wheelGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.3, 16);
+            const wheelPositions = [[-0.8, 0.2, -1.5], [0.8, 0.2, -1.5], [-0.8, 0.2, 1.5], [0.8, 0.2, 1.5]];
+            wheelPositions.forEach(pos => {
+                const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+                wheel.rotation.z = Math.PI / 2;
+                wheel.position.set(pos[0], pos[1], pos[2]);
+                group.add(wheel);
+            });
+            
+            group.position.set(x, 0, z);
+            group.userData = {
+                type: type,
+                velocity: new THREE.Vector3(0, 0, 0),
+                occupiedBy: null
+            };
+            
+            scene.add(group);
+            vehicles.push(group);
+            return group;
+        }
+        
         // ==================== VEHICLE PHYSICS ====================
         function updateVehiclePhysics(vehicle, delta) {
             if (!vehicle.userData.velocity) vehicle.userData.velocity = new THREE.Vector3(0, 0, 0);
@@ -626,12 +616,12 @@
             const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(vehicle.quaternion);
             
             let throttle = 0;
-            if (accelerate && isDriver) throttle = 1;
-            if (brake && isDriver) throttle = -0.5;
+            if (accelerate) throttle = 1;
+            if (brake) throttle = -0.5;
             
             let steer = 0;
-            if (steerLeft && isDriver) steer = 1;
-            if (steerRight && isDriver) steer = -1;
+            if (steerLeft) steer = 1;
+            if (steerRight) steer = -1;
             currentSteer += (steer - currentSteer) * 0.1;
             
             const speed = vehicle.userData.velocity.length();
@@ -644,7 +634,7 @@
             vehicle.userData.velocity.x += forward.x * driveForce * delta / 800;
             vehicle.userData.velocity.z += forward.z * driveForce * delta / 800;
             
-            if (brake && speed > 1 && isDriver) {
+            if (brake && speed > 1) {
                 const brakeForce = BRAKE_FORCE * delta / 800;
                 const brakeDir = vehicle.userData.velocity.clone().normalize();
                 vehicle.userData.velocity.x -= brakeDir.x * Math.min(brakeForce, Math.abs(vehicle.userData.velocity.x));
@@ -662,13 +652,11 @@
             vehicle.position.z = Math.max(-bound, Math.min(bound, vehicle.position.z));
             vehicle.position.y = -0.2;
             
-            if (isDriver) {
-                vehicleSpeedEl.textContent = Math.floor(speed * 4.5) + " MPH";
-            }
+            vehicleSpeedEl.textContent = Math.floor(speed * 4.5) + " MPH";
         }
         
         // ==================== VEHICLE ENTRY/EXIT ====================
-        function enterVehicle(asDriver = true) {
+        function enterNearestVehicle() {
             let nearest = null;
             let nearestDist = Infinity;
             
@@ -680,91 +668,41 @@
                 }
             });
             
-            if (!nearest) return;
-            
-            if (asDriver && !nearest.userData.driverId) {
-                if (currentVehicle) exitVehicle();
-                isDriver = true;
-                isPassenger = false;
+            if (nearest && !isInVehicle) {
+                isInVehicle = true;
                 currentVehicle = nearest;
-                currentVehicle.userData.driverId = myPlayerId;
+                currentVehicle.userData.occupiedBy = myPlayerId;
                 localPlayerMesh.visible = false;
                 vehicleHud.style.display = 'block';
                 vehicleNameEl.textContent = currentVehicle.userData.type;
                 roleDisplay.innerHTML = `🚗 Driving: ${currentVehicle.userData.type}`;
-                showNotification(`Entered as DRIVER`, '#4ae04a');
-                sendPlayerState();
-            } else if (!asDriver && !nearest.userData.passengerId && nearest.userData.driverId) {
-                if (currentVehicle) exitVehicle();
-                isDriver = false;
-                isPassenger = true;
-                currentVehicle = nearest;
-                currentVehicle.userData.passengerId = myPlayerId;
-                localPlayerMesh.visible = false;
-                roleDisplay.innerHTML = `👤 Passenger in: ${currentVehicle.userData.type}`;
-                showNotification(`Entered as PASSENGER`, '#88ff88');
-                sendPlayerState();
-            } else if (asDriver && nearest.userData.driverId === myPlayerId) {
-                showNotification(`You are already driving`, '#ffaa00');
-            } else if (!asDriver && nearest.userData.passengerId === myPlayerId) {
-                showNotification(`Already a passenger`, '#ffaa00');
-            } else if (asDriver && nearest.userData.driverId) {
-                showNotification(`Vehicle has a driver! Enter as passenger (Shift+E)`, '#ffaa00');
-            } else if (!asDriver && !nearest.userData.driverId) {
-                showNotification(`No driver! Enter as driver first (E)`, '#ffaa00');
+                showNotification(`Entered vehicle`, '#4ae04a');
+            } else if (isInVehicle) {
+                isInVehicle = false;
+                playerPosition.copy(currentVehicle.position);
+                playerPosition.x += 2;
+                playerPosition.z += 2;
+                playerPosition.y = 1.6;
+                localPlayerMesh.position.copy(playerPosition);
+                localPlayerMesh.visible = true;
+                currentVehicle.userData.occupiedBy = null;
+                currentVehicle = null;
+                vehicleHud.style.display = 'none';
+                roleDisplay.innerHTML = `🚶 Walking`;
+                showNotification('Exited vehicle', '#ffaa00');
+                
+                accelerate = false;
+                brake = false;
+                steerLeft = false;
+                steerRight = false;
+                currentSteer = 0;
             }
         }
         
-        function exitVehicle() {
-            if (!currentVehicle) return;
-            
-            if (isDriver) currentVehicle.userData.driverId = null;
-            if (isPassenger) currentVehicle.userData.passengerId = null;
-            
-            playerPosition.copy(currentVehicle.position);
-            playerPosition.x += 2;
-            playerPosition.z += 2;
-            playerPosition.y = 1.6;
-            localPlayerMesh.position.copy(playerPosition);
-            localPlayerMesh.visible = true;
-            
-            currentVehicle = null;
-            isDriver = false;
-            isPassenger = false;
-            vehicleHud.style.display = 'none';
-            roleDisplay.innerHTML = `🚶 Walking`;
-            showNotification('Exited vehicle', '#ffaa00');
-            
-            accelerate = false;
-            brake = false;
-            steerLeft = false;
-            steerRight = false;
-            currentSteer = 0;
-            
-            sendPlayerState();
-        }
-        
-        function sendPlayerState() {
-            if (!currentSession || !myPlayerId) return;
-            
-            const state = {
-                player_id: myPlayerId,
-                pos_x: isDriver || isPassenger ? currentVehicle.position.x : playerPosition.x,
-                pos_z: isDriver || isPassenger ? currentVehicle.position.z : playerPosition.z,
-                is_in_vehicle: isDriver || isPassenger,
-                vehicle_id: currentVehicle ? currentVehicle.userData.vehicleId : null,
-                is_driver: isDriver,
-                last_seen: new Date()
-            };
-            
-            supabase.from('players').upsert(state).eq('player_id', myPlayerId).then();
-        }
-        
         function spawnVehicle(type) {
-            const vehicleId = 'v_' + Math.random().toString(36).substring(2, 10);
             const spawnX = playerPosition.x + Math.sin(cameraAngleY) * 5;
             const spawnZ = playerPosition.z + Math.cos(cameraAngleY) * 5;
-            createVehicleModel(type, spawnX, spawnZ, vehicleId);
+            createVehicleModel(type, spawnX, spawnZ);
             showNotification(`Spawned ${type}!`, '#4ae04a');
         }
         
@@ -803,15 +741,13 @@
                 session_id: sessionCode,
                 pos_x: startX,
                 pos_z: startZ,
-                is_in_vehicle: false,
-                is_driver: false,
                 last_seen: new Date()
             });
             
             await loadPlayersInSession(sessionCode);
             subscribeToSession(sessionCode);
             
-            heartbeatInterval = setInterval(() => sendPlayerState(), 100);
+            heartbeatInterval = setInterval(() => updatePositionInDB(), 50);
             updatePlayersUI();
             showNotification(`✅ Joined game! Code: ${sessionCode}`, '#4ae04a');
             return true;
@@ -826,7 +762,7 @@
                     const playerModel = createPlayerModel(0xff8844, false, p.player_id);
                     playerModel.position.set(p.pos_x, 0.7, p.pos_z);
                     scene.add(playerModel);
-                    remotePlayers.set(p.player_id, { mesh: playerModel, lastX: p.pos_x, lastZ: p.pos_z, isInVehicle: p.is_in_vehicle });
+                    remotePlayers.set(p.player_id, { mesh: playerModel, lastX: p.pos_x, lastZ: p.pos_z });
                 }
             }
             updatePlayersUI();
@@ -858,9 +794,6 @@
                         if (remote) {
                             remote.mesh.position.x += (payload.new.pos_x - remote.mesh.position.x) * 0.3;
                             remote.mesh.position.z += (payload.new.pos_z - remote.mesh.position.z) * 0.3;
-                            remote.lastX = payload.new.pos_x;
-                            remote.lastZ = payload.new.pos_z;
-                            remote.mesh.visible = !payload.new.is_in_vehicle;
                         }
                     }
                     else if (payload.eventType === 'DELETE' && payload.old.player_id !== myPlayerId) {
@@ -875,6 +808,23 @@
                     }
                 })
                 .subscribe();
+        }
+        
+        async function updatePositionInDB() {
+            if (!currentSession || !myPlayerId) return;
+            
+            let pos;
+            if (isInVehicle && currentVehicle) {
+                pos = currentVehicle.position;
+            } else {
+                pos = playerPosition;
+            }
+            
+            await supabase.from('players').update({
+                pos_x: pos.x,
+                pos_z: pos.z,
+                last_seen: new Date()
+            }).eq('player_id', myPlayerId);
         }
         
         async function leaveGameSession() {
@@ -928,29 +878,18 @@
         function updateMovement(deltaTime) {
             if (!localPlayerMesh) return;
             
-            if (isDriver || isPassenger) {
-                if (currentVehicle) {
-                    updateVehiclePhysics(currentVehicle, deltaTime);
-                    
-                    const vehiclePos = currentVehicle.position;
-                    const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(currentVehicle.quaternion);
-                    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(currentVehicle.quaternion);
-                    
-                    // Camera position based on seat
-                    if (isDriver) {
-                        camera.position.x = vehiclePos.x + right.x * 0 + forward.x * 0.5;
-                        camera.position.z = vehiclePos.z + right.z * 0 + forward.z * 0.5;
-                    } else {
-                        camera.position.x = vehiclePos.x + right.x * 0.8 + forward.x * -0.8;
-                        camera.position.z = vehiclePos.z + right.z * 0.8 + forward.z * -0.8;
-                    }
-                    camera.position.y = vehiclePos.y + 1.2;
-                    camera.rotation.order = 'YXZ';
-                    camera.rotation.y = cameraAngleY;
-                    camera.rotation.x = cameraAngleX;
-                    
-                    sendPlayerState();
-                }
+            if (isInVehicle && currentVehicle) {
+                updateVehiclePhysics(currentVehicle, deltaTime);
+                
+                const vehiclePos = currentVehicle.position;
+                const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(currentVehicle.quaternion);
+                
+                camera.position.x = vehiclePos.x + forward.x * 0.5;
+                camera.position.z = vehiclePos.z + forward.z * 0.5;
+                camera.position.y = vehiclePos.y + 1.2;
+                camera.rotation.order = 'YXZ';
+                camera.rotation.y = cameraAngleY;
+                camera.rotation.x = cameraAngleX;
                 return;
             }
             
@@ -1004,8 +943,6 @@
             camera.rotation.order = 'YXZ';
             camera.rotation.y = cameraAngleY;
             camera.rotation.x = cameraAngleX;
-            
-            sendPlayerState();
             
             coordsEl.innerHTML = `X: ${playerPosition.x.toFixed(1)} | Z: ${playerPosition.z.toFixed(1)}`;
         }
@@ -1077,7 +1014,7 @@
                 
                 const key = e.code;
                 
-                if (!isDriver && !isPassenger) {
+                if (!isInVehicle) {
                     switch(key) {
                         case 'KeyW': moveForward = true; e.preventDefault(); break;
                         case 'KeyS': moveBack = true; e.preventDefault(); break;
@@ -1086,7 +1023,7 @@
                         case 'ShiftLeft': case 'ShiftRight': isSprinting = true; e.preventDefault(); break;
                         case 'Space': if (isOnGround && !isJumping) isJumping = true; e.preventDefault(); break;
                     }
-                } else if (isDriver) {
+                } else {
                     switch(key) {
                         case 'KeyW': accelerate = true; e.preventDefault(); break;
                         case 'KeyS': brake = true; e.preventDefault(); break;
@@ -1096,18 +1033,14 @@
                 }
                 
                 switch(key) {
-                    case 'KeyE': 
-                        if (e.shiftKey) enterVehicle(false);
-                        else enterVehicle(true);
-                        e.preventDefault(); 
-                        break;
+                    case 'KeyE': enterNearestVehicle(); e.preventDefault(); break;
                     case 'KeyO': togglePhone(); e.preventDefault(); break;
                 }
             });
             
             window.addEventListener('keyup', (e) => {
                 const key = e.code;
-                if (!isDriver && !isPassenger) {
+                if (!isInVehicle) {
                     switch(key) {
                         case 'KeyW': moveForward = false; break;
                         case 'KeyS': moveBack = false; break;
@@ -1115,7 +1048,7 @@
                         case 'KeyD': moveRight = false; break;
                         case 'ShiftLeft': case 'ShiftRight': isSprinting = false; break;
                     }
-                } else if (isDriver) {
+                } else {
                     switch(key) {
                         case 'KeyW': accelerate = false; break;
                         case 'KeyS': brake = false; break;
@@ -1340,13 +1273,13 @@
             initPhoneApps();
             
             setTimeout(() => {
-                createVehicleModel("Sports Car", 20, 15, 'v1');
-                createVehicleModel("Police Car", -20, 15, 'v2');
-                createVehicleModel("SUV", 0, -20, 'v3');
+                createVehicleModel("Sports Car", 20, 15);
+                createVehicleModel("Police Car", -20, 15);
+                createVehicleModel("SUV", 0, -20);
             }, 1000);
             
             animate();
-            console.log("✅ Game ready! Press O for phone, E to drive, Shift+E to ride as passenger!");
+            console.log("✅ Game ready! Create or join a game to play with friends!");
         }
         
         init();
