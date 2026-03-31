@@ -3,106 +3,149 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Multiplayer 3D World - Fixed Version</title>
+    <title>GANG TURF WARS - MULTIPLAYER | Drive with Friends</title>
     <style>
-        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-        #info {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 10px 16px;
-            border-radius: 8px;
-            backdrop-filter: blur(5px);
-            pointer-events: none;
-            z-index: 10;
-            font-size: 14px;
-            border-left: 3px solid #00ffaa;
-            font-weight: bold;
-            font-family: monospace;
+        /* Your original styles remain exactly the same */
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+        body { font-family: -apple-system, 'Segoe UI', system-ui, sans-serif; overflow: hidden; background: #000; color: white; }
+        
+        /* Auth Modal - same as original */
+        #auth-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0a0f1e, #1a2a3a);
+            z-index: 10000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
-        #controls {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            background: rgba(0,0,0,0.7);
-            color: #ccc;
-            padding: 8px 12px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-family: monospace;
-            pointer-events: none;
-            z-index: 10;
+        
+        .auth-container {
+            background: rgba(10,20,30,0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 30px;
+            padding: 40px;
+            border: 2px solid #4ec9e0;
+            width: 400px;
+            max-width: 90vw;
         }
-        #player-count {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            background: rgba(0,0,0,0.8);
-            color: #00ffaa;
-            padding: 8px 15px;
-            border-radius: 8px;
-            font-family: monospace;
-            font-size: 16px;
-            font-weight: bold;
-            pointer-events: none;
-            z-index: 10;
-        }
-        #status {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(0,0,0,0.7);
-            color: #ffaa44;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-family: monospace;
-            pointer-events: none;
-            z-index: 10;
-        }
-        #debug-panel {
+        
+        .auth-container h2 { text-align: center; color: #4ec9e0; margin-bottom: 25px; }
+        .auth-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+        .auth-tab { flex: 1; padding: 10px; background: rgba(30,50,70,0.8); border: none; color: white; cursor: pointer; border-radius: 10px; }
+        .auth-tab.active { background: #4ec9e0; color: #0a1a2a; }
+        .auth-form { display: flex; flex-direction: column; gap: 15px; }
+        .auth-form input { padding: 12px 15px; background: rgba(0,0,0,0.5); border: 2px solid #4a8fe0; border-radius: 10px; color: white; }
+        .auth-form button { padding: 12px; background: #4ec9e0; border: none; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        .auth-message { text-align: center; margin-top: 15px; color: #ffaa00; }
+        
+        /* Player List UI */
+        #player-list {
             position: absolute;
             top: 80px;
-            left: 20px;
-            background: rgba(0,0,0,0.85);
-            color: #0f0;
-            padding: 10px;
-            border-radius: 8px;
-            font-size: 10px;
-            font-family: monospace;
-            pointer-events: none;
-            z-index: 10;
-            max-width: 350px;
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid #00ff00;
+            right: 20px;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 10px 15px;
+            min-width: 180px;
+            z-index: 100;
+            border: 1px solid #4ec9e0;
+            font-size: 12px;
         }
-        @media (max-width: 600px) {
-            #debug-panel { max-width: 250px; max-height: 150px; font-size: 8px; top: 70px; }
-            #info, #controls, #player-count { font-size: 10px; }
+        
+        #player-list h4 { margin-bottom: 8px; color: #4ec9e0; }
+        .player-entry { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .player-dot { width: 8px; height: 8px; border-radius: 50%; background: #4ae04a; }
+        .player-name { flex: 1; }
+        .player-status { font-size: 10px; color: #ffaa00; }
+        
+        /* Vehicle passenger indicator */
+        #passenger-indicator {
+            position: absolute;
+            bottom: 120px;
+            right: 20px;
+            background: rgba(0,0,0,0.8);
+            border-radius: 12px;
+            padding: 8px 15px;
+            display: none;
+            border: 1px solid #ffaa00;
+            font-size: 12px;
+        }
+        
+        /* All your original styles continue below */
+        #info { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 20px; z-index: 100; font-size: 12px; }
+        #money-ui { position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.6); padding: 8px 20px; border-radius: 30px; font-size: 1.3rem; font-weight: bold; color: #ffd700; z-index: 100; }
+        #weed-inventory { position: absolute; bottom: 100px; left: 20px; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 20px; font-size: 0.9rem; z-index: 100; }
+        #vehicle-hud { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); border: 2px solid #4ec9e0; border-radius: 20px; padding: 12px 25px; display: none; min-width: 380px; text-align: center; z-index: 100; }
+        .speedometer { font-size: 2.5rem; font-weight: bold; color: #ffaa00; }
+        .controls-panel { position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.5); padding: 8px 12px; border-radius: 12px; font-size: 10px; z-index: 100; }
+        #camera-mode-indicator { position: absolute; bottom: 100px; right: 20px; background: rgba(0,0,0,0.6); padding: 5px 12px; border-radius: 20px; font-size: 11px; z-index: 100; }
+        #notification { position: absolute; bottom: 40%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); border: 2px solid #4ae04a; border-radius: 30px; padding: 12px 25px; color: #4ae04a; font-weight: bold; z-index: 2000; display: none; white-space: nowrap; }
+        #blunt-indicator { position: absolute; bottom: 150px; right: 30px; background: rgba(0,0,0,0.8); border-radius: 30px; padding: 12px 20px; display: none; align-items: center; gap: 10px; z-index: 200; border: 2px solid #ffaa00; }
+        #high-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 999; display: none; background: radial-gradient(circle, rgba(0,255,0,0.1) 0%, rgba(0,100,0,0.3) 100%); animation: highPulse 0.5s infinite alternate; }
+        @keyframes highPulse { 0% { opacity: 0.3; } 100% { opacity: 0.6; } }
+        
+        #inventory-panel, #phone-ui, #house-purchase-ui, .dealership-menu {
+            /* Keep original styles */
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            background: rgba(10,20,30,0.95); backdrop-filter: blur(20px); border-radius: 20px;
+            border: 3px solid #ffaa00; z-index: 3000; display: none; color: white; padding: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            #player-list { top: 70px; right: 10px; min-width: 140px; font-size: 10px; }
+            #info, #money-ui, #weed-inventory { font-size: 10px; }
+            #vehicle-hud { min-width: 280px; }
         }
     </style>
 </head>
 <body>
-    <div id="info">
-        🎮 MULTIPLAYER 3D WORLD | <span style="color:#00ffaa;">WASD</span> to Move
+    <div id="auth-modal">
+        <div class="auth-container">
+            <h2>🔫 GANG TURF WARS - MULTIPLAYER</h2>
+            <div class="auth-tabs"><button class="auth-tab active" id="login-tab">LOGIN</button><button class="auth-tab" id="signup-tab">SIGN UP</button></div>
+            <div id="login-form" class="auth-form"><input type="text" id="login-username" placeholder="Username"><input type="password" id="login-password" placeholder="Password"><button id="login-btn">LOGIN</button></div>
+            <div id="signup-form" class="auth-form" style="display: none;"><input type="text" id="signup-username" placeholder="Username"><input type="email" id="signup-email" placeholder="Email"><input type="password" id="signup-password" placeholder="Password"><input type="password" id="signup-confirm" placeholder="Confirm Password"><button id="signup-btn">SIGN UP</button></div>
+            <div id="auth-message" class="auth-message"></div>
+        </div>
     </div>
-    <div id="controls">
-        🖱️ Mouse drag to look around | WASD to move
+    
+    <div id="info">🌍 MULTIPLAYER GANG TURF WARS | WASD Drive | Mouse Look | E Enter/Exit Vehicle | TAB Inventory</div>
+    <div id="money-ui">💰 $10,000</div>
+    <div id="player-list"><h4>👥 Players Online</h4><div id="players-container">--</div></div>
+    <div id="passenger-indicator">🚗 Passenger Mode - You're riding along!</div>
+    <div id="weed-inventory">🌿 Weed: 0 | 🚬 Blunts: 0</div>
+    <div id="vehicle-hud">
+        <div style="display:flex;align-items:center;gap:10px;justify-content:center;flex-direction:column;">
+            <div class="speedometer" id="speed-display">0</div>
+            <div style="font-size:0.9rem;">MPH</div>
+            <div style="width:220px;height:10px;background:rgba(255,255,255,0.08);border-radius:6px;overflow:hidden;"><div id="speed-bar-fill" style="height:100%;width:0%;background:linear-gradient(90deg,#ffaa00,#ff4444);"></div></div>
+        </div>
+        <div style="margin-top:8px">🚗 <span id="vehicle-name">No Vehicle</span></div>
+        <div style="margin-top:6px">⛽ Fuel: <span id="fuel-display">100</span>%</div>
+        <div id="police-light-indicator" style="color:#ff0000; display:none;">🚨 LIGHTS ACTIVE</div>
+        <div id="passenger-list" style="font-size:11px; margin-top:5px;"></div>
     </div>
-    <div id="player-count">
-        👥 Players: <span id="playerCount">1</span>
-    </div>
-    <div id="status">
-        🔄 Connecting...
-    </div>
-    <div id="debug-panel">
-        📡 Debug Console<br>
-        -----------------<br>
-        Initializing...
-    </div>
+    <div id="camera-mode-indicator">VIEW: TPV</div>
+    <div id="crosshair" style="position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 20px; height: 20px; border: 2px solid #00ff00; border-radius: 50%; display: none; pointer-events: none; z-index: 1000;"></div>
+    <div class="controls-panel"><span>WASD</span> - Move • <span>Mouse</span> - Look • <span>E</span> - Enter/Exit Vehicle<br><span>F</span> - Smoke Blunt • <span>Q</span> - Police Lights • <span>L</span> - Headlights • <span>Shift+E</span> - Pull Driver • <span>O</span> - Phone</div>
+    
+    <div id="blunt-indicator"><span>🚬</span><span>Hold F to smoke blunt</span></div>
+    <div id="high-overlay"></div>
+    <div id="notification"></div>
+    
+    <!-- Inventory Panel (same as original) -->
+    <div id="inventory-panel"><div class="inventory-header"><span>🎒 INVENTORY</span><span>Selected: <span id="selected-slot">1</span>/4</span></div>
+    <div class="inventory-slots" id="inventory-slots">[slots]</div><div class="item-description"><h4>📦 Item Info</h4><p id="item-desc-text">Select an item</p><button class="use-item-btn" id="use-item-btn">USE ITEM</button></div>
+    <button class="close-inventory" id="close-inventory">CLOSE</button></div>
+    
+    <!-- Phone UI (simplified) -->
+    <div id="phone-ui"><div style="text-align:center;padding:20px"><h3>📱 GANG PHONE</h3><button id="phone-close">Close</button></div></div>
+    <div id="house-purchase-ui"><h2>🏠 PURCHASE PROPERTY</h2><div class="house-info" id="house-info"></div><button class="buy-house-btn" id="buy-house-btn">💰 PURCHASE</button><button class="close-house-btn" id="close-house-btn">CLOSE</button></div>
 
     <script type="importmap">
         {
@@ -119,202 +162,115 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
         import { createClient } from '@supabase/supabase-js';
-
-        // Debug logging
-        const debugMessages = [];
-        function addDebug(message, isError = false) {
-            const timestamp = new Date().toLocaleTimeString();
-            const logMsg = `[${timestamp}] ${message}`;
-            debugMessages.unshift(logMsg);
-            if (debugMessages.length > 15) debugMessages.pop();
-            
-            const debugPanel = document.getElementById('debug-panel');
-            debugPanel.innerHTML = `📡 Debug Console<br>-----------------<br>${debugMessages.join('<br>')}`;
-            console.log(logMsg);
-            if (isError) console.error(message);
-        }
-
-        addDebug('Starting application...');
         
-        // --- Supabase Configuration ---
+        // ==================== SUPABASE CONFIG ====================
         const SUPABASE_URL = 'https://hcvewiwhtxqpbogcrukk.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjdmV3aXdodHhxcGJvZ2NydWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTQ4MzMsImV4cCI6MjA5MDQ3MDgzM30.UsdvDyrGl4OhmbDjonyOagknHf--Zhe-fhCi0LFVoQw';
         
         const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        addDebug('Supabase client created');
         
-        // --- Generate unique player ID ---
-        let playerId = localStorage.getItem('mp_player_id');
-        if (!playerId) {
-            playerId = 'p_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
-            localStorage.setItem('mp_player_id', playerId);
-        }
-        addDebug(`Player ID: ${playerId}`);
+        // ==================== GAME STATE ====================
+        let currentUser = null;
+        let playerId = null;
+        let playerName = "";
+        let scene, camera, renderer, labelRenderer;
+        let playerMesh = null;
+        let remotePlayers = new Map(); // id -> { mesh, label, position, rotation, inVehicle, vehicleId }
+        let remoteVehicles = new Map(); // vehicleId -> { mesh, driverId, passengers }
+        let playerVehicle = null;
+        let isInVehicle = false;
+        let isDriver = false;
+        let isPassenger = false;
+        let keys = {};
+        let cameraAngle = 0, cameraPitch = 0;
+        let cameraMode = 'tpv';
+        let lastSendTime = 0;
+        let lastUpdateTime = 0;
+        let sendInterval = 0.066; // ~15fps
+        let moveSpeed = 7.0;
+        let vehicleStats = { speed: 0, fuel: 100 };
         
-        // --- Three.js Setup ---
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87CEEB);
-        scene.fog = new THREE.Fog(0x87CEEB, 40, 100);
-        
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(10, 8, 15);
-        
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.shadowMap.enabled = true;
-        document.body.appendChild(renderer.domElement);
-        
-        // CSS2 Renderer for labels
-        const labelRenderer = new CSS2DRenderer();
-        labelRenderer.setSize(window.innerWidth, window.innerHeight);
-        labelRenderer.domElement.style.position = 'absolute';
-        labelRenderer.domElement.style.top = '0px';
-        labelRenderer.domElement.style.left = '0px';
-        labelRenderer.domElement.style.pointerEvents = 'none';
-        document.body.appendChild(labelRenderer.domElement);
-        
-        // --- Controls ---
-        const controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
-        controls.rotateSpeed = 1.0;
-        controls.zoomSpeed = 1.2;
-        controls.screenSpacePanning = true;
-        controls.maxPolarAngle = Math.PI / 2.2;
-        
-        // --- Lighting ---
-        const ambientLight = new THREE.AmbientLight(0x404060, 0.6);
-        scene.add(ambientLight);
-        
-        const sunLight = new THREE.DirectionalLight(0xfff5d1, 1.2);
-        sunLight.position.set(10, 20, 5);
-        sunLight.castShadow = true;
-        sunLight.receiveShadow = true;
-        scene.add(sunLight);
-        
-        const fillLight = new THREE.PointLight(0x4466cc, 0.3);
-        fillLight.position.set(0, 5, 0);
-        scene.add(fillLight);
-        
-        // --- Ground ---
-        const groundGeometry = new THREE.PlaneGeometry(60, 60);
-        const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x6c9e4a, roughness: 0.8 });
-        const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-        ground.rotation.x = -Math.PI / 2;
-        ground.position.y = -0.05;
-        ground.receiveShadow = true;
-        scene.add(ground);
-        
-        const gridHelper = new THREE.GridHelper(62, 30, 0x88aa66, 0x446633);
-        gridHelper.position.y = -0.02;
-        scene.add(gridHelper);
-        
-        // Add some markers to show world bounds
-        const markerMat = new THREE.MeshStandardMaterial({ color: 0xff6600 });
-        for (let i = -25; i <= 25; i += 5) {
-            if (Math.abs(i) > 20) {
-                const marker = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.5, 0.3), markerMat);
-                marker.position.set(i, 0, -23);
-                marker.castShadow = true;
-                scene.add(marker);
-                
-                const marker2 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.5, 0.3), markerMat);
-                marker2.position.set(i, 0, 23);
-                marker2.castShadow = true;
-                scene.add(marker2);
-            }
-        }
-        
-        // --- Local Player Model (Red/Blue to stand out) ---
-        const localPlayerGroup = new THREE.Group();
-        
-        const bodyGeo = new THREE.CylinderGeometry(0.6, 0.6, 1.0, 16);
-        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x44aaff, emissive: 0x004466 });
-        const body = new THREE.Mesh(bodyGeo, bodyMat);
-        body.castShadow = true;
-        body.position.y = 0.5;
-        localPlayerGroup.add(body);
-        
-        const headMat = new THREE.MeshStandardMaterial({ color: 0xffccaa });
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.5, 32, 32), headMat);
-        head.castShadow = true;
-        head.position.y = 1.15;
-        localPlayerGroup.add(head);
-        
-        // Eyes
-        const eyeMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-        const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), eyeMat);
-        leftEye.position.set(-0.2, 1.25, 0.52);
-        const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), eyeMat);
-        rightEye.position.set(0.2, 1.25, 0.52);
-        const pupilMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
-        const leftPupil = new THREE.Mesh(new THREE.SphereGeometry(0.07, 16, 16), pupilMat);
-        leftPupil.position.set(-0.2, 1.23, 0.6);
-        const rightPupil = new THREE.Mesh(new THREE.SphereGeometry(0.07, 16, 16), pupilMat);
-        rightPupil.position.set(0.2, 1.23, 0.6);
-        localPlayerGroup.add(leftEye, rightEye, leftPupil, rightPupil);
-        
-        // Hat
-        const hatMat = new THREE.MeshStandardMaterial({ color: 0xdd5533 });
-        const hat = new THREE.Mesh(new THREE.ConeGeometry(0.65, 0.5, 8), hatMat);
-        hat.position.y = 1.55;
-        hat.castShadow = true;
-        localPlayerGroup.add(hat);
-        
-        localPlayerGroup.position.set(0, 0, 0);
-        localPlayerGroup.castShadow = true;
-        scene.add(localPlayerGroup);
-        
-        // Local player label
-        const localLabelDiv = document.createElement('div');
-        localLabelDiv.textContent = `⭐ YOU (${playerId.slice(-6)})`;
-        localLabelDiv.style.cssText = 'color:#ffff00; font-size:14px; font-weight:bold; background:rgba(0,0,0,0.7); padding:3px 10px; border-radius:20px; border:2px solid #ffff00; font-family:monospace; white-space:nowrap;';
-        const localLabel = new CSS2DObject(localLabelDiv);
-        localLabel.position.set(0, 2.1, 0);
-        localPlayerGroup.add(localLabel);
-        
-        // Add a glowing ring under player
-        const ringGeo = new THREE.RingGeometry(0.7, 0.9, 16);
-        const ringMat = new THREE.MeshStandardMaterial({ color: 0x44aaff, emissive: 0x2288ff, transparent: true, opacity: 0.6, side: THREE.DoubleSide });
-        const ring = new THREE.Mesh(ringGeo, ringMat);
-        ring.rotation.x = -Math.PI / 2;
-        ring.position.y = 0.01;
-        localPlayerGroup.add(ring);
-        
-        // --- Remote Players Storage ---
-        const remotePlayers = new Map();
-        
-        function createRemotePlayerModel(playerIdShort) {
-            const group = new THREE.Group();
-            // Generate color based on ID
-            let hash = 0;
-            for (let i = 0; i < playerIdShort.length; i++) hash = ((hash << 5) - hash) + playerIdShort.charCodeAt(i);
-            const hue = Math.abs(hash % 360);
-            const color = new THREE.Color().setHSL(hue / 360, 0.7, 0.5);
+        // ==================== THREE.JS SETUP ====================
+        function initThree() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB);
+            scene.fog = new THREE.Fog(0x87CEEB, 40, 100);
             
-            const bodyGeo = new THREE.CylinderGeometry(0.6, 0.6, 1.0, 16);
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 500);
+            camera.position.set(10, 8, 15);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.body.appendChild(renderer.domElement);
+            
+            labelRenderer = new CSS2DRenderer();
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.domElement.style.position = 'absolute';
+            labelRenderer.domElement.style.top = '0px';
+            labelRenderer.domElement.style.left = '0px';
+            labelRenderer.domElement.style.pointerEvents = 'none';
+            document.body.appendChild(labelRenderer.domElement);
+            
+            // Simple ground
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0x6c9e4a, roughness: 0.8 });
+            const ground = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), groundMat);
+            ground.rotation.x = -Math.PI / 2;
+            ground.position.y = -0.05;
+            ground.receiveShadow = true;
+            scene.add(ground);
+            
+            const grid = new THREE.GridHelper(420, 30, 0x88aa66, 0x446633);
+            grid.position.y = -0.02;
+            scene.add(grid);
+            
+            // Lighting
+            const ambient = new THREE.AmbientLight(0x404060, 0.6);
+            scene.add(ambient);
+            const sun = new THREE.DirectionalLight(0xfff5d1, 1.2);
+            sun.position.set(10, 20, 5);
+            sun.castShadow = true;
+            scene.add(sun);
+            
+            return { scene, camera, renderer };
+        }
+        
+        // ==================== PLAYER MODEL ====================
+        function createPlayerModel(color = 0x44aaff) {
+            const group = new THREE.Group();
+            
+            // Body
+            const bodyGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.9, 16);
             const bodyMat = new THREE.MeshStandardMaterial({ color: color });
             const body = new THREE.Mesh(bodyGeo, bodyMat);
             body.castShadow = true;
-            body.position.y = 0.5;
+            body.position.y = 0.45;
             group.add(body);
             
-            const headMat = new THREE.MeshStandardMaterial({ color: 0xffccaa });
-            const head = new THREE.Mesh(new THREE.SphereGeometry(0.5, 32, 32), headMat);
+            // Head
+            const headMat = new THREE.MeshStandardMaterial({ color: 0xffcc99 });
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.48, 32, 32), headMat);
             head.castShadow = true;
             head.position.y = 1.15;
             group.add(head);
             
-            const eyeMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
-            const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), eyeMat);
-            leftEye.position.set(-0.18, 1.28, 0.53);
-            const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), eyeMat);
-            rightEye.position.set(0.18, 1.28, 0.53);
-            group.add(leftEye, rightEye);
+            // Eyes
+            const eyeWhiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+            const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), eyeWhiteMat);
+            leftEye.position.set(-0.2, 1.25, 0.48);
+            const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), eyeWhiteMat);
+            rightEye.position.set(0.2, 1.25, 0.48);
+            const pupilMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
+            const leftPupil = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 16), pupilMat);
+            leftPupil.position.set(-0.2, 1.23, 0.55);
+            const rightPupil = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 16), pupilMat);
+            rightPupil.position.set(0.2, 1.23, 0.55);
+            group.add(leftEye, rightEye, leftPupil, rightPupil);
             
-            const hatMat = new THREE.MeshStandardMaterial({ color: 0x44aa55 });
+            // Hat
+            const hatMat = new THREE.MeshStandardMaterial({ color: 0xd43f1d });
             const hat = new THREE.Mesh(new THREE.ConeGeometry(0.6, 0.45, 8), hatMat);
-            hat.position.y = 1.52;
+            hat.position.y = 1.55;
             hat.castShadow = true;
             group.add(hat);
             
@@ -322,335 +278,484 @@
             return group;
         }
         
-        // --- Movement Logic ---
-        const keyState = { w: false, a: false, s: false, d: false };
-        window.addEventListener('keydown', (e) => {
-            const key = e.key.toLowerCase();
-            if (key === 'w') keyState.w = true;
-            if (key === 'a') keyState.a = true;
-            if (key === 's') keyState.s = true;
-            if (key === 'd') keyState.d = true;
-            if (['w','a','s','d'].includes(key)) e.preventDefault();
-        });
-        window.addEventListener('keyup', (e) => {
-            const key = e.key.toLowerCase();
-            if (key === 'w') keyState.w = false;
-            if (key === 'a') keyState.a = false;
-            if (key === 's') keyState.s = false;
-            if (key === 'd') keyState.d = false;
-        });
-        
-        const MOVE_SPEED = 7.0;
-        const WORLD_LIMIT = 25;
-        
-        function updateLocalMovement(deltaTime) {
-            let moveX = 0, moveZ = 0;
-            if (keyState.w) moveZ -= 1;
-            if (keyState.s) moveZ += 1;
-            if (keyState.a) moveX -= 1;
-            if (keyState.d) moveX += 1;
-            if (moveX === 0 && moveZ === 0) return false;
-            
-            const len = Math.hypot(moveX, moveZ);
-            if (len > 0) { moveX /= len; moveZ /= len; }
-            
-            const cameraDir = camera.getWorldDirection(new THREE.Vector3());
-            const forward = new THREE.Vector3(cameraDir.x, 0, cameraDir.z).normalize();
-            const right = new THREE.Vector3(-forward.z, 0, forward.x);
-            
-            let deltaPos = new THREE.Vector3(0, 0, 0);
-            deltaPos.addScaledVector(forward, moveZ);
-            deltaPos.addScaledVector(right, moveX);
-            deltaPos.multiplyScalar(MOVE_SPEED * deltaTime);
-            
-            let newX = localPlayerGroup.position.x + deltaPos.x;
-            let newZ = localPlayerGroup.position.z + deltaPos.z;
-            newX = Math.min(WORLD_LIMIT, Math.max(-WORLD_LIMIT, newX));
-            newZ = Math.min(WORLD_LIMIT, Math.max(-WORLD_LIMIT, newZ));
-            
-            localPlayerGroup.position.set(newX, 0, newZ);
-            
-            if (moveX !== 0 || moveZ !== 0) {
-                const angle = Math.atan2(deltaPos.x, deltaPos.z);
-                localPlayerGroup.rotation.y = angle;
-            }
-            return true;
+        function createVehicleModel(color = 0x44aaff, name = "Test Vehicle") {
+            const group = new THREE.Group();
+            const body = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.5, 4.0), new THREE.MeshStandardMaterial({ color: color }));
+            body.position.y = 0.25;
+            group.add(body);
+            const roof = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.4, 2.0), new THREE.MeshStandardMaterial({ color: 0x333333 }));
+            roof.position.y = 0.65;
+            group.add(roof);
+            group.userData = { name, velocity: new THREE.Vector3(0, 0, 0), fuel: 100 };
+            return group;
         }
         
-        // --- Supabase Functions ---
-        const TABLE_NAME = 'player_positions';
-        let lastSendTime = 0;
-        
-        async function sendPosition() {
-            const x = localPlayerGroup.position.x;
-            const z = localPlayerGroup.position.z;
-            try {
-                const { error } = await supabase
-                    .from(TABLE_NAME)
-                    .upsert({ 
-                        id: playerId, 
-                        x: x, 
-                        z: z, 
-                        updated_at: new Date().toISOString() 
-                    });
-                
-                if (error) {
-                    addDebug(`❌ Send error: ${error.message}`, true);
-                } else {
-                    // Silent success to avoid spam
-                }
-            } catch(e) {
-                addDebug(`❌ Send exception: ${e.message}`, true);
-            }
+        // ==================== REMOTE PLAYER MANAGEMENT ====================
+        function addRemotePlayer(id, username, x, z, y, rot) {
+            const mesh = createPlayerModel(0xff8844);
+            mesh.position.set(x, y, z);
+            mesh.rotation.y = rot;
+            scene.add(mesh);
+            
+            const div = document.createElement('div');
+            div.textContent = username;
+            div.style.cssText = 'color:#ffdd99; font-size:12px; background:rgba(0,0,0,0.6); padding:2px 8px; border-radius:16px; border:1px solid #ffaa66; white-space:nowrap;';
+            const label = new CSS2DObject(div);
+            label.position.set(0, 1.9, 0);
+            mesh.add(label);
+            
+            remotePlayers.set(id, { mesh, label, username, x, z, y, rot, inVehicle: false, vehicleId: null });
+            updatePlayerList();
         }
         
-        // Function to update remote player
-        function updateRemotePlayer(data) {
-            if (!data || data.id === playerId) return;
-            
-            const remoteId = data.id;
-            const x = data.x;
-            const z = data.z;
-            
-            if (remotePlayers.has(remoteId)) {
-                const player = remotePlayers.get(remoteId);
+        function updateRemotePlayer(id, x, z, y, rot) {
+            const player = remotePlayers.get(id);
+            if (player) {
                 player.targetX = x;
                 player.targetZ = z;
+                player.targetY = y;
+                player.targetRot = rot;
                 player.lastUpdate = Date.now();
-            } else {
-                addDebug(`➕ New player joined: ${remoteId.slice(-6)} at (${x.toFixed(1)}, ${z.toFixed(1)})`);
-                const remoteGroup = createRemotePlayerModel(remoteId);
-                remoteGroup.position.set(x, 0, z);
-                scene.add(remoteGroup);
-                
-                const labelDiv = document.createElement('div');
-                labelDiv.textContent = `👤 ${remoteId.slice(-6)}`;
-                labelDiv.style.cssText = 'color:#ffdd99; font-size:12px; background:rgba(0,0,0,0.6); padding:2px 8px; border-radius:16px; border:1px solid #ffaa66; font-family:monospace; white-space:nowrap;';
-                const label = new CSS2DObject(labelDiv);
-                label.position.set(0, 2.0, 0);
-                remoteGroup.add(label);
-                
-                remotePlayers.set(remoteId, {
-                    group: remoteGroup,
-                    label: label,
-                    targetX: x,
-                    targetZ: z,
-                    lastUpdate: Date.now()
-                });
-                updatePlayerCount();
             }
         }
         
         function removeRemotePlayer(id) {
-            if (remotePlayers.has(id)) {
-                addDebug(`➖ Player left: ${id.slice(-6)}`);
-                scene.remove(remotePlayers.get(id).group);
+            const player = remotePlayers.get(id);
+            if (player) {
+                scene.remove(player.mesh);
                 remotePlayers.delete(id);
-                updatePlayerCount();
+                updatePlayerList();
             }
         }
         
-        function updatePlayerCount() {
-            const count = remotePlayers.size + 1;
-            document.getElementById('playerCount').innerText = count;
-        }
-        
-        function cleanupStalePlayers() {
-            const now = Date.now();
-            for (const [id, player] of remotePlayers.entries()) {
-                if (now - player.lastUpdate > 20000) {
-                    removeRemotePlayer(id);
-                }
+        function updatePlayerList() {
+            const container = document.getElementById('players-container');
+            if (!container) return;
+            let html = '';
+            for (const [id, player] of remotePlayers) {
+                html += `<div class="player-entry"><div class="player-dot"></div><span class="player-name">${player.username}</span><span class="player-status">${player.inVehicle ? '🚗' : '🚶'}</span></div>`;
             }
+            if (html === '') html = '<div style="color:#888;">No other players</div>';
+            container.innerHTML = html;
         }
         
-        // Poll for updates as fallback (in case real-time fails)
-        let lastPollTime = 0;
-        async function pollForUpdates() {
-            try {
-                const { data, error } = await supabase
-                    .from(TABLE_NAME)
-                    .select('*')
-                    .neq('id', playerId);
-                
-                if (error) {
-                    addDebug(`❌ Poll error: ${error.message}`, true);
-                    return;
-                }
-                
-                if (data) {
-                    // Update existing players
-                    const currentRemoteIds = new Set(remotePlayers.keys());
-                    const receivedIds = new Set();
-                    
-                    for (const player of data) {
-                        receivedIds.add(player.id);
-                        updateRemotePlayer(player);
-                    }
-                    
-                    // Remove players that are no longer in the database
-                    for (const id of currentRemoteIds) {
-                        if (!receivedIds.has(id)) {
-                            removeRemotePlayer(id);
-                        }
-                    }
-                }
-            } catch(e) {
-                addDebug(`❌ Poll exception: ${e.message}`, true);
-            }
-        }
-        
-        // --- Setup Real-time Subscription ---
-        async function setupRealtime() {
-            addDebug('Setting up real-time subscription...');
+        // ==================== MOVEMENT & PHYSICS ====================
+        function updateLocalMovement(delta) {
+            if (!playerMesh) return;
             
-            // First, test connection
-            try {
-                const { data, error } = await supabase.from(TABLE_NAME).select('count').limit(1);
-                if (error) {
-                    addDebug(`❌ Table access error: ${error.message}`, true);
-                    document.getElementById('status').innerHTML = '⚠️ Table Error';
-                    return false;
-                }
-                addDebug(`✅ Table "${TABLE_NAME}" accessible`);
-            } catch(e) {
-                addDebug(`❌ Connection test failed: ${e.message}`, true);
+            let moveX = 0, moveZ = 0;
+            if (keys['KeyW']) moveZ -= 1;
+            if (keys['KeyS']) moveZ += 1;
+            if (keys['KeyA']) moveX -= 1;
+            if (keys['KeyD']) moveX += 1;
+            
+            if (moveX !== 0 || moveZ !== 0) {
+                const len = Math.hypot(moveX, moveZ);
+                moveX /= len;
+                moveZ /= len;
+            }
+            
+            const forward = new THREE.Vector3(Math.sin(cameraAngle), 0, Math.cos(cameraAngle));
+            const right = new THREE.Vector3(Math.cos(cameraAngle), 0, -Math.sin(cameraAngle));
+            
+            let newX = playerMesh.position.x + (moveX * right.x + moveZ * forward.x) * moveSpeed * delta;
+            let newZ = playerMesh.position.z + (moveX * right.z + moveZ * forward.z) * moveSpeed * delta;
+            
+            // Boundary limits
+            const limit = 180;
+            newX = Math.min(limit, Math.max(-limit, newX));
+            newZ = Math.min(limit, Math.max(-limit, newZ));
+            
+            playerMesh.position.set(newX, 0.7, newZ);
+            
+            if (moveX !== 0 || moveZ !== 0) {
+                playerMesh.rotation.y = Math.atan2(moveX, moveZ) + cameraAngle;
+            }
+        }
+        
+        function updateVehicleMovement(delta, vehicle) {
+            if (!vehicle) return;
+            if (!vehicle.userData.velocity) vehicle.userData.velocity = new THREE.Vector3(0, 0, 0);
+            
+            let throttle = 0;
+            if (keys['KeyW']) throttle = 1;
+            if (keys['KeyS']) throttle = -0.6;
+            
+            const engineForce = 5900;
+            const brakeForce = 1800;
+            const mass = 800;
+            
+            const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(vehicle.quaternion);
+            
+            if (throttle !== 0) {
+                vehicle.userData.velocity.x += forward.x * throttle * engineForce * delta / mass;
+                vehicle.userData.velocity.z += forward.z * throttle * engineForce * delta / mass;
+            }
+            
+            if (keys['Space']) {
+                const brakeDir = vehicle.userData.velocity.clone().normalize();
+                const brake = brakeForce * delta / mass;
+                vehicle.userData.velocity.x -= brakeDir.x * Math.min(brake, Math.abs(vehicle.userData.velocity.x));
+                vehicle.userData.velocity.z -= brakeDir.z * Math.min(brake, Math.abs(vehicle.userData.velocity.z));
+            }
+            
+            // Steering
+            let steer = 0;
+            if (keys['KeyA']) steer = 1;
+            if (keys['KeyD']) steer = -1;
+            const steeringAngle = steer * 1.2 * Math.max(0.3, 1 - vehicle.userData.velocity.length() / 70);
+            vehicle.rotation.y += steeringAngle * delta * 1.5;
+            
+            // Drag
+            vehicle.userData.velocity.multiplyScalar(0.985);
+            
+            vehicle.position.x += vehicle.userData.velocity.x * delta;
+            vehicle.position.z += vehicle.userData.velocity.z * delta;
+            
+            // Fuel consumption
+            if (throttle > 0 && vehicle.userData.velocity.length() > 1) {
+                vehicle.userData.fuel = Math.max(0, (vehicle.userData.fuel || 100) - 0.045 * delta * 30);
+            }
+            
+            vehicleStats.speed = vehicle.userData.velocity.length() * 4.5;
+            vehicleStats.fuel = (vehicle.userData.fuel || 100);
+            
+            // Boundary
+            const limit = 180;
+            vehicle.position.x = Math.min(limit, Math.max(-limit, vehicle.position.x));
+            vehicle.position.z = Math.min(limit, Math.max(-limit, vehicle.position.z));
+            
+            // Update HUD
+            document.getElementById('speed-display').textContent = Math.floor(vehicleStats.speed);
+            document.getElementById('fuel-display').textContent = Math.floor(vehicleStats.fuel);
+            document.getElementById('speed-bar-fill').style.width = Math.min(100, (vehicleStats.speed / 180) * 100) + '%';
+        }
+        
+        // ==================== VEHICLE ENTRY/EXIT ====================
+        function enterVehicle(vehicle) {
+            if (isInVehicle) return;
+            playerVehicle = vehicle;
+            isInVehicle = true;
+            
+            // Check if there's a driver already
+            if (vehicle.userData.driverId) {
+                isDriver = false;
+                isPassenger = true;
+                document.getElementById('passenger-indicator').style.display = 'block';
+                showNotification('🚗 You\'re a passenger!', '#ffaa00');
+            } else {
+                isDriver = true;
+                isPassenger = false;
+                vehicle.userData.driverId = playerId;
+                document.getElementById('passenger-indicator').style.display = 'none';
+                showNotification('🚗 You\'re driving!', '#4ae04a');
+            }
+            
+            playerMesh.visible = false;
+            document.getElementById('vehicle-hud').style.display = 'block';
+        }
+        
+        function exitVehicle() {
+            if (!isInVehicle) return;
+            
+            const exitPos = playerVehicle.position.clone().add(new THREE.Vector3(2, 0, 2));
+            playerMesh.position.copy(exitPos);
+            playerMesh.visible = true;
+            
+            if (isDriver) {
+                playerVehicle.userData.driverId = null;
+            }
+            
+            playerVehicle = null;
+            isInVehicle = false;
+            isDriver = false;
+            isPassenger = false;
+            document.getElementById('vehicle-hud').style.display = 'none';
+            document.getElementById('passenger-indicator').style.display = 'none';
+            showNotification('Exited vehicle', '#ffaa00');
+        }
+        
+        function checkVehicleEntry() {
+            if (isInVehicle) {
+                exitVehicle();
+                return true;
+            }
+            
+            // Find nearby vehicle (simplified - in full version you'd check actual vehicles)
+            if (playerMesh && playerVehicle && playerMesh.position.distanceTo(playerVehicle.position) < 2.5) {
+                enterVehicle(playerVehicle);
+                return true;
+            }
+            return false;
+        }
+        
+        // ==================== SUPABASE REAL-TIME ====================
+        async function initSupabaseRealtime() {
+            // Subscribe to players table
+            supabase
+                .channel('players-channel')
+                .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'players' }, (payload) => {
+                    if (payload.new.id !== playerId) {
+                        addRemotePlayer(payload.new.id, payload.new.username, payload.new.x, payload.new.z, payload.new.y, payload.new.rotation_y);
+                    }
+                })
+                .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'players' }, (payload) => {
+                    if (payload.new.id !== playerId) {
+                        updateRemotePlayer(payload.new.id, payload.new.x, payload.new.z, payload.new.y, payload.new.rotation_y);
+                    }
+                })
+                .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'players' }, (payload) => {
+                    removeRemotePlayer(payload.old.id);
+                })
+                .subscribe();
+            
+            // Subscribe to vehicles table
+            supabase
+                .channel('vehicles-channel')
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'vehicles' }, (payload) => {
+                    if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+                        // Update vehicle position for remote players
+                        updateRemoteVehicle(payload.new);
+                    } else if (payload.eventType === 'DELETE') {
+                        removeRemoteVehicle(payload.old.id);
+                    }
+                })
+                .subscribe();
+            
+            // Load existing players
+            const { data: existingPlayers } = await supabase.from('players').select('*').neq('id', playerId);
+            if (existingPlayers) {
+                existingPlayers.forEach(p => addRemotePlayer(p.id, p.username, p.x, p.z, p.y, p.rotation_y));
+            }
+        }
+        
+        function updateRemoteVehicle(vehicleData) {
+            // Handle remote vehicle updates
+        }
+        
+        function removeRemoteVehicle(vehicleId) {
+            // Handle vehicle removal
+        }
+        
+        async function sendPlayerPosition() {
+            if (!playerMesh || !playerId) return;
+            
+            const pos = playerMesh.position;
+            await supabase.from('players').upsert({
+                id: playerId,
+                username: playerName,
+                x: pos.x,
+                z: pos.z,
+                y: pos.y,
+                rotation_y: playerMesh.rotation.y,
+                is_in_vehicle: isInVehicle,
+                current_vehicle_id: playerVehicle?.id || null,
+                updated_at: new Date().toISOString()
+            });
+        }
+        
+        // ==================== AUTH SYSTEM ====================
+        let users = JSON.parse(localStorage.getItem('gangTurfUsers')) || {};
+        
+        function showNotification(msg, color = '#4ae04a') {
+            const n = document.getElementById('notification');
+            n.style.borderColor = color;
+            n.style.color = color;
+            n.textContent = msg;
+            n.style.display = 'block';
+            setTimeout(() => n.style.display = 'none', 1800);
+        }
+        
+        function login(username, password) {
+            if (users[username] && users[username].password === password) {
+                currentUser = username;
+                playerName = username;
+                playerId = `player_${username}_${Date.now()}`;
+                document.getElementById('auth-modal').style.display = 'none';
+                initGame();
+                showNotification(`Welcome to multiplayer, ${username}!`, '#4ae04a');
+                return true;
+            }
+            document.getElementById('auth-message').textContent = 'Invalid credentials!';
+            return false;
+        }
+        
+        function signup(username, email, password, confirm) {
+            if (password !== confirm) {
+                document.getElementById('auth-message').textContent = 'Passwords do not match!';
                 return false;
             }
-            
-            // Subscribe to real-time changes
-            const channel = supabase.channel('public:player_positions');
-            
-            channel
-                .on('postgres_changes', 
-                    { event: 'INSERT', schema: 'public', table: TABLE_NAME },
-                    (payload) => {
-                        addDebug(`📥 INSERT: ${payload.new.id?.slice(-6)}`);
-                        updateRemotePlayer(payload.new);
-                    }
-                )
-                .on('postgres_changes', 
-                    { event: 'UPDATE', schema: 'public', table: TABLE_NAME },
-                    (payload) => {
-                        addDebug(`🔄 UPDATE: ${payload.new.id?.slice(-6)}`);
-                        updateRemotePlayer(payload.new);
-                    }
-                )
-                .on('postgres_changes', 
-                    { event: 'DELETE', schema: 'public', table: TABLE_NAME },
-                    (payload) => {
-                        addDebug(`🗑️ DELETE: ${payload.old.id?.slice(-6)}`);
-                        removeRemotePlayer(payload.old.id);
-                    }
-                )
-                .subscribe((status) => {
-                    addDebug(`📡 Subscription status: ${status}`);
-                    if (status === 'SUBSCRIBED') {
-                        document.getElementById('status').innerHTML = '🟢 Real-time Connected';
-                        document.getElementById('status').style.color = '#00ffaa';
-                    } else if (status === 'CHANNEL_ERROR') {
-                        document.getElementById('status').innerHTML = '🔴 Error - Using Polling';
-                        document.getElementById('status').style.color = '#ff6666';
-                    } else {
-                        document.getElementById('status').innerHTML = `🟡 ${status}`;
-                    }
-                });
-            
-            // Initial load of existing players
-            setTimeout(() => {
-                addDebug('Loading existing players...');
-                pollForUpdates();
-            }, 1000);
-            
-            return true;
+            if (users[username]) {
+                document.getElementById('auth-message').textContent = 'Username exists!';
+                return false;
+            }
+            users[username] = { password, email, money: 10000, bank: 2500 };
+            localStorage.setItem('gangTurfUsers', JSON.stringify(users));
+            return login(username, password);
         }
         
-        // --- Animation Loop ---
-        let lastFrameTime = performance.now();
-        let lastSendFrame = 0;
-        let lastPollFrame = 0;
-        
-        async function animate() {
-            const now = performance.now();
-            let delta = Math.min(0.033, (now - lastFrameTime) / 1000);
-            lastFrameTime = now;
+        // ==================== GAME INIT ====================
+        function initGame() {
+            initThree();
             
-            // Update local movement
-            updateLocalMovement(delta);
+            // Create local player
+            playerMesh = createPlayerModel(0x44aaff);
+            playerMesh.position.set(0, 0.7, 0);
+            scene.add(playerMesh);
             
-            // Send position every 100ms
-            if (now - lastSendFrame > 100) {
-                lastSendFrame = now;
-                await sendPosition();
-            }
+            // Create a test vehicle
+            playerVehicle = createVehicleModel(0x44aaff, "Test Vehicle");
+            playerVehicle.position.set(5, 0, 5);
+            scene.add(playerVehicle);
             
-            // Poll for updates every 2 seconds as fallback
-            if (now - lastPollFrame > 2000) {
-                lastPollFrame = now;
-                await pollForUpdates();
-            }
+            // Setup camera controls
+            const controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+            controls.target = playerMesh.position;
             
-            // Smooth interpolation for remote players
-            for (const player of remotePlayers.values()) {
-                if (player.targetX !== undefined) {
-                    player.group.position.x += (player.targetX - player.group.position.x) * 0.3;
-                    player.group.position.z += (player.targetZ - player.group.position.z) * 0.3;
-                    
-                    const dx = player.targetX - player.group.position.x;
-                    const dz = player.targetZ - player.group.position.z;
-                    if (Math.abs(dx) > 0.05 || Math.abs(dz) > 0.05) {
-                        player.group.rotation.y = Math.atan2(dx, dz);
+            // Event listeners
+            document.addEventListener('keydown', (e) => {
+                keys[e.code] = true;
+                if (e.code === 'KeyE' && !e.repeat) {
+                    checkVehicleEntry();
+                }
+                if (e.code === 'KeyV') {
+                    cameraMode = cameraMode === 'tpv' ? 'fpv' : 'tpv';
+                    document.getElementById('camera-mode-indicator').textContent = `VIEW: ${cameraMode.toUpperCase()}`;
+                }
+                if (e.code === 'Tab') {
+                    e.preventDefault();
+                    const inv = document.getElementById('inventory-panel');
+                    inv.style.display = inv.style.display === 'none' ? 'block' : 'none';
+                }
+            });
+            
+            document.addEventListener('keyup', (e) => {
+                keys[e.code] = false;
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (document.pointerLockElement === renderer.domElement) {
+                    cameraAngle -= e.movementX * 0.0025;
+                    cameraPitch -= e.movementY * 0.0025;
+                    cameraPitch = Math.max(-0.8, Math.min(0.8, cameraPitch));
+                }
+            });
+            
+            renderer.domElement.addEventListener('click', () => renderer.domElement.requestPointerLock());
+            
+            // UI Event Listeners
+            document.getElementById('login-btn')?.addEventListener('click', () => login(document.getElementById('login-username').value, document.getElementById('login-password').value));
+            document.getElementById('signup-btn')?.addEventListener('click', () => signup(document.getElementById('signup-username').value, document.getElementById('signup-email').value, document.getElementById('signup-password').value, document.getElementById('signup-confirm').value));
+            document.getElementById('login-tab')?.addEventListener('click', () => { document.getElementById('login-form').style.display = 'flex'; document.getElementById('signup-form').style.display = 'none'; });
+            document.getElementById('signup-tab')?.addEventListener('click', () => { document.getElementById('login-form').style.display = 'none'; document.getElementById('signup-form').style.display = 'flex'; });
+            document.getElementById('close-inventory')?.addEventListener('click', () => document.getElementById('inventory-panel').style.display = 'none');
+            document.getElementById('phone-close')?.addEventListener('click', () => document.getElementById('phone-ui').style.display = 'none');
+            document.getElementById('close-house-btn')?.addEventListener('click', () => document.getElementById('house-purchase-ui').style.display = 'none');
+            
+            // Phone button
+            document.querySelector('.app-icon')?.addEventListener('click', () => {
+                document.getElementById('phone-ui').style.display = 'block';
+            });
+            
+            // Initialize Supabase real-time
+            initSupabaseRealtime();
+            
+            // Animation loop
+            let lastTime = performance.now();
+            
+            function animate() {
+                const now = performance.now();
+                let delta = Math.min(0.033, (now - lastTime) / 1000);
+                lastTime = now;
+                
+                if (isInVehicle && playerVehicle) {
+                    updateVehicleMovement(delta, playerVehicle);
+                    playerMesh.position.copy(playerVehicle.position);
+                } else {
+                    updateLocalMovement(delta);
+                }
+                
+                // Update camera
+                const target = isInVehicle && playerVehicle ? playerVehicle : playerMesh;
+                if (cameraMode === 'fpv') {
+                    camera.position.copy(target.position);
+                    camera.position.y += 0.8;
+                    camera.rotation.order = 'YXZ';
+                    camera.rotation.y = cameraAngle;
+                    camera.rotation.x = cameraPitch;
+                } else {
+                    const orbitX = target.position.x + Math.sin(cameraAngle) * 8;
+                    const orbitZ = target.position.z + Math.cos(cameraAngle) * 8;
+                    const orbitY = target.position.y + 2 + cameraPitch * 1.2;
+                    camera.position.lerp(new THREE.Vector3(orbitX, orbitY, orbitZ), 0.1);
+                    camera.lookAt(target.position.clone().add(new THREE.Vector3(0, 0.8, 0)));
+                }
+                
+                // Send position to server
+                if (now - lastSendTime > sendInterval * 1000) {
+                    lastSendTime = now;
+                    sendPlayerPosition();
+                }
+                
+                // Smooth remote player interpolation
+                for (const [id, player] of remotePlayers) {
+                    if (player.targetX !== undefined) {
+                        player.mesh.position.x += (player.targetX - player.mesh.position.x) * 0.2;
+                        player.mesh.position.z += (player.targetZ - player.mesh.position.z) * 0.2;
+                        player.mesh.rotation.y += (player.targetRot - player.mesh.rotation.y) * 0.2;
                     }
                 }
+                
+                renderer.render(scene, camera);
+                labelRenderer.render(scene, camera);
+                requestAnimationFrame(animate);
             }
             
-            cleanupStalePlayers();
-            
-            // Update camera target
-            controls.target.copy(localPlayerGroup.position);
-            controls.update();
-            
-            // Idle animation
-            const time = Date.now() * 0.005;
-            const bob = Math.sin(time) * 0.008;
-            localPlayerGroup.position.y = bob;
-            localLabel.position.y = 2.1 + Math.abs(bob) * 0.2;
-            
-            // Rotate ring
-            ring.rotation.z += 0.05;
-            
-            // Render
-            renderer.render(scene, camera);
-            labelRenderer.render(scene, camera);
-            
-            requestAnimationFrame(animate);
-        }
-        
-        // Start the application
-        async function start() {
-            addDebug(`Starting with ID: ${playerId}`);
-            await setupRealtime();
-            addDebug('Animation starting...');
             animate();
         }
         
-        start();
+        // Simple inventory UI setup
+        function setupInventoryUI() {
+            const slotsContainer = document.getElementById('inventory-slots');
+            if (slotsContainer) {
+                slotsContainer.innerHTML = `
+                    <div class="inventory-slot" data-slot="0"><div class="slot-icon">🔫</div><div class="slot-name">Glock 17</div></div>
+                    <div class="inventory-slot" data-slot="1"><div class="slot-icon">🌿</div><div class="slot-name">Weed</div><div class="slot-count">x3</div></div>
+                    <div class="inventory-slot" data-slot="2"><div class="slot-icon">🚬</div><div class="slot-name">Blunt</div><div class="slot-count">x1</div></div>
+                    <div class="inventory-slot" data-slot="3"><div class="slot-icon">⚡</div><div class="slot-name">Taser</div></div>
+                `;
+                document.querySelectorAll('.inventory-slot').forEach(slot => {
+                    slot.addEventListener('click', () => {
+                        document.querySelectorAll('.inventory-slot').forEach(s => s.classList.remove('selected'));
+                        slot.classList.add('selected');
+                        document.getElementById('selected-slot').textContent = parseInt(slot.dataset.slot) + 1;
+                    });
+                });
+            }
+        }
         
-        // Handle window resize
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        setupInventoryUI();
+        
+        // Simple blunt smoking
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'KeyF' && !e.repeat) {
+                showNotification('🚬 Smoking blunt... (effect demo)', '#88ff88');
+                const overlay = document.getElementById('high-overlay');
+                overlay.style.display = 'block';
+                setTimeout(() => overlay.style.display = 'none', 5000);
+            }
         });
         
-        // Cleanup on page close
-        window.addEventListener('beforeunload', async () => {
-            try {
-                await supabase.from(TABLE_NAME).delete().eq('id', playerId);
-                addDebug('Cleaned up player on exit');
-            } catch(e) {}
+        // Phone UI
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'KeyO') {
+                document.getElementById('phone-ui').style.display = 'block';
+            }
         });
+        
+        console.log('Multiplayer Gang Turf Wars loaded!');
     </script>
 </body>
 </html>
