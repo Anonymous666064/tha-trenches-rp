@@ -63,12 +63,6 @@
             border-right: 3px solid #00ff88;
         }
 
-        #coordinates, #vehicle-speed {
-            font-size: 10px;
-            color: #88ff88;
-            margin-top: 5px;
-        }
-
         #multiplayer-panel {
             position: absolute;
             top: 100px;
@@ -84,12 +78,6 @@
             pointer-events: auto;
         }
 
-        #multiplayer-panel h4 {
-            color: #4ec9e0;
-            margin-bottom: 8px;
-            font-size: 12px;
-        }
-
         #multiplayer-panel button {
             width: 100%;
             margin-bottom: 6px;
@@ -100,14 +88,6 @@
             cursor: pointer;
             font-weight: bold;
             font-size: 11px;
-            pointer-events: auto;
-            transition: all 0.2s;
-            color: #000;
-        }
-
-        #multiplayer-panel button:hover {
-            background: #6ee0ff;
-            transform: scale(1.02);
         }
 
         #leave-game-btn {
@@ -120,7 +100,6 @@
             color: #ffaa00;
             text-align: center;
             margin-top: 5px;
-            word-break: break-all;
         }
 
         #players-list {
@@ -154,7 +133,6 @@
             z-index: 10000;
             min-width: 320px;
             text-align: center;
-            pointer-events: auto;
             display: none;
         }
 
@@ -168,8 +146,6 @@
             width: 100%;
             text-align: center;
             font-size: 20px;
-            font-weight: bold;
-            letter-spacing: 2px;
         }
 
         #phone-ui {
@@ -185,23 +161,6 @@
             z-index: 5000;
             display: none;
             flex-direction: column;
-            overflow: hidden;
-        }
-
-        .phone-notch {
-            width: 150px;
-            height: 25px;
-            background: #000;
-            border-radius: 20px;
-            margin: 10px auto 5px;
-        }
-
-        .phone-status {
-            display: flex;
-            justify-content: space-between;
-            padding: 8px 20px;
-            color: white;
-            font-size: 12px;
         }
 
         .phone-app-grid {
@@ -210,40 +169,22 @@
             grid-template-columns: repeat(3, 1fr);
             gap: 20px;
             padding: 20px;
-            overflow-y: auto;
         }
 
         .phone-app {
             background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
             border-radius: 16px;
             padding: 15px 10px;
             text-align: center;
             cursor: pointer;
-            transition: all 0.2s;
         }
 
         .phone-app:hover {
             background: rgba(78, 201, 224, 0.3);
-            transform: scale(1.05);
         }
 
         .phone-app-icon {
             font-size: 2.5rem;
-            margin-bottom: 8px;
-        }
-
-        .phone-app-name {
-            font-size: 11px;
-            color: white;
-        }
-
-        .phone-home-indicator {
-            width: 140px;
-            height: 5px;
-            background: rgba(255,255,255,0.3);
-            border-radius: 3px;
-            margin: 12px auto;
         }
 
         .dealership-menu {
@@ -257,16 +198,7 @@
             border: 2px solid #ffaa44;
             z-index: 6000;
             min-width: 350px;
-            max-width: 90vw;
-            max-height: 80vh;
-            overflow-y: auto;
             color: white;
-        }
-
-        .dealership-menu h3 {
-            color: #ffaa44;
-            margin-bottom: 15px;
-            text-align: center;
         }
 
         .vehicle-card {
@@ -276,7 +208,6 @@
             margin: 10px 0;
             display: flex;
             justify-content: space-between;
-            align-items: center;
         }
 
         .vehicle-card button {
@@ -285,19 +216,6 @@
             padding: 6px 15px;
             border-radius: 8px;
             cursor: pointer;
-            font-weight: bold;
-        }
-
-        .close-menu {
-            background: #ff4444;
-            color: white;
-            border: none;
-            padding: 8px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            margin-top: 15px;
-            width: 100%;
-            font-weight: bold;
         }
 
         #mobile-controls {
@@ -309,14 +227,12 @@
             justify-content: space-between;
             padding: 15px;
             z-index: 200;
-            pointer-events: none;
         }
 
         #joystick-area {
             width: 140px;
             height: 140px;
             position: relative;
-            pointer-events: auto;
         }
 
         #joystick-base {
@@ -325,7 +241,6 @@
             height: 120px;
             background: rgba(30, 30, 40, 0.8);
             border-radius: 60px;
-            border: 2px solid rgba(255, 255, 255, 0.3);
             left: 10px;
             top: 10px;
         }
@@ -344,15 +259,12 @@
         .action-buttons {
             display: flex;
             gap: 15px;
-            align-items: flex-end;
-            pointer-events: auto;
         }
 
         .action-btn {
             width: 70px;
             height: 70px;
             background: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(8px);
             border-radius: 35px;
             display: flex;
             align-items: center;
@@ -370,21 +282,6 @@
             height: 100%;
             z-index: 150;
             display: none;
-            background: transparent;
-            pointer-events: auto;
-        }
-
-        #crosshair {
-            position: fixed;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            width: 4px;
-            height: 4px;
-            background: white;
-            border-radius: 50%;
-            z-index: 1000;
-            pointer-events: none;
         }
 
         #vehicle-hud {
@@ -401,10 +298,16 @@
             z-index: 100;
         }
 
-        #vehicle-speed {
-            font-size: 24px;
-            font-weight: bold;
-            color: #ffaa44;
+        #crosshair {
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 4px;
+            height: 4px;
+            background: white;
+            border-radius: 50%;
+            z-index: 1000;
         }
 
         .controls-indicator {
@@ -417,7 +320,6 @@
             font-size: 9px;
             color: #aaa;
             z-index: 100;
-            pointer-events: none;
         }
 
         #device-mode {
@@ -431,7 +333,6 @@
             font-size: 10px;
             color: #4ec9e0;
             z-index: 100;
-            pointer-events: none;
         }
 
         #notification {
@@ -448,32 +349,26 @@
             z-index: 2000;
             display: none;
             white-space: nowrap;
-            font-size: 14px;
-            pointer-events: none;
         }
     </style>
 </head>
 <body>
     <div id="ui">
         <h2>🎮 3D MULTIPLAYER - DRIVER & PASSENGER</h2>
-        <p>E - Enter as Driver | Shift+E - Enter as Passenger | O - Phone</p>
+        <p>E - Driver | Shift+E - Passenger | O - Phone</p>
     </div>
 
     <div id="info-panel">
         <div>📍 POSITION</div>
         <div id="coordinates">X: 0.0 | Z: 0.0</div>
         <div>🎯 FPS: <span id="fps">--</span></div>
-        <div>🏃 Speed: <span id="speed">0</span></div>
         <div>👥 Online: <span id="player-count">1</span></div>
-        <div>💰 Money: <span id="money-display">∞</span></div>
         <div id="role-display" style="color:#ffaa44;">🚶 Walking</div>
     </div>
 
     <div id="vehicle-hud">
         <div>🚗 <span id="vehicle-name">No Vehicle</span></div>
         <div id="vehicle-speed">0 MPH</div>
-        <div>⛽ Fuel: <span id="fuel-display">100</span>%</div>
-        <div id="passenger-count" style="font-size:10px; margin-top:5px;"></div>
     </div>
 
     <div id="crosshair"></div>
@@ -501,26 +396,20 @@
     </div>
 
     <div id="phone-ui">
-        <div class="phone-notch"></div>
-        <div class="phone-status">
-            <span>9:41</span>
-            <span>📶 🔋</span>
-        </div>
         <div class="phone-app-grid">
             <div class="phone-app" data-app="dealership">
                 <div class="phone-app-icon">🚗</div>
-                <div class="phone-app-name">Dealership</div>
+                <div>Dealership</div>
             </div>
             <div class="phone-app" data-app="garage">
                 <div class="phone-app-icon">🏠</div>
-                <div class="phone-app-name">My Garage</div>
+                <div>My Garage</div>
             </div>
             <div class="phone-app" data-app="close">
                 <div class="phone-app-icon">❌</div>
-                <div class="phone-app-name">Close</div>
+                <div>Close</div>
             </div>
         </div>
-        <div class="phone-home-indicator"></div>
     </div>
 
     <div id="mobile-controls">
@@ -559,7 +448,7 @@
         let currentSession = null;
         let myPlayerId = null;
         let isHost = false;
-        let multiplayerPlayers = new Map();
+        let remotePlayers = new Map(); // player_id -> { mesh, lastX, lastZ, isInVehicle, vehicleId }
         let subscription = null;
         let heartbeatInterval = null;
         let lastPositionUpdate = 0;
@@ -570,18 +459,6 @@
         let isDriver = false;
         let isPassenger = false;
         let ownedVehicles = ["Sports Car", "Police Car", "SUV"];
-        let vehicleModels = {
-            "Sports Car": { color: 0xff3333, speed: 15, handling: 0.9, driverSeat: { x: 0, z: 0.5 }, passengerSeat: { x: 0.8, z: -1 } },
-            "Police Car": { color: 0x3366ff, speed: 12, handling: 0.85, driverSeat: { x: 0, z: 0.5 }, passengerSeat: { x: 0.8, z: -1 } },
-            "SUV": { color: 0x44aa44, speed: 10, handling: 0.7, driverSeat: { x: 0, z: 0.5 }, passengerSeat: { x: 0.8, z: -1 } }
-        };
-        
-        let vehicleStats = { speed: 0, fuel: 100 };
-        
-        // Vehicle physics
-        const ENGINE_FORCE = 1200;
-        const BRAKE_FORCE = 800;
-        const MAX_STEER = 0.8;
         
         // Three.js
         let scene, camera, renderer;
@@ -606,18 +483,19 @@
         const GRAVITY = 15;
         let isOnGround = true;
         
+        // Vehicle physics
+        const ENGINE_FORCE = 1200;
+        const BRAKE_FORCE = 800;
+        const MAX_STEER = 0.8;
+        
         // UI
         const coordsEl = document.getElementById('coordinates');
         const fpsEl = document.getElementById('fps');
-        const speedEl = document.getElementById('speed');
         const playerCountEl = document.getElementById('player-count');
-        const moneyDisplay = document.getElementById('money-display');
+        const roleDisplay = document.getElementById('role-display');
         const vehicleHud = document.getElementById('vehicle-hud');
         const vehicleNameEl = document.getElementById('vehicle-name');
         const vehicleSpeedEl = document.getElementById('vehicle-speed');
-        const fuelDisplay = document.getElementById('fuel-display');
-        const roleDisplay = document.getElementById('role-display');
-        const passengerCountEl = document.getElementById('passenger-count');
         
         let frameCount = 0;
         let lastTime = performance.now();
@@ -660,11 +538,11 @@
             scene.add(gridHelper);
         }
         
-        function createVehicleModel(type, x, z) {
-            const config = vehicleModels[type];
+        function createVehicleModel(type, x, z, vehicleId) {
+            const colors = { "Sports Car": 0xff3333, "Police Car": 0x3366ff, "SUV": 0x44aa44 };
             const group = new THREE.Group();
             
-            const bodyMat = new THREE.MeshStandardMaterial({ color: config.color, roughness: 0.4, metalness: 0.6 });
+            const bodyMat = new THREE.MeshStandardMaterial({ color: colors[type], roughness: 0.4 });
             const body = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.5, 4.2), bodyMat);
             body.position.y = 0.35;
             body.castShadow = true;
@@ -673,29 +551,23 @@
             const roofMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
             const roof = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.4, 2.2), roofMat);
             roof.position.y = 0.8;
-            roof.castShadow = true;
             group.add(roof);
             
-            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8 });
+            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
             const wheelGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.3, 16);
             const wheelPositions = [[-0.8, 0.2, -1.5], [0.8, 0.2, -1.5], [-0.8, 0.2, 1.5], [0.8, 0.2, 1.5]];
             wheelPositions.forEach(pos => {
                 const wheel = new THREE.Mesh(wheelGeo, wheelMat);
                 wheel.rotation.z = Math.PI / 2;
                 wheel.position.set(pos[0], pos[1], pos[2]);
-                wheel.castShadow = true;
                 group.add(wheel);
             });
             
             group.position.set(x, 0, z);
             group.userData = {
+                vehicleId: vehicleId,
                 type: type,
-                vehicleId: 'v_' + Math.random().toString(36).substring(2, 10),
                 velocity: new THREE.Vector3(0, 0, 0),
-                fuel: 100,
-                maxFuel: 100,
-                speed: config.speed,
-                handling: config.handling,
                 driverId: null,
                 passengerId: null
             };
@@ -705,7 +577,7 @@
             return group;
         }
         
-        function createPlayerModel(color, playerId = null, isLocal = false) {
+        function createPlayerModel(color, isLocal = false, playerName = "") {
             const group = new THREE.Group();
             
             const bodyMat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.3 });
@@ -717,23 +589,14 @@
             const headMat = new THREE.MeshStandardMaterial({ color: 0xffccaa, roughness: 0.2 });
             const head = new THREE.Mesh(new THREE.SphereGeometry(0.45, 32, 32), headMat);
             head.position.y = 1.25;
-            head.castShadow = true;
             group.add(head);
             
             if (isLocal) {
-                const crownMat = new THREE.MeshStandardMaterial({ color: 0xffaa44, emissive: 0x442200 });
+                const crownMat = new THREE.MeshStandardMaterial({ color: 0xffaa44 });
                 const crownBase = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.6, 0.2, 8), crownMat);
                 crownBase.position.y = 1.55;
                 group.add(crownBase);
-                for (let i = 0; i < 5; i++) {
-                    const spike = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.35, 6), crownMat);
-                    const angle = (i / 5) * Math.PI * 2;
-                    spike.position.x = Math.cos(angle) * 0.5;
-                    spike.position.z = Math.sin(angle) * 0.5;
-                    spike.position.y = 1.7;
-                    group.add(spike);
-                }
-            } else if (playerId) {
+            } else if (playerName) {
                 const canvas = document.createElement('canvas');
                 canvas.width = 128;
                 canvas.height = 32;
@@ -743,7 +606,7 @@
                 ctx.fillStyle = '#ffaa00';
                 ctx.font = 'Bold 10px Arial';
                 ctx.textAlign = 'center';
-                ctx.fillText(playerId.slice(0, 8), canvas.width/2, 20);
+                ctx.fillText(playerName.slice(0, 8), canvas.width/2, 20);
                 
                 const texture = new THREE.CanvasTexture(canvas);
                 const nameMaterial = new THREE.SpriteMaterial({ map: texture });
@@ -753,7 +616,6 @@
                 group.add(nameTag);
             }
             
-            group.castShadow = true;
             return group;
         }
         
@@ -764,7 +626,7 @@
             const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(vehicle.quaternion);
             
             let throttle = 0;
-            if (accelerate && vehicle.userData.fuel > 0 && isDriver) throttle = 1;
+            if (accelerate && isDriver) throttle = 1;
             if (brake && isDriver) throttle = -0.5;
             
             let steer = 0;
@@ -795,25 +657,14 @@
             vehicle.position.x += vehicle.userData.velocity.x * delta;
             vehicle.position.z += vehicle.userData.velocity.z * delta;
             
-            if (throttle > 0 && speed > 1 && isDriver) {
-                vehicle.userData.fuel -= 0.02 * delta * 30;
-                vehicle.userData.fuel = Math.max(0, vehicle.userData.fuel);
-            }
-            
-            vehicleStats.speed = speed * 4.5;
-            vehicleStats.fuel = (vehicle.userData.fuel / vehicle.userData.maxFuel) * 100;
-            
-            if (isDriver && currentVehicle === vehicle) {
-                vehicleSpeedEl.textContent = Math.floor(vehicleStats.speed) + " MPH";
-                fuelDisplay.textContent = Math.floor(vehicleStats.fuel);
-                const hasPassenger = vehicle.userData.passengerId ? "👤 1 Passenger" : "👤 No Passenger";
-                passengerCountEl.textContent = hasPassenger;
-            }
-            
             const bound = 140;
             vehicle.position.x = Math.max(-bound, Math.min(bound, vehicle.position.x));
             vehicle.position.z = Math.max(-bound, Math.min(bound, vehicle.position.z));
             vehicle.position.y = -0.2;
+            
+            if (isDriver) {
+                vehicleSpeedEl.textContent = Math.floor(speed * 4.5) + " MPH";
+            }
         }
         
         // ==================== VEHICLE ENTRY/EXIT ====================
@@ -842,6 +693,7 @@
                 vehicleNameEl.textContent = currentVehicle.userData.type;
                 roleDisplay.innerHTML = `🚗 Driving: ${currentVehicle.userData.type}`;
                 showNotification(`Entered as DRIVER`, '#4ae04a');
+                sendPlayerState();
             } else if (!asDriver && !nearest.userData.passengerId && nearest.userData.driverId) {
                 if (currentVehicle) exitVehicle();
                 isDriver = false;
@@ -851,16 +703,15 @@
                 localPlayerMesh.visible = false;
                 roleDisplay.innerHTML = `👤 Passenger in: ${currentVehicle.userData.type}`;
                 showNotification(`Entered as PASSENGER`, '#88ff88');
+                sendPlayerState();
             } else if (asDriver && nearest.userData.driverId === myPlayerId) {
-                showNotification(`You are already driving this vehicle`, '#ffaa00');
+                showNotification(`You are already driving`, '#ffaa00');
             } else if (!asDriver && nearest.userData.passengerId === myPlayerId) {
-                showNotification(`You are already a passenger`, '#ffaa00');
+                showNotification(`Already a passenger`, '#ffaa00');
             } else if (asDriver && nearest.userData.driverId) {
                 showNotification(`Vehicle has a driver! Enter as passenger (Shift+E)`, '#ffaa00');
             } else if (!asDriver && !nearest.userData.driverId) {
                 showNotification(`No driver! Enter as driver first (E)`, '#ffaa00');
-            } else if (!asDriver && nearest.userData.passengerId) {
-                showNotification(`Passenger seat is taken!`, '#ffaa00');
             }
         }
         
@@ -889,12 +740,31 @@
             steerLeft = false;
             steerRight = false;
             currentSteer = 0;
+            
+            sendPlayerState();
+        }
+        
+        function sendPlayerState() {
+            if (!currentSession || !myPlayerId) return;
+            
+            const state = {
+                player_id: myPlayerId,
+                pos_x: isDriver || isPassenger ? currentVehicle.position.x : playerPosition.x,
+                pos_z: isDriver || isPassenger ? currentVehicle.position.z : playerPosition.z,
+                is_in_vehicle: isDriver || isPassenger,
+                vehicle_id: currentVehicle ? currentVehicle.userData.vehicleId : null,
+                is_driver: isDriver,
+                last_seen: new Date()
+            };
+            
+            supabase.from('players').upsert(state).eq('player_id', myPlayerId).then();
         }
         
         function spawnVehicle(type) {
+            const vehicleId = 'v_' + Math.random().toString(36).substring(2, 10);
             const spawnX = playerPosition.x + Math.sin(cameraAngleY) * 5;
             const spawnZ = playerPosition.z + Math.cos(cameraAngleY) * 5;
-            createVehicleModel(type, spawnX, spawnZ);
+            createVehicleModel(type, spawnX, spawnZ, vehicleId);
             showNotification(`Spawned ${type}!`, '#4ae04a');
         }
         
@@ -906,8 +776,7 @@
             const { data: existing } = await supabase.from('game_sessions').select('session_code').eq('session_code', code);
             if (existing && existing.length > 0) throw new Error('Code already taken!');
             
-            const { error } = await supabase.from('game_sessions').insert({ session_code: code });
-            if (error) throw error;
+            await supabase.from('game_sessions').insert({ session_code: code });
             return code;
         }
         
@@ -925,24 +794,24 @@
             const startZ = (Math.random() - 0.5) * 60;
             playerPosition.set(startX, 1.6, startZ);
             
-            localPlayerMesh = createPlayerModel(0x66ff88, null, true);
+            localPlayerMesh = createPlayerModel(0x66ff88, true);
             localPlayerMesh.position.copy(playerPosition);
             scene.add(localPlayerMesh);
             
-            const { error } = await supabase.from('players').insert({
+            await supabase.from('players').insert({
                 player_id: myPlayerId,
                 session_id: sessionCode,
                 pos_x: startX,
                 pos_z: startZ,
+                is_in_vehicle: false,
+                is_driver: false,
                 last_seen: new Date()
             });
-            
-            if (error) throw error;
             
             await loadPlayersInSession(sessionCode);
             subscribeToSession(sessionCode);
             
-            heartbeatInterval = setInterval(() => sendHeartbeat(), 2000);
+            heartbeatInterval = setInterval(() => sendPlayerState(), 100);
             updatePlayersUI();
             showNotification(`✅ Joined game! Code: ${sessionCode}`, '#4ae04a');
             return true;
@@ -953,11 +822,11 @@
             if (error) return;
             
             for (let p of data) {
-                if (p.player_id !== myPlayerId && !multiplayerPlayers.has(p.player_id)) {
-                    const playerModel = createPlayerModel(0xff8844, p.player_id, false);
+                if (p.player_id !== myPlayerId && !remotePlayers.has(p.player_id)) {
+                    const playerModel = createPlayerModel(0xff8844, false, p.player_id);
                     playerModel.position.set(p.pos_x, 0.7, p.pos_z);
                     scene.add(playerModel);
-                    multiplayerPlayers.set(p.player_id, playerModel);
+                    remotePlayers.set(p.player_id, { mesh: playerModel, lastX: p.pos_x, lastZ: p.pos_z, isInVehicle: p.is_in_vehicle });
                 }
             }
             updatePlayersUI();
@@ -976,26 +845,29 @@
                     filter: `session_id=eq.${sessionCode}`
                 }, (payload) => {
                     if (payload.eventType === 'INSERT' && payload.new.player_id !== myPlayerId) {
-                        const playerModel = createPlayerModel(0xff8844, payload.new.player_id, false);
+                        const playerModel = createPlayerModel(0xff8844, false, payload.new.player_id);
                         playerModel.position.set(payload.new.pos_x, 0.7, payload.new.pos_z);
                         scene.add(playerModel);
-                        multiplayerPlayers.set(payload.new.player_id, playerModel);
+                        remotePlayers.set(payload.new.player_id, { mesh: playerModel, lastX: payload.new.pos_x, lastZ: payload.new.pos_z });
                         updatePlayersUI();
                         updatePlayerCount();
                         showNotification(`👤 Player joined!`, '#4ec9e0');
                     }
                     else if (payload.eventType === 'UPDATE' && payload.new.player_id !== myPlayerId) {
-                        const playerModel = multiplayerPlayers.get(payload.new.player_id);
-                        if (playerModel) {
-                            playerModel.position.x += (payload.new.pos_x - playerModel.position.x) * 0.3;
-                            playerModel.position.z += (payload.new.pos_z - playerModel.position.z) * 0.3;
+                        const remote = remotePlayers.get(payload.new.player_id);
+                        if (remote) {
+                            remote.mesh.position.x += (payload.new.pos_x - remote.mesh.position.x) * 0.3;
+                            remote.mesh.position.z += (payload.new.pos_z - remote.mesh.position.z) * 0.3;
+                            remote.lastX = payload.new.pos_x;
+                            remote.lastZ = payload.new.pos_z;
+                            remote.mesh.visible = !payload.new.is_in_vehicle;
                         }
                     }
                     else if (payload.eventType === 'DELETE' && payload.old.player_id !== myPlayerId) {
-                        const playerModel = multiplayerPlayers.get(payload.old.player_id);
-                        if (playerModel) {
-                            scene.remove(playerModel);
-                            multiplayerPlayers.delete(payload.old.player_id);
+                        const remote = remotePlayers.get(payload.old.player_id);
+                        if (remote) {
+                            scene.remove(remote.mesh);
+                            remotePlayers.delete(payload.old.player_id);
                             updatePlayersUI();
                             updatePlayerCount();
                             showNotification(`👋 Player left`, '#ffaa00');
@@ -1005,33 +877,14 @@
                 .subscribe();
         }
         
-        async function sendHeartbeat() {
-            if (!currentSession || !myPlayerId) return;
-            
-            let pos;
-            if (isDriver || isPassenger) {
-                pos = currentVehicle.position;
-            } else {
-                pos = playerPosition;
-            }
-            
-            try {
-                await supabase.from('players').update({
-                    pos_x: pos.x,
-                    pos_z: pos.z,
-                    last_seen: new Date()
-                }).eq('player_id', myPlayerId);
-            } catch (e) {}
-        }
-        
         async function leaveGameSession() {
             if (heartbeatInterval) clearInterval(heartbeatInterval);
             if (myPlayerId) await supabase.from('players').delete().eq('player_id', myPlayerId);
             if (isHost && currentSession) await supabase.from('game_sessions').delete().eq('session_code', currentSession);
             if (subscription) supabase.removeChannel(subscription);
             
-            for (let [id, model] of multiplayerPlayers) scene.remove(model);
-            multiplayerPlayers.clear();
+            for (let [id, data] of remotePlayers) scene.remove(data.mesh);
+            remotePlayers.clear();
             if (localPlayerMesh) scene.remove(localPlayerMesh);
             localPlayerMesh = null;
             
@@ -1052,14 +905,14 @@
                 return;
             }
             let html = `<div class="player-entry local">👑 YOU (${isHost ? 'Host' : 'Player'})</div>`;
-            for (let [id] of multiplayerPlayers) {
+            for (let [id] of remotePlayers) {
                 html += `<div class="player-entry">🎮 ${id.slice(0, 8)}</div>`;
             }
             container.innerHTML = html;
         }
         
         function updatePlayerCount() {
-            if (playerCountEl) playerCountEl.textContent = 1 + multiplayerPlayers.size;
+            if (playerCountEl) playerCountEl.textContent = 1 + remotePlayers.size;
         }
         
         function showNotification(msg, color) {
@@ -1083,23 +936,20 @@
                     const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(currentVehicle.quaternion);
                     const right = new THREE.Vector3(1, 0, 0).applyQuaternion(currentVehicle.quaternion);
                     
+                    // Camera position based on seat
                     if (isDriver) {
-                        const config = vehicleModels[currentVehicle.userData.type];
-                        const seatOffset = config.driverSeat;
-                        camera.position.x = vehiclePos.x + right.x * seatOffset.x + forward.x * seatOffset.z;
-                        camera.position.z = vehiclePos.z + right.z * seatOffset.x + forward.z * seatOffset.z;
-                        camera.position.y = vehiclePos.y + 1.2;
+                        camera.position.x = vehiclePos.x + right.x * 0 + forward.x * 0.5;
+                        camera.position.z = vehiclePos.z + right.z * 0 + forward.z * 0.5;
                     } else {
-                        const config = vehicleModels[currentVehicle.userData.type];
-                        const seatOffset = config.passengerSeat;
-                        camera.position.x = vehiclePos.x + right.x * seatOffset.x + forward.x * seatOffset.z;
-                        camera.position.z = vehiclePos.z + right.z * seatOffset.x + forward.z * seatOffset.z;
-                        camera.position.y = vehiclePos.y + 1.2;
+                        camera.position.x = vehiclePos.x + right.x * 0.8 + forward.x * -0.8;
+                        camera.position.z = vehiclePos.z + right.z * 0.8 + forward.z * -0.8;
                     }
-                    
+                    camera.position.y = vehiclePos.y + 1.2;
                     camera.rotation.order = 'YXZ';
                     camera.rotation.y = cameraAngleY;
                     camera.rotation.x = cameraAngleX;
+                    
+                    sendPlayerState();
                 }
                 return;
             }
@@ -1155,16 +1005,8 @@
             camera.rotation.y = cameraAngleY;
             camera.rotation.x = cameraAngleX;
             
-            if (currentSession && myPlayerId) {
-                const now = Date.now();
-                if (now - lastPositionUpdate > 66) {
-                    sendHeartbeat();
-                    lastPositionUpdate = now;
-                }
-            }
+            sendPlayerState();
             
-            const currentSpeed = Math.hypot(playerVelocity.x, playerVelocity.z);
-            speedEl.textContent = Math.floor(currentSpeed * 3.6);
             coordsEl.innerHTML = `X: ${playerPosition.x.toFixed(1)} | Z: ${playerPosition.z.toFixed(1)}`;
         }
         
@@ -1190,13 +1032,10 @@
             menu.className = 'dealership-menu';
             menu.innerHTML = `
                 <h3>🚗 DEALERSHIP</h3>
-                <div style="color:#ffaa44;">💰 INFINITE MONEY - Free Cars!</div>
-                ${Object.keys(vehicleModels).map(type => `
-                    <div class="vehicle-card">
-                        <div><strong>${type}</strong><br>Speed: ${vehicleModels[type].speed*10} MPH</div>
-                        <button onclick="window.buyVehicle('${type}')">BUY (FREE)</button>
-                    </div>
-                `).join('')}
+                <div style="color:#ffaa44;">💰 FREE CARS!</div>
+                <div class="vehicle-card"><div>Sports Car</div><button onclick="window.buyVehicle('Sports Car')">BUY</button></div>
+                <div class="vehicle-card"><div>Police Car</div><button onclick="window.buyVehicle('Police Car')">BUY</button></div>
+                <div class="vehicle-card"><div>SUV</div><button onclick="window.buyVehicle('SUV')">BUY</button></div>
                 <button class="close-menu" onclick="this.parentElement.remove()">CLOSE</button>
             `;
             document.body.appendChild(menu);
@@ -1206,8 +1045,6 @@
                     ownedVehicles.push(type);
                     showNotification(`✅ Purchased ${type}!`, '#4ae04a');
                     menu.remove();
-                } else {
-                    showNotification(`You already own ${type}!`, '#ffaa00');
                 }
             };
         }
@@ -1217,10 +1054,9 @@
             menu.className = 'dealership-menu';
             menu.innerHTML = `
                 <h3>🏠 MY GARAGE</h3>
-                <div>Owned: ${ownedVehicles.length}</div>
                 ${ownedVehicles.map(type => `
                     <div class="vehicle-card">
-                        <div><strong>${type}</strong></div>
+                        <div>${type}</div>
                         <button onclick="window.spawnOwnedVehicle('${type}')">SPAWN</button>
                     </div>
                 `).join('')}
@@ -1333,12 +1169,10 @@
                     return;
                 }
                 const angle = Math.atan2(dy, dx);
-                const forwardInput = Math.cos(angle);
-                const rightInput = Math.sin(angle);
-                moveForward = forwardInput < -0.3;
-                moveBack = forwardInput > 0.3;
-                moveLeft = rightInput < -0.3;
-                moveRight = rightInput > 0.3;
+                moveForward = Math.cos(angle) < -0.3;
+                moveBack = Math.cos(angle) > 0.3;
+                moveLeft = Math.sin(angle) < -0.3;
+                moveRight = Math.sin(angle) > 0.3;
             }
             
             function handleTouchMove(e) {
@@ -1417,14 +1251,12 @@
             document.getElementById('host-game-btn')?.addEventListener('click', () => {
                 if (currentSession) { showNotification('Already in a session!', '#ff5555'); return; }
                 sessionPanel.style.display = 'block';
-                document.getElementById('session-title').textContent = '🎮 Create Game Session';
                 codeInput.focus();
             });
             
             document.getElementById('join-game-btn')?.addEventListener('click', () => {
                 if (currentSession) { showNotification('Already in a session!', '#ff5555'); return; }
                 sessionPanel.style.display = 'block';
-                document.getElementById('session-title').textContent = '🔗 Join Game Session';
                 codeInput.focus();
             });
             
@@ -1502,20 +1334,19 @@
         }
         
         function init() {
-            moneyDisplay.textContent = '∞';
             init3DWorld();
             detectDevice();
             addMultiplayerEventListeners();
             initPhoneApps();
             
             setTimeout(() => {
-                createVehicleModel("Sports Car", 20, 15);
-                createVehicleModel("Police Car", -20, 15);
-                createVehicleModel("SUV", 0, -20);
+                createVehicleModel("Sports Car", 20, 15, 'v1');
+                createVehicleModel("Police Car", -20, 15, 'v2');
+                createVehicleModel("SUV", 0, -20, 'v3');
             }, 1000);
             
             animate();
-            console.log("✅ Game ready! E = Driver, Shift+E = Passenger");
+            console.log("✅ Game ready! Press O for phone, E to drive, Shift+E to ride as passenger!");
         }
         
         init();
