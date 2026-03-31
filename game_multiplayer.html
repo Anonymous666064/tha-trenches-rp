@@ -209,6 +209,26 @@
         </div>
     </div>
     
+    <div id="server-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #0a0f1e, #1a2a3a); z-index: 10000; display: flex; justify-content: center; align-items: center;">
+        <div class="auth-container">
+            <h2>🌐 SELECT SERVER</h2>
+            <div class="auth-tabs">
+                <button class="auth-tab active" id="join-server-tab">JOIN SERVER</button>
+                <button class="auth-tab" id="create-server-tab">CREATE SERVER</button>
+            </div>
+            <div id="join-server-form" class="auth-form">
+                <input type="text" id="server-code" placeholder="Enter Server Code">
+                <button id="join-server-btn">JOIN</button>
+            </div>
+            <div id="create-server-form" class="auth-form" style="display: none;">
+                <input type="text" id="server-name" placeholder="Server Name">
+                <button id="create-server-btn">CREATE SERVER</button>
+            </div>
+            <button id="logout-btn" style="margin-top: 15px; width: 100%; padding: 10px; background: rgba(255,100,100,0.8); border: none; border-radius: 10px; color: white; cursor: pointer;">LOGOUT</button>
+            <div id="server-message" class="auth-message"></div>
+        </div>
+    </div>
+    
     <div id="info">🎮 GANG TURF WARS | WASD Move | Mouse Look | E Enter/Exit Vehicle | V Toggle Camera</div>
     <div id="money-ui">💰 $10,000</div>
     <div id="player-list">
@@ -257,6 +277,7 @@
         let currentUser = null;
         let playerId = null;
         let playerUsername = "";
+        let currentServerId = null;
         let scene, camera, renderer, labelRenderer;
         let playerMesh = null;
         let remotePlayers = new Map();
@@ -651,27 +672,49 @@
         
         // ==================== SUPABASE SYNC ====================
         async function setupRealtime() {
+            if (!currentServerId) return;
+            
+            // Unsubscribe from old channel if exists
+            if (syncChannel) {
+                await supabase.removeChannel(syncChannel);
+            }
+            
             syncChannel = supabase
-                .channel('players-channel')
+                .channel(`server-${currentServerId}`)
                 .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'players' }, (payload) => {
-                    if (payload.new.id !== playerId) {
+                    if (payload.new.server_id === currentServerId && payload.new.id !== playerId) {
+                        console.log('New player:', payload.new.username);
                         addRemotePlayer(payload.new.id, payload.new.username, payload.new.x, payload.new.z, payload.new.y, payload.new.rotation_y);
                     }
                 })
                 .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'players' }, (payload) => {
-                    if (payload.new.id !== playerId) {
+                    if (payload.new.server_id === currentServerId && payload.new.id !== playerId) {
                         updateRemotePlayer(payload.new.id, payload.new.x, payload.new.z, payload.new.y, payload.new.rotation_y, payload.new.health, payload.new.is_dead);
                     }
                 })
                 .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'players' }, (payload) => {
-                    removeRemotePlayer(payload.old.id);
+                    if (payload.old.id !== playerId) {
+                        removeRemotePlayer(payload.old.id);
+                    }
                 })
                 .subscribe();
             
-            // Load existing players
-            const { data: existingPlayers } = await supabase.from('players').select('*').neq('id', playerId);
-            if (existingPlayers) {
-                existingPlayers.forEach(p => addRemotePlayer(p.id, p.username, p.x, p.z, p.y, p.rotation_y));
+            // Load all existing players on this server
+            console.log('Loading players for server:', currentServerId);
+            const { data: existingPlayers, error } = await supabase
+                .from('players')
+                .select('*')
+                .eq('server_id', currentServerId)
+                .neq('id', playerId);
+            
+            if (error) {
+                console.error('Error loading players:', error);
+            } else if (existingPlayers) {
+                console.log('Found players:', existingPlayers.length);
+                existingPlayers.forEach(p => {
+                    console.log('Adding player:', p.username);
+                    addRemotePlayer(p.id, p.username, p.x, p.z, p.y, p.rotation_y);
+                });
             }
             
             document.getElementById('status').innerHTML = '🟢 Connected';
@@ -679,13 +722,14 @@
         }
         
         async function sendPlayerPosition() {
-            if (!playerMesh || !playerId) return;
+            if (!playerMesh || !playerId || !currentServerId) return;
             
             const pos = isInVehicle && playerVehicle ? playerVehicle.position : playerMesh.position;
             const rot = isInVehicle && playerVehicle ? playerVehicle.rotation.y : playerMesh.rotation.y;
             
             await supabase.from('players').upsert({
                 id: playerId,
+                server_id: currentServerId,
                 username: playerUsername,
                 x: pos.x,
                 z: pos.z,
@@ -733,7 +777,7 @@
                 playerUsername = username;
                 
                 document.getElementById('auth-modal').style.display = 'none';
-                initGame();
+                document.getElementById('server-modal').style.display = 'flex';
                 showNotification(`Welcome, ${playerUsername}!`, '#4ae04a');
                 return true;
             } catch (error) {
@@ -769,6 +813,113 @@
             } catch (error) {
                 document.getElementById('auth-message').textContent = `Error: ${error.message}`;
                 return false;
+            }
+        }
+        
+        // ==================== SERVER SYSTEM ====================
+        function generateServerCode(length = 6) {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let code = '';
+            for (let i = 0; i < length; i++) code += chars.charAt(Math.floor(Math.random() * chars.length));
+            return code;
+        }
+        
+        async function createServer(serverName) {
+            try {
+                document.getElementById('server-message').textContent = 'Creating server...';
+                
+                const serverCode = generateServerCode();
+                const { data, error } = await supabase.from('servers').insert({
+                    code: serverCode,
+                    name: serverName || `${playerUsername}'s Server`,
+                    creator_id: playerId,
+                    created_at: new Date().toISOString()
+                }).select().single();
+                
+                if (error) throw new Error(error.message);
+                
+                currentServerId = data.id;
+                document.getElementById('server-modal').style.display = 'none';
+                await createPlayerCharacter();
+                initGame();
+                showNotification(`✅ Server created! Code: ${serverCode}`, '#4ae04a');
+                return true;
+            } catch (error) {
+                document.getElementById('server-message').textContent = `Error: ${error.message}`;
+                return false;
+            }
+        }
+        
+        async function joinServer(serverCode) {
+            try {
+                document.getElementById('server-message').textContent = 'Joining server...';
+                
+                const { data, error } = await supabase.from('servers').select('*').eq('code', serverCode.toUpperCase()).single();
+                
+                if (error || !data) throw new Error('Server not found');
+                
+                currentServerId = data.id;
+                document.getElementById('server-modal').style.display = 'none';
+                await createPlayerCharacter();
+                initGame();
+                showNotification(`✅ Joined: ${data.name}`, '#4ae04a');
+                return true;
+            } catch (error) {
+                document.getElementById('server-message').textContent = `Error: ${error.message}`;
+                return false;
+            }
+        }
+        
+        async function createPlayerCharacter() {
+            if (!currentServerId || !playerId) return;
+            
+            try {
+                const randomX = (Math.random() - 0.5) * 100;
+                const randomZ = (Math.random() - 0.5) * 100;
+                
+                const { data, error } = await supabase.from('players').upsert({
+                    id: playerId,
+                    server_id: currentServerId,
+                    username: playerUsername,
+                    x: randomX,
+                    z: randomZ,
+                    y: 0,
+                    rotation_y: 0,
+                    is_in_vehicle: false,
+                    health: 100,
+                    is_dead: false,
+                    updated_at: new Date().toISOString()
+                }, { onConflict: 'id' });
+                
+                if (error) console.error('Player creation error:', error);
+            } catch (error) {
+                console.error('Failed to create player character:', error);
+            }
+        }
+        
+        async function logoutPlayer() {
+            try {
+                // Remove player from database
+                if (playerId) {
+                    await supabase.from('players').delete().eq('id', playerId);
+                }
+                
+                await supabase.auth.signOut();
+                
+                currentUser = null;
+                playerId = null;
+                playerUsername = "";
+                currentServerId = null;
+                
+                document.getElementById('auth-modal').style.display = 'flex';
+                document.getElementById('server-modal').style.display = 'none';
+                document.getElementById('auth-message').textContent = '';
+                document.getElementById('login-username').value = '';
+                document.getElementById('login-password').value = '';
+                
+                showNotification('Logged out', '#ffaa00');
+            } catch (error) {
+                console.error('Logout error:', error);
             }
         }
         
@@ -885,6 +1036,34 @@
             document.getElementById('login-tab').classList.remove('active');
         });
         
+        // Server modal listeners
+        document.getElementById('join-server-tab')?.addEventListener('click', () => {
+            document.getElementById('join-server-form').style.display = 'flex';
+            document.getElementById('create-server-form').style.display = 'none';
+            document.getElementById('join-server-tab').classList.add('active');
+            document.getElementById('create-server-tab').classList.remove('active');
+        });
+        
+        document.getElementById('create-server-tab')?.addEventListener('click', () => {
+            document.getElementById('join-server-form').style.display = 'none';
+            document.getElementById('create-server-form').style.display = 'flex';
+            document.getElementById('create-server-tab').classList.add('active');
+            document.getElementById('join-server-tab').classList.remove('active');
+        });
+        
+        document.getElementById('join-server-btn')?.addEventListener('click', () => {
+            const code = document.getElementById('server-code').value.trim();
+            if (code) joinServer(code);
+            else document.getElementById('server-message').textContent = 'Enter a server code';
+        });
+        
+        document.getElementById('create-server-btn')?.addEventListener('click', () => {
+            const name = document.getElementById('server-name').value.trim();
+            createServer(name);
+        });
+        
+        document.getElementById('logout-btn')?.addEventListener('click', logoutPlayer);
+        
         // Check for existing session
         supabase.auth.getSession().then(({ data: { session } }) => {
             if (session?.user) {
@@ -892,7 +1071,7 @@
                 playerId = session.user.id;
                 playerUsername = session.user.user_metadata?.username || session.user.email?.split('@')[0] || 'Player';
                 document.getElementById('auth-modal').style.display = 'none';
-                initGame();
+                document.getElementById('server-modal').style.display = 'flex';
                 showNotification(`Welcome back, ${playerUsername}!`, '#4ae04a');
             }
         });
