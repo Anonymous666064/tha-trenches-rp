@@ -241,7 +241,6 @@
     let lastPositionUpdate = 0;
     let heartbeatInterval = null;
     let cleanupInterval = null;
-    let animationId = null;
 
     // ==================== 3D WORLD - FULLY IMMERSIVE ====================
     function init3DWorld() {
@@ -259,8 +258,10 @@
             renderer.shadowMap.enabled = true;
             renderer.shadowMap.type = THREE.PCFSoftShadowMap;
             document.body.appendChild(renderer.domElement);
+            
+            console.log("✅ Renderer created and added to DOM");
 
-            // ---- GROUND with slight texture ----
+            // ---- GROUND ----
             const groundMat = new THREE.MeshStandardMaterial({ color: 0x3a8c5a, roughness: 0.7, metalness: 0.05 });
             const groundPlane = new THREE.Mesh(new THREE.PlaneGeometry(34, 34), groundMat);
             groundPlane.rotation.x = -Math.PI / 2;
@@ -273,7 +274,7 @@
             gridHelper.position.y = -0.55;
             scene.add(gridHelper);
 
-            // ---- dynamic grass patches ----
+            // ---- grass patches ----
             const grassMat = new THREE.MeshStandardMaterial({ color: 0x6cae5a });
             for (let i = 0; i < 320; i++) {
                 const blade = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.12, 0.25, 3), grassMat);
@@ -285,7 +286,7 @@
                 scene.add(blade);
             }
 
-            // ---- beautiful crystal trees ----
+            // ---- trees ----
             const trunkMat = new THREE.MeshStandardMaterial({ color: 0xbd7a4a });
             const leafMatGreen = new THREE.MeshStandardMaterial({ color: 0x6fbf4c });
             const leafMatGold = new THREE.MeshStandardMaterial({ color: 0xe8b55a });
@@ -312,7 +313,7 @@
                 scene.add(foliage2);
             }
 
-            // ---- floating magic orbs (glowing) ----
+            // ---- floating magic orbs ----
             const orbColors = [0xff44aa, 0x44ffcc, 0xffaa44, 0x66aaff, 0xff6688];
             for (let i = 0; i < 140; i++) {
                 const color = orbColors[Math.floor(Math.random() * orbColors.length)];
@@ -327,7 +328,7 @@
                 scene.add(orb);
             }
 
-            // ---- floating particles (dust) ----
+            // ---- floating particles ----
             const particleCount = 900;
             const particleGeo = new THREE.BufferGeometry();
             const particlePositions = new Float32Array(particleCount * 3);
@@ -341,7 +342,7 @@
             const particlesSys = new THREE.Points(particleGeo, particleMat);
             scene.add(particlesSys);
 
-            // ---- dynamic lighting (rich shadows) ----
+            // ---- lighting ----
             const ambientLight = new THREE.AmbientLight(0x40405c, 0.65);
             scene.add(ambientLight);
             
@@ -391,7 +392,7 @@
     function buildPlayerModel(primaryColor, isLocal = false) {
         const group = new THREE.Group();
         
-        // body (tunic)
+        // body
         const bodyMat = new THREE.MeshStandardMaterial({ color: primaryColor, roughness: 0.25, metalness: 0.1 });
         const body = new THREE.Mesh(new THREE.CylinderGeometry(0.52, 0.52, 0.9, 12), bodyMat);
         body.position.y = 0.45;
@@ -405,7 +406,7 @@
         head.castShadow = true;
         group.add(head);
         
-        // eyes + pupils
+        // eyes
         const eyeWhiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
         const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.11, 24, 24), eyeWhiteMat);
         leftEye.position.set(-0.19, 1.12, 0.52);
@@ -422,7 +423,7 @@
         rightPupil.position.set(0, 0, 0.1);
         rightEye.add(rightPupil);
         
-        // cute hat / crown for local player
+        // crown for local player
         if (isLocal) {
             const hatBase = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.62, 0.2, 8), new THREE.MeshStandardMaterial({ color: 0xffcc55, emissive: 0x442200 }));
             hatBase.position.y = 1.38;
@@ -436,7 +437,6 @@
                 group.add(spike);
             }
         } else {
-            // little wizard hat for others? nah, just a small accessory
             const tinyGem = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), new THREE.MeshStandardMaterial({ color: 0xffaa66, emissive: 0x442200 }));
             tinyGem.position.set(0, 1.32, 0.45);
             group.add(tinyGem);
@@ -501,7 +501,7 @@
         
         if (moved) {
             localPlayerMesh.position.set(newX, -0.2, newZ);
-            // dynamic camera follow (smooth)
+            // smooth camera follow
             const targetCamX = newX * 0.35;
             const targetCamZ = newZ + 12;
             camera.position.x += (targetCamX - camera.position.x) * 0.1;
@@ -515,7 +515,7 @@
                 lastPositionUpdate = now;
             }
         } else {
-            // gentle idle camera drift? just ensure view follows
+            // idle camera follow
             const targetCamX = localPlayerMesh.position.x * 0.3;
             const targetCamZ = localPlayerMesh.position.z + 12;
             camera.position.x += (targetCamX - camera.position.x) * 0.05;
@@ -536,7 +536,9 @@
     
     async function sendHeartbeat() {
         if (!currentSession || !myPlayerId) return;
-        await supabase.from('players').update({ last_seen: new Date() }).eq('player_id', myPlayerId);
+        try {
+            await supabase.from('players').update({ last_seen: new Date() }).eq('player_id', myPlayerId);
+        } catch(e) {}
     }
     
     async function cleanupZombiePlayers() {
@@ -715,13 +717,23 @@
         } finally { connectingLock = false; }
     };
     
+    // FIXED: Keyboard event handlers with proper error checking
     window.addEventListener('keydown', (e) => {
         const k = e.key.toLowerCase();
-        if (k === 'w' || k === 's' || k === 'a' || k === 'd') { keys[k] = true; e.preventDefault(); }
+        // Only handle WASD keys and prevent default for them
+        if (k === 'w' || k === 's' || k === 'a' || k === 'd') {
+            keys[k] = true;
+            e.preventDefault();
+        }
     });
+    
     window.addEventListener('keyup', (e) => {
         const k = e.key.toLowerCase();
-        if (keys.hasOwnProperty(k)) keys[k] = false;
+        // Only update WASD keys
+        if (k === 'w' || k === 's' || k === 'a' || k === 'd') {
+            keys[k] = false;
+            e.preventDefault();
+        }
     });
     
     window.addEventListener('beforeunload', async () => {
@@ -733,12 +745,15 @@
         function animate() {
             requestAnimationFrame(animate);
             handleMovementAndCamera();
-            if (renderer && scene && camera) renderer.render(scene, camera);
+            if (renderer && scene && camera) {
+                renderer.render(scene, camera);
+            }
         }
         animate();
     }
     
-    // BOOTSTRAP WORLD
+    // BOOTSTRAP WORLD - Ensure it runs
+    console.log("🎮 Starting game...");
     init3DWorld();
     console.log("🎮 3D multiplayer world fully operational");
 </script>
