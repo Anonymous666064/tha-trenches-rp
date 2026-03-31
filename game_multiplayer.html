@@ -829,15 +829,20 @@
                 document.getElementById('server-message').textContent = 'Creating server...';
                 
                 const serverCode = generateServerCode();
+                console.log('Creating server with code:', serverCode);
+                
                 const { data, error } = await supabase.from('servers').insert({
                     code: serverCode,
                     name: serverName || `${playerUsername}'s Server`,
-                    creator_id: playerId,
-                    created_at: new Date().toISOString()
+                    creator_id: playerId
                 }).select().single();
                 
-                if (error) throw new Error(error.message);
+                if (error) {
+                    console.error('Server creation error:', error);
+                    throw new Error(error.message);
+                }
                 
+                console.log('Server created successfully:', data);
                 currentServerId = data.id;
                 document.getElementById('server-modal').style.display = 'none';
                 await createPlayerCharacter();
@@ -845,6 +850,7 @@
                 showNotification(`✅ Server created! Code: ${serverCode}`, '#4ae04a');
                 return true;
             } catch (error) {
+                console.error('Create server error:', error);
                 document.getElementById('server-message').textContent = `Error: ${error.message}`;
                 return false;
             }
@@ -854,17 +860,43 @@
             try {
                 document.getElementById('server-message').textContent = 'Joining server...';
                 
-                const { data, error } = await supabase.from('servers').select('*').eq('code', serverCode.toUpperCase()).single();
+                const code = serverCode.trim().toUpperCase();
+                console.log('Attempting to join server with code:', code);
                 
-                if (error || !data) throw new Error('Server not found');
+                // Try direct query first
+                try {
+                    const { data, error } = await supabase
+                        .from('servers')
+                        .select('*');
+                    
+                    if (error) {
+                        console.error('Query error details:', error);
+                        throw error;
+                    }
+                    
+                    console.log('All servers in database:', data);
+                    
+                    const server = data?.find(s => s.code === code);
+                    
+                    if (!server) {
+                        throw new Error(`Server code "${code}" not found. Available servers: ${data?.map(s => s.code).join(', ') || 'none'}`);
+                    }
+                    
+                    console.log('Found server:', server);
+                    currentServerId = server.id;
+                    document.getElementById('server-modal').style.display = 'none';
+                    await createPlayerCharacter();
+                    initGame();
+                    showNotification(`✅ Joined: ${server.name}`, '#4ae04a');
+                    return true;
+                    
+                } catch (queryError) {
+                    console.error('Database query error:', queryError);
+                    throw new Error(`Database error: ${queryError.message}`);
+                }
                 
-                currentServerId = data.id;
-                document.getElementById('server-modal').style.display = 'none';
-                await createPlayerCharacter();
-                initGame();
-                showNotification(`✅ Joined: ${data.name}`, '#4ae04a');
-                return true;
             } catch (error) {
+                console.error('Join server error:', error);
                 document.getElementById('server-message').textContent = `Error: ${error.message}`;
                 return false;
             }
