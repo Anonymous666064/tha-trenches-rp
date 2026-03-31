@@ -3,16 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Multiplayer 3D World - Fixed Real-time</title>
+    <title>Multiplayer 3D World - Fixed Version</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         #info {
             position: absolute;
             top: 20px;
             left: 20px;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.8);
             color: white;
-            padding: 8px 16px;
+            padding: 10px 16px;
             border-radius: 8px;
             backdrop-filter: blur(5px);
             pointer-events: none;
@@ -20,14 +20,15 @@
             font-size: 14px;
             border-left: 3px solid #00ffaa;
             font-weight: bold;
+            font-family: monospace;
         }
         #controls {
             position: absolute;
             bottom: 20px;
             left: 20px;
-            background: rgba(0,0,0,0.6);
+            background: rgba(0,0,0,0.7);
             color: #ccc;
-            padding: 6px 12px;
+            padding: 8px 12px;
             border-radius: 6px;
             font-size: 12px;
             font-family: monospace;
@@ -38,12 +39,12 @@
             position: absolute;
             top: 20px;
             right: 20px;
-            background: rgba(0,0,0,0.6);
+            background: rgba(0,0,0,0.8);
             color: #00ffaa;
-            padding: 6px 12px;
+            padding: 8px 15px;
             border-radius: 8px;
             font-family: monospace;
-            font-size: 14px;
+            font-size: 16px;
             font-weight: bold;
             pointer-events: none;
             z-index: 10;
@@ -52,42 +53,44 @@
             position: absolute;
             bottom: 20px;
             right: 20px;
-            background: rgba(0,0,0,0.5);
+            background: rgba(0,0,0,0.7);
             color: #ffaa44;
-            padding: 4px 10px;
+            padding: 6px 12px;
             border-radius: 6px;
             font-size: 11px;
             font-family: monospace;
             pointer-events: none;
             z-index: 10;
         }
-        #debug {
+        #debug-panel {
             position: absolute;
-            bottom: 20px;
-            left: 200px;
-            background: rgba(0,0,0,0.7);
-            color: #88ff88;
-            padding: 4px 10px;
-            border-radius: 6px;
+            top: 80px;
+            left: 20px;
+            background: rgba(0,0,0,0.85);
+            color: #0f0;
+            padding: 10px;
+            border-radius: 8px;
             font-size: 10px;
             font-family: monospace;
             pointer-events: none;
             z-index: 10;
-            max-width: 300px;
-            white-space: pre-wrap;
+            max-width: 350px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #00ff00;
         }
         @media (max-width: 600px) {
-            #info, #controls, #player-count, #debug { font-size: 9px; padding: 4px 8px; }
-            #debug { left: 10px; bottom: 60px; max-width: 200px; }
+            #debug-panel { max-width: 250px; max-height: 150px; font-size: 8px; top: 70px; }
+            #info, #controls, #player-count { font-size: 10px; }
         }
     </style>
 </head>
 <body>
     <div id="info">
-        🌍 Multiplayer World | <span style="color:#00ffaa;">WASD</span> to Move
+        🎮 MULTIPLAYER 3D WORLD | <span style="color:#00ffaa;">WASD</span> to Move
     </div>
     <div id="controls">
-        🎮 WASD: Move | 🖱️ Mouse Drag: Look around
+        🖱️ Mouse drag to look around | WASD to move
     </div>
     <div id="player-count">
         👥 Players: <span id="playerCount">1</span>
@@ -95,8 +98,10 @@
     <div id="status">
         🔄 Connecting...
     </div>
-    <div id="debug">
-        📡 Debug: Initializing...
+    <div id="debug-panel">
+        📡 Debug Console<br>
+        -----------------<br>
+        Initializing...
     </div>
 
     <script type="importmap">
@@ -115,28 +120,36 @@
         import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
         import { createClient } from '@supabase/supabase-js';
 
-        // Debug logging function
-        function debugLog(message) {
-            const debugEl = document.getElementById('debug');
+        // Debug logging
+        const debugMessages = [];
+        function addDebug(message, isError = false) {
             const timestamp = new Date().toLocaleTimeString();
-            const logMessage = `[${timestamp}] ${message}`;
-            console.log(logMessage);
-            debugEl.innerHTML = `📡 ${logMessage}<br>${debugEl.innerHTML.split('<br>').slice(0, 4).join('<br>')}`;
+            const logMsg = `[${timestamp}] ${message}`;
+            debugMessages.unshift(logMsg);
+            if (debugMessages.length > 15) debugMessages.pop();
+            
+            const debugPanel = document.getElementById('debug-panel');
+            debugPanel.innerHTML = `📡 Debug Console<br>-----------------<br>${debugMessages.join('<br>')}`;
+            console.log(logMsg);
+            if (isError) console.error(message);
         }
 
+        addDebug('Starting application...');
+        
         // --- Supabase Configuration ---
         const SUPABASE_URL = 'https://hcvewiwhtxqpbogcrukk.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjdmV3aXdodHhxcGJvZ2NydWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTQ4MzMsImV4cCI6MjA5MDQ3MDgzM30.UsdvDyrGl4OhmbDjonyOagknHf--Zhe-fhCi0LFVoQw';
         
         const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        addDebug('Supabase client created');
         
-        // --- Generate a unique player ID ---
-        let playerId = localStorage.getItem('player_id');
+        // --- Generate unique player ID ---
+        let playerId = localStorage.getItem('mp_player_id');
         if (!playerId) {
-            playerId = 'player_' + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
-            localStorage.setItem('player_id', playerId);
+            playerId = 'p_' + Date.now() + '_' + Math.random().toString(36).substring(2, 8);
+            localStorage.setItem('mp_player_id', playerId);
         }
-        debugLog(`Player ID: ${playerId}`);
+        addDebug(`Player ID: ${playerId}`);
         
         // --- Three.js Setup ---
         const scene = new THREE.Scene();
@@ -144,7 +157,7 @@
         scene.fog = new THREE.Fog(0x87CEEB, 40, 100);
         
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(8, 6, 12);
+        camera.position.set(10, 8, 15);
         
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -166,7 +179,6 @@
         controls.dampingFactor = 0.05;
         controls.rotateSpeed = 1.0;
         controls.zoomSpeed = 1.2;
-        controls.panSpeed = 0.8;
         controls.screenSpacePanning = true;
         controls.maxPolarAngle = Math.PI / 2.2;
         
@@ -178,19 +190,14 @@
         sunLight.position.set(10, 20, 5);
         sunLight.castShadow = true;
         sunLight.receiveShadow = true;
-        sunLight.shadow.mapSize.width = 1024;
-        sunLight.shadow.mapSize.height = 1024;
         scene.add(sunLight);
         
         const fillLight = new THREE.PointLight(0x4466cc, 0.3);
         fillLight.position.set(0, 5, 0);
         scene.add(fillLight);
         
-        const hemiLight = new THREE.HemisphereLight(0x8bb5ff, 0x5c6e4d, 0.4);
-        scene.add(hemiLight);
-        
         // --- Ground ---
-        const groundGeometry = new THREE.PlaneGeometry(50, 50);
+        const groundGeometry = new THREE.PlaneGeometry(60, 60);
         const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x6c9e4a, roughness: 0.8 });
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
         ground.rotation.x = -Math.PI / 2;
@@ -198,83 +205,58 @@
         ground.receiveShadow = true;
         scene.add(ground);
         
-        const gridHelper = new THREE.GridHelper(52, 25, 0x88aa66, 0x446633);
+        const gridHelper = new THREE.GridHelper(62, 30, 0x88aa66, 0x446633);
         gridHelper.position.y = -0.02;
-        gridHelper.material.transparent = true;
-        gridHelper.material.opacity = 0.4;
         scene.add(gridHelper);
         
-        // --- Decorative elements ---
-        const rockMaterial = new THREE.MeshStandardMaterial({ color: 0xaa9977 });
-        const bushMaterial = new THREE.MeshStandardMaterial({ color: 0x6cae4a });
-        const trunkMat = new THREE.MeshStandardMaterial({ color: 0xbc9a6c });
-        const foliageMat = new THREE.MeshStandardMaterial({ color: 0x5fad41 });
-        
-        for (let i = 0; i < 80; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const radius = 7 + Math.random() * 18;
-            const x = Math.cos(angle) * radius;
-            const z = Math.sin(angle) * radius;
-            if (Math.random() > 0.6) {
-                const bushGroup = new THREE.Group();
-                const base = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 0.2, 6), bushMaterial);
-                base.position.y = 0;
-                base.castShadow = true;
-                bushGroup.add(base);
-                const top = new THREE.Mesh(new THREE.SphereGeometry(0.25, 5), bushMaterial);
-                top.position.y = 0.2;
-                top.castShadow = true;
-                bushGroup.add(top);
-                bushGroup.position.set(x, 0, z);
-                scene.add(bushGroup);
-            } else if (Math.random() > 0.3) {
-                const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.5, 0.8, 6), trunkMat);
-                trunk.position.set(x, 0.4, z);
-                trunk.castShadow = true;
-                const foliage1 = new THREE.Mesh(new THREE.ConeGeometry(0.5, 0.7, 8), foliageMat);
-                foliage1.position.set(x, 0.85, z);
-                foliage1.castShadow = true;
-                const foliage2 = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.6, 8), foliageMat);
-                foliage2.position.set(x, 1.25, z);
-                foliage2.castShadow = true;
-                scene.add(trunk);
-                scene.add(foliage1);
-                scene.add(foliage2);
+        // Add some markers to show world bounds
+        const markerMat = new THREE.MeshStandardMaterial({ color: 0xff6600 });
+        for (let i = -25; i <= 25; i += 5) {
+            if (Math.abs(i) > 20) {
+                const marker = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.5, 0.3), markerMat);
+                marker.position.set(i, 0, -23);
+                marker.castShadow = true;
+                scene.add(marker);
+                
+                const marker2 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.5, 0.3), markerMat);
+                marker2.position.set(i, 0, 23);
+                marker2.castShadow = true;
+                scene.add(marker2);
             }
         }
         
-        // --- Local Player Model ---
+        // --- Local Player Model (Red/Blue to stand out) ---
         const localPlayerGroup = new THREE.Group();
         
-        const bodyGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.9, 16);
-        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x44aaff });
+        const bodyGeo = new THREE.CylinderGeometry(0.6, 0.6, 1.0, 16);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x44aaff, emissive: 0x004466 });
         const body = new THREE.Mesh(bodyGeo, bodyMat);
         body.castShadow = true;
-        body.position.y = 0.45;
+        body.position.y = 0.5;
         localPlayerGroup.add(body);
         
-        const headMat = new THREE.MeshStandardMaterial({ color: 0xffcc99 });
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.48, 32, 32), headMat);
+        const headMat = new THREE.MeshStandardMaterial({ color: 0xffccaa });
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.5, 32, 32), headMat);
         head.castShadow = true;
         head.position.y = 1.15;
         localPlayerGroup.add(head);
         
         // Eyes
-        const eyeWhiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-        const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), eyeWhiteMat);
-        leftEye.position.set(-0.2, 1.25, 0.48);
-        const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), eyeWhiteMat);
-        rightEye.position.set(0.2, 1.25, 0.48);
+        const eyeMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+        const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), eyeMat);
+        leftEye.position.set(-0.2, 1.25, 0.52);
+        const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), eyeMat);
+        rightEye.position.set(0.2, 1.25, 0.52);
         const pupilMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
-        const leftPupil = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 16), pupilMat);
-        leftPupil.position.set(-0.2, 1.23, 0.55);
-        const rightPupil = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 16), pupilMat);
-        rightPupil.position.set(0.2, 1.23, 0.55);
+        const leftPupil = new THREE.Mesh(new THREE.SphereGeometry(0.07, 16, 16), pupilMat);
+        leftPupil.position.set(-0.2, 1.23, 0.6);
+        const rightPupil = new THREE.Mesh(new THREE.SphereGeometry(0.07, 16, 16), pupilMat);
+        rightPupil.position.set(0.2, 1.23, 0.6);
         localPlayerGroup.add(leftEye, rightEye, leftPupil, rightPupil);
         
         // Hat
-        const hatMat = new THREE.MeshStandardMaterial({ color: 0xd43f1d });
-        const hat = new THREE.Mesh(new THREE.ConeGeometry(0.6, 0.45, 8), hatMat);
+        const hatMat = new THREE.MeshStandardMaterial({ color: 0xdd5533 });
+        const hat = new THREE.Mesh(new THREE.ConeGeometry(0.65, 0.5, 8), hatMat);
         hat.position.y = 1.55;
         hat.castShadow = true;
         localPlayerGroup.add(hat);
@@ -285,45 +267,54 @@
         
         // Local player label
         const localLabelDiv = document.createElement('div');
-        localLabelDiv.textContent = `You (${playerId.slice(-6)})`;
-        localLabelDiv.style.cssText = 'color:#aaffdd; font-size:14px; font-weight:bold; background:rgba(0,0,0,0.6); padding:2px 8px; border-radius:20px; border:1px solid #44ffaa; font-family:sans-serif; white-space:nowrap;';
+        localLabelDiv.textContent = `⭐ YOU (${playerId.slice(-6)})`;
+        localLabelDiv.style.cssText = 'color:#ffff00; font-size:14px; font-weight:bold; background:rgba(0,0,0,0.7); padding:3px 10px; border-radius:20px; border:2px solid #ffff00; font-family:monospace; white-space:nowrap;';
         const localLabel = new CSS2DObject(localLabelDiv);
-        localLabel.position.set(0, 2.0, 0);
+        localLabel.position.set(0, 2.1, 0);
         localPlayerGroup.add(localLabel);
+        
+        // Add a glowing ring under player
+        const ringGeo = new THREE.RingGeometry(0.7, 0.9, 16);
+        const ringMat = new THREE.MeshStandardMaterial({ color: 0x44aaff, emissive: 0x2288ff, transparent: true, opacity: 0.6, side: THREE.DoubleSide });
+        const ring = new THREE.Mesh(ringGeo, ringMat);
+        ring.rotation.x = -Math.PI / 2;
+        ring.position.y = 0.01;
+        localPlayerGroup.add(ring);
         
         // --- Remote Players Storage ---
         const remotePlayers = new Map();
         
-        function createRemotePlayerModel(id) {
+        function createRemotePlayerModel(playerIdShort) {
             const group = new THREE.Group();
-            // Generate consistent color based on ID
+            // Generate color based on ID
             let hash = 0;
-            for (let i = 0; i < id.length; i++) hash = ((hash << 5) - hash) + id.charCodeAt(i);
-            const color = (Math.abs(hash) % 0x88aaff) | 0xff8844;
+            for (let i = 0; i < playerIdShort.length; i++) hash = ((hash << 5) - hash) + playerIdShort.charCodeAt(i);
+            const hue = Math.abs(hash % 360);
+            const color = new THREE.Color().setHSL(hue / 360, 0.7, 0.5);
             
-            const bodyGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.9, 16);
+            const bodyGeo = new THREE.CylinderGeometry(0.6, 0.6, 1.0, 16);
             const bodyMat = new THREE.MeshStandardMaterial({ color: color });
             const body = new THREE.Mesh(bodyGeo, bodyMat);
             body.castShadow = true;
-            body.position.y = 0.45;
+            body.position.y = 0.5;
             group.add(body);
             
-            const headMat = new THREE.MeshStandardMaterial({ color: 0xffcc99 });
-            const head = new THREE.Mesh(new THREE.SphereGeometry(0.48, 32, 32), headMat);
+            const headMat = new THREE.MeshStandardMaterial({ color: 0xffccaa });
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.5, 32, 32), headMat);
             head.castShadow = true;
             head.position.y = 1.15;
             group.add(head);
             
             const eyeMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
-            const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.09, 16, 16), eyeMat);
-            leftEye.position.set(-0.18, 1.27, 0.5);
-            const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.09, 16, 16), eyeMat);
-            rightEye.position.set(0.18, 1.27, 0.5);
+            const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), eyeMat);
+            leftEye.position.set(-0.18, 1.28, 0.53);
+            const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), eyeMat);
+            rightEye.position.set(0.18, 1.28, 0.53);
             group.add(leftEye, rightEye);
             
-            const hatMat = new THREE.MeshStandardMaterial({ color: 0x33aa55 });
-            const hat = new THREE.Mesh(new THREE.ConeGeometry(0.58, 0.42, 8), hatMat);
-            hat.position.y = 1.53;
+            const hatMat = new THREE.MeshStandardMaterial({ color: 0x44aa55 });
+            const hat = new THREE.Mesh(new THREE.ConeGeometry(0.6, 0.45, 8), hatMat);
+            hat.position.y = 1.52;
             hat.castShadow = true;
             group.add(hat);
             
@@ -349,8 +340,8 @@
             if (key === 'd') keyState.d = false;
         });
         
-        const MOVE_SPEED = 6.0;
-        const WORLD_LIMIT = 22;
+        const MOVE_SPEED = 7.0;
+        const WORLD_LIMIT = 25;
         
         function updateLocalMovement(deltaTime) {
             let moveX = 0, moveZ = 0;
@@ -386,43 +377,36 @@
             return true;
         }
         
-        // --- Supabase Real-time Setup ---
+        // --- Supabase Functions ---
         const TABLE_NAME = 'player_positions';
-        let lastSentTime = 0;
-        let sendInterval = 0.066; // ~15 fps
+        let lastSendTime = 0;
         
         async function sendPosition() {
             const x = localPlayerGroup.position.x;
             const z = localPlayerGroup.position.z;
             try {
-                const { data, error } = await supabase
+                const { error } = await supabase
                     .from(TABLE_NAME)
                     .upsert({ 
                         id: playerId, 
                         x: x, 
                         z: z, 
                         updated_at: new Date().toISOString() 
-                    }, { 
-                        onConflict: 'id',
-                        ignoreDuplicates: false 
                     });
+                
                 if (error) {
-                    debugLog(`Send error: ${error.message}`);
+                    addDebug(`❌ Send error: ${error.message}`, true);
                 } else {
-                    debugLog(`Position sent: (${x.toFixed(2)}, ${z.toFixed(2)})`);
+                    // Silent success to avoid spam
                 }
             } catch(e) {
-                debugLog(`Send exception: ${e.message}`);
+                addDebug(`❌ Send exception: ${e.message}`, true);
             }
         }
         
-        function handlePlayerUpdate(data) {
-            if (!data || data.id === playerId) {
-                if (data && data.id === playerId) debugLog(`Ignoring self update`);
-                return;
-            }
-            
-            debugLog(`Received update from ${data.id.slice(-6)}: (${data.x?.toFixed(2)}, ${data.z?.toFixed(2)})`);
+        // Function to update remote player
+        function updateRemotePlayer(data) {
+            if (!data || data.id === playerId) return;
             
             const remoteId = data.id;
             const x = data.x;
@@ -430,29 +414,38 @@
             
             if (remotePlayers.has(remoteId)) {
                 const player = remotePlayers.get(remoteId);
-                player.targetPos = { x, z };
+                player.targetX = x;
+                player.targetZ = z;
                 player.lastUpdate = Date.now();
-                player.group.position.x += (x - player.group.position.x) * 0.3;
-                player.group.position.z += (z - player.group.position.z) * 0.3;
             } else {
-                debugLog(`Creating new remote player: ${remoteId.slice(-6)}`);
+                addDebug(`➕ New player joined: ${remoteId.slice(-6)} at (${x.toFixed(1)}, ${z.toFixed(1)})`);
                 const remoteGroup = createRemotePlayerModel(remoteId);
                 remoteGroup.position.set(x, 0, z);
                 scene.add(remoteGroup);
                 
-                const remoteLabelDiv = document.createElement('div');
-                remoteLabelDiv.textContent = `${remoteId.slice(-6)}`;
-                remoteLabelDiv.style.cssText = 'color:#ffdd99; font-size:12px; background:rgba(0,0,0,0.5); padding:2px 6px; border-radius:16px; border:1px solid #ffaa66; font-family:sans-serif; white-space:nowrap;';
-                const remoteLabel = new CSS2DObject(remoteLabelDiv);
-                remoteLabel.position.set(0, 1.95, 0);
-                remoteGroup.add(remoteLabel);
+                const labelDiv = document.createElement('div');
+                labelDiv.textContent = `👤 ${remoteId.slice(-6)}`;
+                labelDiv.style.cssText = 'color:#ffdd99; font-size:12px; background:rgba(0,0,0,0.6); padding:2px 8px; border-radius:16px; border:1px solid #ffaa66; font-family:monospace; white-space:nowrap;';
+                const label = new CSS2DObject(labelDiv);
+                label.position.set(0, 2.0, 0);
+                remoteGroup.add(label);
                 
                 remotePlayers.set(remoteId, {
                     group: remoteGroup,
-                    label: remoteLabel,
-                    targetPos: { x, z },
+                    label: label,
+                    targetX: x,
+                    targetZ: z,
                     lastUpdate: Date.now()
                 });
+                updatePlayerCount();
+            }
+        }
+        
+        function removeRemotePlayer(id) {
+            if (remotePlayers.has(id)) {
+                addDebug(`➖ Player left: ${id.slice(-6)}`);
+                scene.remove(remotePlayers.get(id).group);
+                remotePlayers.delete(id);
                 updatePlayerCount();
             }
         }
@@ -460,100 +453,122 @@
         function updatePlayerCount() {
             const count = remotePlayers.size + 1;
             document.getElementById('playerCount').innerText = count;
-            debugLog(`Player count: ${count} (${remotePlayers.size} remote, 1 local)`);
         }
         
         function cleanupStalePlayers() {
             const now = Date.now();
-            let removed = 0;
             for (const [id, player] of remotePlayers.entries()) {
-                if (now - player.lastUpdate > 15000) { // 15 seconds timeout
-                    debugLog(`Removing stale player: ${id.slice(-6)}`);
-                    scene.remove(player.group);
-                    remotePlayers.delete(id);
-                    removed++;
+                if (now - player.lastUpdate > 20000) {
+                    removeRemotePlayer(id);
                 }
             }
-            if (removed > 0) updatePlayerCount();
         }
         
-        // --- Load existing players on startup ---
-        async function loadExistingPlayers() {
+        // Poll for updates as fallback (in case real-time fails)
+        let lastPollTime = 0;
+        async function pollForUpdates() {
             try {
-                debugLog(`Loading existing players from ${TABLE_NAME}...`);
                 const { data, error } = await supabase
                     .from(TABLE_NAME)
                     .select('*')
                     .neq('id', playerId);
                 
                 if (error) {
-                    debugLog(`Load error: ${error.message}`);
+                    addDebug(`❌ Poll error: ${error.message}`, true);
                     return;
                 }
                 
-                debugLog(`Found ${data?.length || 0} existing players`);
                 if (data) {
-                    data.forEach(row => handlePlayerUpdate(row));
+                    // Update existing players
+                    const currentRemoteIds = new Set(remotePlayers.keys());
+                    const receivedIds = new Set();
+                    
+                    for (const player of data) {
+                        receivedIds.add(player.id);
+                        updateRemotePlayer(player);
+                    }
+                    
+                    // Remove players that are no longer in the database
+                    for (const id of currentRemoteIds) {
+                        if (!receivedIds.has(id)) {
+                            removeRemotePlayer(id);
+                        }
+                    }
                 }
             } catch(e) {
-                debugLog(`Load exception: ${e.message}`);
+                addDebug(`❌ Poll exception: ${e.message}`, true);
             }
         }
         
-        // --- Initialize Realtime Subscription ---
-        let subscription;
-        
-        async function initRealtime() {
-            debugLog(`Initializing Supabase real-time for table: ${TABLE_NAME}`);
+        // --- Setup Real-time Subscription ---
+        async function setupRealtime() {
+            addDebug('Setting up real-time subscription...');
             
-            // First, send initial position
-            await sendPosition();
+            // First, test connection
+            try {
+                const { data, error } = await supabase.from(TABLE_NAME).select('count').limit(1);
+                if (error) {
+                    addDebug(`❌ Table access error: ${error.message}`, true);
+                    document.getElementById('status').innerHTML = '⚠️ Table Error';
+                    return false;
+                }
+                addDebug(`✅ Table "${TABLE_NAME}" accessible`);
+            } catch(e) {
+                addDebug(`❌ Connection test failed: ${e.message}`, true);
+                return false;
+            }
             
-            // Create the channel with proper configuration
-            subscription = supabase
-                .channel('player-positions-channel')
-                .on(
-                    'postgres_changes',
-                    {
-                        event: '*',  // Listen to INSERT, UPDATE, DELETE
-                        schema: 'public',
-                        table: TABLE_NAME
-                    },
+            // Subscribe to real-time changes
+            const channel = supabase.channel('public:player_positions');
+            
+            channel
+                .on('postgres_changes', 
+                    { event: 'INSERT', schema: 'public', table: TABLE_NAME },
                     (payload) => {
-                        debugLog(`Realtime event: ${payload.eventType} for ${payload.new?.id?.slice(-6) || 'unknown'}`);
-                        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-                            handlePlayerUpdate(payload.new);
-                        } else if (payload.eventType === 'DELETE') {
-                            const deletedId = payload.old?.id;
-                            if (deletedId && remotePlayers.has(deletedId)) {
-                                debugLog(`Removing deleted player: ${deletedId.slice(-6)}`);
-                                scene.remove(remotePlayers.get(deletedId).group);
-                                remotePlayers.delete(deletedId);
-                                updatePlayerCount();
-                            }
-                        }
+                        addDebug(`📥 INSERT: ${payload.new.id?.slice(-6)}`);
+                        updateRemotePlayer(payload.new);
+                    }
+                )
+                .on('postgres_changes', 
+                    { event: 'UPDATE', schema: 'public', table: TABLE_NAME },
+                    (payload) => {
+                        addDebug(`🔄 UPDATE: ${payload.new.id?.slice(-6)}`);
+                        updateRemotePlayer(payload.new);
+                    }
+                )
+                .on('postgres_changes', 
+                    { event: 'DELETE', schema: 'public', table: TABLE_NAME },
+                    (payload) => {
+                        addDebug(`🗑️ DELETE: ${payload.old.id?.slice(-6)}`);
+                        removeRemotePlayer(payload.old.id);
                     }
                 )
                 .subscribe((status) => {
-                    debugLog(`Subscription status: ${status}`);
+                    addDebug(`📡 Subscription status: ${status}`);
                     if (status === 'SUBSCRIBED') {
                         document.getElementById('status').innerHTML = '🟢 Real-time Connected';
                         document.getElementById('status').style.color = '#00ffaa';
                     } else if (status === 'CHANNEL_ERROR') {
-                        document.getElementById('status').innerHTML = '🔴 Connection Error';
+                        document.getElementById('status').innerHTML = '🔴 Error - Using Polling';
                         document.getElementById('status').style.color = '#ff6666';
                     } else {
                         document.getElementById('status').innerHTML = `🟡 ${status}`;
                     }
                 });
             
-            // Also load existing players
-            setTimeout(() => loadExistingPlayers(), 1000);
+            // Initial load of existing players
+            setTimeout(() => {
+                addDebug('Loading existing players...');
+                pollForUpdates();
+            }, 1000);
+            
+            return true;
         }
         
         // --- Animation Loop ---
         let lastFrameTime = performance.now();
         let lastSendFrame = 0;
+        let lastPollFrame = 0;
         
         async function animate() {
             const now = performance.now();
@@ -563,21 +578,27 @@
             // Update local movement
             updateLocalMovement(delta);
             
-            // Throttle position sending (every 50ms)
-            if (now - lastSendFrame > 50) {
+            // Send position every 100ms
+            if (now - lastSendFrame > 100) {
                 lastSendFrame = now;
                 await sendPosition();
             }
             
-            // Smooth remote player interpolation
+            // Poll for updates every 2 seconds as fallback
+            if (now - lastPollFrame > 2000) {
+                lastPollFrame = now;
+                await pollForUpdates();
+            }
+            
+            // Smooth interpolation for remote players
             for (const player of remotePlayers.values()) {
-                if (player.targetPos) {
-                    player.group.position.x += (player.targetPos.x - player.group.position.x) * 0.2;
-                    player.group.position.z += (player.targetPos.z - player.group.position.z) * 0.2;
+                if (player.targetX !== undefined) {
+                    player.group.position.x += (player.targetX - player.group.position.x) * 0.3;
+                    player.group.position.z += (player.targetZ - player.group.position.z) * 0.3;
                     
-                    const dx = player.targetPos.x - player.group.position.x;
-                    const dz = player.targetPos.z - player.group.position.z;
-                    if (Math.hypot(dx, dz) > 0.01) {
+                    const dx = player.targetX - player.group.position.x;
+                    const dz = player.targetZ - player.group.position.z;
+                    if (Math.abs(dx) > 0.05 || Math.abs(dz) > 0.05) {
                         player.group.rotation.y = Math.atan2(dx, dz);
                     }
                 }
@@ -585,26 +606,18 @@
             
             cleanupStalePlayers();
             
-            // Update orbit controls target
+            // Update camera target
             controls.target.copy(localPlayerGroup.position);
             controls.update();
             
             // Idle animation
-            const time = Date.now() * 0.006;
-            const bob = Math.sin(time) * 0.005;
+            const time = Date.now() * 0.005;
+            const bob = Math.sin(time) * 0.008;
             localPlayerGroup.position.y = bob;
-            localLabel.position.y = 2.0 + Math.abs(bob) * 0.2;
+            localLabel.position.y = 2.1 + Math.abs(bob) * 0.2;
             
-            // Eye movement
-            const pupils = localPlayerGroup.children.filter(c => c.geometry?.type === 'SphereGeometry' && c.material?.color?.getHex() === 0x000000);
-            if (pupils.length === 2) {
-                const lookX = Math.sin(time * 0.8) * 0.04;
-                const lookZ = Math.cos(time * 0.6) * 0.03;
-                pupils[0].position.x = -0.2 + lookX;
-                pupils[1].position.x = 0.2 + lookX;
-                pupils[0].position.z = 0.55 + lookZ;
-                pupils[1].position.z = 0.55 + lookZ;
-            }
+            // Rotate ring
+            ring.rotation.z += 0.05;
             
             // Render
             renderer.render(scene, camera);
@@ -613,26 +626,11 @@
             requestAnimationFrame(animate);
         }
         
-        // --- Start Application ---
+        // Start the application
         async function start() {
-            debugLog(`Starting multiplayer app with ID: ${playerId}`);
-            
-            // Test Supabase connection first
-            try {
-                const { data, error } = await supabase.from(TABLE_NAME).select('count').limit(1);
-                if (error) {
-                    debugLog(`Table check error: ${error.message}`);
-                    document.getElementById('status').innerHTML = '⚠️ Table missing';
-                    document.getElementById('status').style.color = '#ff6666';
-                } else {
-                    debugLog(`Table "${TABLE_NAME}" exists and is accessible`);
-                    await initRealtime();
-                }
-            } catch(e) {
-                debugLog(`Connection test failed: ${e.message}`);
-                document.getElementById('status').innerHTML = '⚠️ Connection Failed';
-            }
-            
+            addDebug(`Starting with ID: ${playerId}`);
+            await setupRealtime();
+            addDebug('Animation starting...');
             animate();
         }
         
@@ -646,11 +644,11 @@
             labelRenderer.setSize(window.innerWidth, window.innerHeight);
         });
         
-        // Cleanup on page unload
+        // Cleanup on page close
         window.addEventListener('beforeunload', async () => {
-            debugLog(`Cleaning up player ${playerId.slice(-6)}`);
             try {
                 await supabase.from(TABLE_NAME).delete().eq('id', playerId);
+                addDebug('Cleaned up player on exit');
             } catch(e) {}
         });
     </script>
