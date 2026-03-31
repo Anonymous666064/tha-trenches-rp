@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Multiplayer 3D World - Supabase Real-time</title>
+    <title>Multiplayer 3D World - Fixed Real-time</title>
     <style>
         body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         #info {
@@ -61,14 +61,30 @@
             pointer-events: none;
             z-index: 10;
         }
+        #debug {
+            position: absolute;
+            bottom: 20px;
+            left: 200px;
+            background: rgba(0,0,0,0.7);
+            color: #88ff88;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 10px;
+            font-family: monospace;
+            pointer-events: none;
+            z-index: 10;
+            max-width: 300px;
+            white-space: pre-wrap;
+        }
         @media (max-width: 600px) {
-            #info, #controls, #player-count { font-size: 10px; padding: 4px 8px; }
+            #info, #controls, #player-count, #debug { font-size: 9px; padding: 4px 8px; }
+            #debug { left: 10px; bottom: 60px; max-width: 200px; }
         }
     </style>
 </head>
 <body>
     <div id="info">
-        🌍 Multiplayer World | <span style="color:#00ffaa;">WASD</span> to Move | See Others in Real-time
+        🌍 Multiplayer World | <span style="color:#00ffaa;">WASD</span> to Move
     </div>
     <div id="controls">
         🎮 WASD: Move | 🖱️ Mouse Drag: Look around
@@ -77,10 +93,12 @@
         👥 Players: <span id="playerCount">1</span>
     </div>
     <div id="status">
-        🟢 Connected
+        🔄 Connecting...
+    </div>
+    <div id="debug">
+        📡 Debug: Initializing...
     </div>
 
-    <!-- Import Three.js and Supabase -->
     <script type="importmap">
         {
             "imports": {
@@ -94,7 +112,17 @@
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
         import { createClient } from '@supabase/supabase-js';
+
+        // Debug logging function
+        function debugLog(message) {
+            const debugEl = document.getElementById('debug');
+            const timestamp = new Date().toLocaleTimeString();
+            const logMessage = `[${timestamp}] ${message}`;
+            console.log(logMessage);
+            debugEl.innerHTML = `📡 ${logMessage}<br>${debugEl.innerHTML.split('<br>').slice(0, 4).join('<br>')}`;
+        }
 
         // --- Supabase Configuration ---
         const SUPABASE_URL = 'https://hcvewiwhtxqpbogcrukk.supabase.co';
@@ -102,16 +130,17 @@
         
         const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
-        // --- Generate a unique player ID (stored in session) ---
+        // --- Generate a unique player ID ---
         let playerId = localStorage.getItem('player_id');
         if (!playerId) {
             playerId = 'player_' + Math.random().toString(36).substring(2, 10) + Date.now().toString(36);
             localStorage.setItem('player_id', playerId);
         }
+        debugLog(`Player ID: ${playerId}`);
         
         // --- Three.js Setup ---
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87CEEB); // Sky blue
+        scene.background = new THREE.Color(0x87CEEB);
         scene.fog = new THREE.Fog(0x87CEEB, 40, 100);
         
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -120,10 +149,18 @@
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
-        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.body.appendChild(renderer.domElement);
         
-        // --- Controls (Orbit around player) ---
+        // CSS2 Renderer for labels
+        const labelRenderer = new CSS2DRenderer();
+        labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        labelRenderer.domElement.style.position = 'absolute';
+        labelRenderer.domElement.style.top = '0px';
+        labelRenderer.domElement.style.left = '0px';
+        labelRenderer.domElement.style.pointerEvents = 'none';
+        document.body.appendChild(labelRenderer.domElement);
+        
+        // --- Controls ---
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
@@ -143,28 +180,18 @@
         sunLight.receiveShadow = true;
         sunLight.shadow.mapSize.width = 1024;
         sunLight.shadow.mapSize.height = 1024;
-        sunLight.shadow.camera.near = 0.5;
-        sunLight.shadow.camera.far = 30;
-        sunLight.shadow.camera.left = -10;
-        sunLight.shadow.camera.right = 10;
-        sunLight.shadow.camera.top = 10;
-        sunLight.shadow.camera.bottom = -10;
         scene.add(sunLight);
         
         const fillLight = new THREE.PointLight(0x4466cc, 0.3);
         fillLight.position.set(0, 5, 0);
         scene.add(fillLight);
         
-        const rimLight = new THREE.PointLight(0xffaa66, 0.4);
-        rimLight.position.set(-3, 5, -5);
-        scene.add(rimLight);
-        
         const hemiLight = new THREE.HemisphereLight(0x8bb5ff, 0x5c6e4d, 0.4);
         scene.add(hemiLight);
         
         // --- Ground ---
         const groundGeometry = new THREE.PlaneGeometry(50, 50);
-        const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x6c9e4a, roughness: 0.8, metalness: 0.1 });
+        const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x6c9e4a, roughness: 0.8 });
         const ground = new THREE.Mesh(groundGeometry, groundMaterial);
         ground.rotation.x = -Math.PI / 2;
         ground.position.y = -0.05;
@@ -177,15 +204,15 @@
         gridHelper.material.opacity = 0.4;
         scene.add(gridHelper);
         
-        // --- Decorative trees and rocks (static) ---
-        const rockMaterial = new THREE.MeshStandardMaterial({ color: 0xaa9977, roughness: 0.7 });
-        const bushMaterial = new THREE.MeshStandardMaterial({ color: 0x6cae4a, roughness: 0.6 });
+        // --- Decorative elements ---
+        const rockMaterial = new THREE.MeshStandardMaterial({ color: 0xaa9977 });
+        const bushMaterial = new THREE.MeshStandardMaterial({ color: 0x6cae4a });
         const trunkMat = new THREE.MeshStandardMaterial({ color: 0xbc9a6c });
         const foliageMat = new THREE.MeshStandardMaterial({ color: 0x5fad41 });
         
-        for (let i = 0; i < 100; i++) {
+        for (let i = 0; i < 80; i++) {
             const angle = Math.random() * Math.PI * 2;
-            const radius = 6 + Math.random() * 20;
+            const radius = 7 + Math.random() * 18;
             const x = Math.cos(angle) * radius;
             const z = Math.sin(angle) * radius;
             if (Math.random() > 0.6) {
@@ -213,124 +240,90 @@
                 scene.add(trunk);
                 scene.add(foliage1);
                 scene.add(foliage2);
-            } else {
-                const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.2), rockMaterial);
-                rock.position.set(x, 0, z);
-                rock.scale.set(1, Math.random() * 0.5 + 0.6, 1);
-                rock.castShadow = true;
-                scene.add(rock);
             }
         }
         
-        // --- Create the local player model (colorful adventurer) ---
+        // --- Local Player Model ---
         const localPlayerGroup = new THREE.Group();
         
-        // Body
         const bodyGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.9, 16);
-        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x44aaff, metalness: 0.2, roughness: 0.3 });
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x44aaff });
         const body = new THREE.Mesh(bodyGeo, bodyMat);
         body.castShadow = true;
         body.position.y = 0.45;
         localPlayerGroup.add(body);
         
-        // Head
-        const headMat = new THREE.MeshStandardMaterial({ color: 0xffcc99, roughness: 0.2 });
+        const headMat = new THREE.MeshStandardMaterial({ color: 0xffcc99 });
         const head = new THREE.Mesh(new THREE.SphereGeometry(0.48, 32, 32), headMat);
         head.castShadow = true;
-        head.position.y = 0.9 + 0.25;
+        head.position.y = 1.15;
         localPlayerGroup.add(head);
         
         // Eyes
         const eyeWhiteMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
         const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), eyeWhiteMat);
-        leftEye.position.set(-0.2, 1.2, 0.48);
+        leftEye.position.set(-0.2, 1.25, 0.48);
         const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), eyeWhiteMat);
-        rightEye.position.set(0.2, 1.2, 0.48);
+        rightEye.position.set(0.2, 1.25, 0.48);
         const pupilMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
         const leftPupil = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 16), pupilMat);
-        leftPupil.position.set(-0.2, 1.18, 0.55);
+        leftPupil.position.set(-0.2, 1.23, 0.55);
         const rightPupil = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 16), pupilMat);
-        rightPupil.position.set(0.2, 1.18, 0.55);
+        rightPupil.position.set(0.2, 1.23, 0.55);
         localPlayerGroup.add(leftEye, rightEye, leftPupil, rightPupil);
         
         // Hat
         const hatMat = new THREE.MeshStandardMaterial({ color: 0xd43f1d });
         const hat = new THREE.Mesh(new THREE.ConeGeometry(0.6, 0.45, 8), hatMat);
-        hat.position.y = 1.5;
+        hat.position.y = 1.55;
         hat.castShadow = true;
         localPlayerGroup.add(hat);
-        
-        // Cape or belt
-        const beltMat = new THREE.MeshStandardMaterial({ color: 0xcc8844 });
-        const belt = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.07, 16, 32), beltMat);
-        belt.rotation.x = Math.PI / 2;
-        belt.position.y = 0.6;
-        localPlayerGroup.add(belt);
         
         localPlayerGroup.position.set(0, 0, 0);
         localPlayerGroup.castShadow = true;
         scene.add(localPlayerGroup);
         
-        // Name label for local player (CSS2D)
-        const labelDiv = document.createElement('div');
-        labelDiv.textContent = `You (${playerId.slice(-6)})`;
-        labelDiv.style.color = '#aaffdd';
-        labelDiv.style.fontSize = '14px';
-        labelDiv.style.fontWeight = 'bold';
-        labelDiv.style.backgroundColor = 'rgba(0,0,0,0.6)';
-        labelDiv.style.padding = '2px 8px';
-        labelDiv.style.borderRadius = '20px';
-        labelDiv.style.border = '1px solid #44ffaa';
-        labelDiv.style.fontFamily = 'sans-serif';
-        labelDiv.style.pointerEvents = 'none';
-        labelDiv.style.whiteSpace = 'nowrap';
-        
-        // We'll use CSS2DRenderer for labels
-        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
-        const labelRenderer = new CSS2DRenderer();
-        labelRenderer.setSize(window.innerWidth, window.innerHeight);
-        labelRenderer.domElement.style.position = 'absolute';
-        labelRenderer.domElement.style.top = '0px';
-        labelRenderer.domElement.style.left = '0px';
-        labelRenderer.domElement.style.pointerEvents = 'none';
-        document.body.appendChild(labelRenderer.domElement);
-        
-        const localLabel = new CSS2DObject(labelDiv);
-        localLabel.position.set(0, 1.95, 0);
+        // Local player label
+        const localLabelDiv = document.createElement('div');
+        localLabelDiv.textContent = `You (${playerId.slice(-6)})`;
+        localLabelDiv.style.cssText = 'color:#aaffdd; font-size:14px; font-weight:bold; background:rgba(0,0,0,0.6); padding:2px 8px; border-radius:20px; border:1px solid #44ffaa; font-family:sans-serif; white-space:nowrap;';
+        const localLabel = new CSS2DObject(localLabelDiv);
+        localLabel.position.set(0, 2.0, 0);
         localPlayerGroup.add(localLabel);
         
-        // --- Remote players storage: map id -> { group, label, lastUpdate } ---
+        // --- Remote Players Storage ---
         const remotePlayers = new Map();
         
-        // Function to create a remote player model (simpler, different color)
-        function createRemotePlayerModel(color = 0xff8844) {
+        function createRemotePlayerModel(id) {
             const group = new THREE.Group();
+            // Generate consistent color based on ID
+            let hash = 0;
+            for (let i = 0; i < id.length; i++) hash = ((hash << 5) - hash) + id.charCodeAt(i);
+            const color = (Math.abs(hash) % 0x88aaff) | 0xff8844;
             
             const bodyGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.9, 16);
-            const bodyMat = new THREE.MeshStandardMaterial({ color: color, metalness: 0.2, roughness: 0.4 });
+            const bodyMat = new THREE.MeshStandardMaterial({ color: color });
             const body = new THREE.Mesh(bodyGeo, bodyMat);
             body.castShadow = true;
             body.position.y = 0.45;
             group.add(body);
             
-            const headMat = new THREE.MeshStandardMaterial({ color: 0xffcc99, roughness: 0.3 });
+            const headMat = new THREE.MeshStandardMaterial({ color: 0xffcc99 });
             const head = new THREE.Mesh(new THREE.SphereGeometry(0.48, 32, 32), headMat);
             head.castShadow = true;
-            head.position.y = 0.9 + 0.25;
+            head.position.y = 1.15;
             group.add(head);
             
-            // Simple eyes (black dots)
             const eyeMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
             const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.09, 16, 16), eyeMat);
-            leftEye.position.set(-0.18, 1.22, 0.5);
+            leftEye.position.set(-0.18, 1.27, 0.5);
             const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.09, 16, 16), eyeMat);
-            rightEye.position.set(0.18, 1.22, 0.5);
+            rightEye.position.set(0.18, 1.27, 0.5);
             group.add(leftEye, rightEye);
             
-            // Hat (green for remote)
             const hatMat = new THREE.MeshStandardMaterial({ color: 0x33aa55 });
             const hat = new THREE.Mesh(new THREE.ConeGeometry(0.58, 0.42, 8), hatMat);
-            hat.position.y = 1.48;
+            hat.position.y = 1.53;
             hat.castShadow = true;
             group.add(hat);
             
@@ -393,86 +386,65 @@
             return true;
         }
         
-        // --- Supabase Realtime: Players Table ---
-        // We'll use a table named 'players' (auto-create via supabase if needed, but we'll assume it exists or create on the fly)
-        // Since we cannot run migrations from client, we'll use a simple approach: store in 'player_positions' table.
-        // For demo, we'll assume the table exists with columns: id (text primary key), x (float), z (float), updated_at (timestamp)
-        // If table doesn't exist, the code will error gracefully and show offline mode.
-        // To ensure it works, we'll create the table via Supabase dashboard SQL: 
-        // CREATE TABLE IF NOT EXISTS player_positions (id TEXT PRIMARY KEY, x FLOAT, z FLOAT, updated_at TIMESTAMPTZ DEFAULT NOW());
-        // ALTER TABLE player_positions ENABLE ROW LEVEL SECURITY;
-        // CREATE POLICY "Enable all for anon" ON player_positions FOR ALL USING (true) WITH CHECK (true);
-        // For this demo, I'll include instructions in console, but most likely the table is already created.
-        
+        // --- Supabase Real-time Setup ---
         const TABLE_NAME = 'player_positions';
-        
-        // Insert/update local player position every frame (throttled to 15fps)
         let lastSentTime = 0;
-        let sendInterval = 0.066; // ~15 times per second
+        let sendInterval = 0.066; // ~15 fps
         
         async function sendPosition() {
             const x = localPlayerGroup.position.x;
             const z = localPlayerGroup.position.z;
             try {
-                const { error } = await supabase
+                const { data, error } = await supabase
                     .from(TABLE_NAME)
-                    .upsert({ id: playerId, x: x, z: z, updated_at: new Date().toISOString() }, { onConflict: 'id' });
-                if (error) console.warn('Send error:', error);
-            } catch(e) { console.error(e); }
-        }
-        
-        // Subscribe to realtime changes
-        let subscription;
-        async function initRealtime() {
-            // First, try to insert initial position
-            await sendPosition();
-            
-            // Subscribe to changes on player_positions table
-            subscription = supabase
-                .channel('player-positions')
-                .on('postgres_changes', { event: '*', schema: 'public', table: TABLE_NAME }, (payload) => {
-                    handlePlayerUpdate(payload.new);
-                })
-                .subscribe((status) => {
-                    console.log('Subscription status:', status);
-                    document.getElementById('status').innerHTML = status === 'SUBSCRIBED' ? '🟢 Real-time Connected' : '🟡 Connecting...';
-                });
+                    .upsert({ 
+                        id: playerId, 
+                        x: x, 
+                        z: z, 
+                        updated_at: new Date().toISOString() 
+                    }, { 
+                        onConflict: 'id',
+                        ignoreDuplicates: false 
+                    });
+                if (error) {
+                    debugLog(`Send error: ${error.message}`);
+                } else {
+                    debugLog(`Position sent: (${x.toFixed(2)}, ${z.toFixed(2)})`);
+                }
+            } catch(e) {
+                debugLog(`Send exception: ${e.message}`);
+            }
         }
         
         function handlePlayerUpdate(data) {
-            if (!data || data.id === playerId) return;
+            if (!data || data.id === playerId) {
+                if (data && data.id === playerId) debugLog(`Ignoring self update`);
+                return;
+            }
+            
+            debugLog(`Received update from ${data.id.slice(-6)}: (${data.x?.toFixed(2)}, ${data.z?.toFixed(2)})`);
             
             const remoteId = data.id;
             const x = data.x;
             const z = data.z;
             
             if (remotePlayers.has(remoteId)) {
-                // Update existing player position smoothly
                 const player = remotePlayers.get(remoteId);
                 player.targetPos = { x, z };
                 player.lastUpdate = Date.now();
+                player.group.position.x += (x - player.group.position.x) * 0.3;
+                player.group.position.z += (z - player.group.position.z) * 0.3;
             } else {
-                // Create new remote player
-                // Generate a consistent color based on ID hash
-                let hash = 0;
-                for (let i = 0; i < remoteId.length; i++) hash = ((hash << 5) - hash) + remoteId.charCodeAt(i);
-                const color = (hash & 0x00ffff) | 0xff8844;
-                const remoteGroup = createRemotePlayerModel(color);
+                debugLog(`Creating new remote player: ${remoteId.slice(-6)}`);
+                const remoteGroup = createRemotePlayerModel(remoteId);
                 remoteGroup.position.set(x, 0, z);
                 scene.add(remoteGroup);
                 
-                // Add label
                 const remoteLabelDiv = document.createElement('div');
                 remoteLabelDiv.textContent = `${remoteId.slice(-6)}`;
-                remoteLabelDiv.style.color = '#ffdd99';
-                remoteLabelDiv.style.fontSize = '12px';
-                remoteLabelDiv.style.backgroundColor = 'rgba(0,0,0,0.5)';
-                remoteLabelDiv.style.padding = '2px 6px';
-                remoteLabelDiv.style.borderRadius = '16px';
-                remoteLabelDiv.style.border = '1px solid #ffaa66';
-                remoteLabelDiv.style.fontFamily = 'sans-serif';
+                remoteLabelDiv.style.cssText = 'color:#ffdd99; font-size:12px; background:rgba(0,0,0,0.5); padding:2px 6px; border-radius:16px; border:1px solid #ffaa66; font-family:sans-serif; white-space:nowrap;';
                 const remoteLabel = new CSS2DObject(remoteLabelDiv);
-                remoteLabel.position.set(0, 1.9, 0);
+                remoteLabel.position.set(0, 1.95, 0);
                 remoteGroup.add(remoteLabel);
                 
                 remotePlayers.set(remoteId, {
@@ -485,41 +457,98 @@
             }
         }
         
-        // Clean up stale players (not updated for > 10 seconds)
-        function cleanupStalePlayers() {
-            const now = Date.now();
-            for (const [id, player] of remotePlayers.entries()) {
-                if (now - player.lastUpdate > 10000) {
-                    scene.remove(player.group);
-                    remotePlayers.delete(id);
-                    updatePlayerCount();
-                }
-            }
-        }
-        
         function updatePlayerCount() {
             const count = remotePlayers.size + 1;
             document.getElementById('playerCount').innerText = count;
+            debugLog(`Player count: ${count} (${remotePlayers.size} remote, 1 local)`);
         }
         
-        // Smooth remote player movement interpolation
-        function interpolateRemotePlayers(deltaTime) {
-            for (const player of remotePlayers.values()) {
-                if (player.targetPos) {
-                    const currentX = player.group.position.x;
-                    const currentZ = player.group.position.z;
-                    const newX = currentX + (player.targetPos.x - currentX) * deltaTime * 8;
-                    const newZ = currentZ + (player.targetPos.z - currentZ) * deltaTime * 8;
-                    player.group.position.set(newX, 0, newZ);
-                    // Simple facing direction based on movement
-                    const dx = player.targetPos.x - currentX;
-                    const dz = player.targetPos.z - currentZ;
-                    if (Math.hypot(dx, dz) > 0.01) {
-                        const angle = Math.atan2(dx, dz);
-                        player.group.rotation.y = angle;
-                    }
+        function cleanupStalePlayers() {
+            const now = Date.now();
+            let removed = 0;
+            for (const [id, player] of remotePlayers.entries()) {
+                if (now - player.lastUpdate > 15000) { // 15 seconds timeout
+                    debugLog(`Removing stale player: ${id.slice(-6)}`);
+                    scene.remove(player.group);
+                    remotePlayers.delete(id);
+                    removed++;
                 }
             }
+            if (removed > 0) updatePlayerCount();
+        }
+        
+        // --- Load existing players on startup ---
+        async function loadExistingPlayers() {
+            try {
+                debugLog(`Loading existing players from ${TABLE_NAME}...`);
+                const { data, error } = await supabase
+                    .from(TABLE_NAME)
+                    .select('*')
+                    .neq('id', playerId);
+                
+                if (error) {
+                    debugLog(`Load error: ${error.message}`);
+                    return;
+                }
+                
+                debugLog(`Found ${data?.length || 0} existing players`);
+                if (data) {
+                    data.forEach(row => handlePlayerUpdate(row));
+                }
+            } catch(e) {
+                debugLog(`Load exception: ${e.message}`);
+            }
+        }
+        
+        // --- Initialize Realtime Subscription ---
+        let subscription;
+        
+        async function initRealtime() {
+            debugLog(`Initializing Supabase real-time for table: ${TABLE_NAME}`);
+            
+            // First, send initial position
+            await sendPosition();
+            
+            // Create the channel with proper configuration
+            subscription = supabase
+                .channel('player-positions-channel')
+                .on(
+                    'postgres_changes',
+                    {
+                        event: '*',  // Listen to INSERT, UPDATE, DELETE
+                        schema: 'public',
+                        table: TABLE_NAME
+                    },
+                    (payload) => {
+                        debugLog(`Realtime event: ${payload.eventType} for ${payload.new?.id?.slice(-6) || 'unknown'}`);
+                        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+                            handlePlayerUpdate(payload.new);
+                        } else if (payload.eventType === 'DELETE') {
+                            const deletedId = payload.old?.id;
+                            if (deletedId && remotePlayers.has(deletedId)) {
+                                debugLog(`Removing deleted player: ${deletedId.slice(-6)}`);
+                                scene.remove(remotePlayers.get(deletedId).group);
+                                remotePlayers.delete(deletedId);
+                                updatePlayerCount();
+                            }
+                        }
+                    }
+                )
+                .subscribe((status) => {
+                    debugLog(`Subscription status: ${status}`);
+                    if (status === 'SUBSCRIBED') {
+                        document.getElementById('status').innerHTML = '🟢 Real-time Connected';
+                        document.getElementById('status').style.color = '#00ffaa';
+                    } else if (status === 'CHANNEL_ERROR') {
+                        document.getElementById('status').innerHTML = '🔴 Connection Error';
+                        document.getElementById('status').style.color = '#ff6666';
+                    } else {
+                        document.getElementById('status').innerHTML = `🟡 ${status}`;
+                    }
+                });
+            
+            // Also load existing players
+            setTimeout(() => loadExistingPlayers(), 1000);
         }
         
         // --- Animation Loop ---
@@ -534,36 +563,47 @@
             // Update local movement
             updateLocalMovement(delta);
             
-            // Throttle position sending
-            if (now - lastSendFrame > sendInterval * 1000) {
+            // Throttle position sending (every 50ms)
+            if (now - lastSendFrame > 50) {
                 lastSendFrame = now;
                 await sendPosition();
             }
             
-            // Interpolate remote players
-            interpolateRemotePlayers(delta);
+            // Smooth remote player interpolation
+            for (const player of remotePlayers.values()) {
+                if (player.targetPos) {
+                    player.group.position.x += (player.targetPos.x - player.group.position.x) * 0.2;
+                    player.group.position.z += (player.targetPos.z - player.group.position.z) * 0.2;
+                    
+                    const dx = player.targetPos.x - player.group.position.x;
+                    const dz = player.targetPos.z - player.group.position.z;
+                    if (Math.hypot(dx, dz) > 0.01) {
+                        player.group.rotation.y = Math.atan2(dx, dz);
+                    }
+                }
+            }
+            
             cleanupStalePlayers();
             
-            // Update orbit controls target to local player
+            // Update orbit controls target
             controls.target.copy(localPlayerGroup.position);
             controls.update();
             
-            // Tiny idle animation for local player
+            // Idle animation
             const time = Date.now() * 0.006;
             const bob = Math.sin(time) * 0.005;
             localPlayerGroup.position.y = bob;
-            if (localLabel) localLabel.position.y = 1.95 + Math.abs(bob)*0.3;
+            localLabel.position.y = 2.0 + Math.abs(bob) * 0.2;
             
             // Eye movement
-            const leftPupilObj = localPlayerGroup.children.find(c => c.position.x === -0.2 && c.geometry?.type === 'SphereGeometry' && c.material?.color?.getHex() === 0x000000);
-            const rightPupilObj = localPlayerGroup.children.find(c => c.position.x === 0.2 && c.geometry?.type === 'SphereGeometry' && c.material?.color?.getHex() === 0x000000);
-            if (leftPupilObj && rightPupilObj) {
+            const pupils = localPlayerGroup.children.filter(c => c.geometry?.type === 'SphereGeometry' && c.material?.color?.getHex() === 0x000000);
+            if (pupils.length === 2) {
                 const lookX = Math.sin(time * 0.8) * 0.04;
                 const lookZ = Math.cos(time * 0.6) * 0.03;
-                leftPupilObj.position.x = -0.2 + lookX;
-                rightPupilObj.position.x = 0.2 + lookX;
-                leftPupilObj.position.z = 0.55 + lookZ;
-                rightPupilObj.position.z = 0.55 + lookZ;
+                pupils[0].position.x = -0.2 + lookX;
+                pupils[1].position.x = 0.2 + lookX;
+                pupils[0].position.z = 0.55 + lookZ;
+                pupils[1].position.z = 0.55 + lookZ;
             }
             
             // Render
@@ -573,26 +613,24 @@
             requestAnimationFrame(animate);
         }
         
-        // --- Start the app ---
+        // --- Start Application ---
         async function start() {
-            // Check if table exists by trying to select
+            debugLog(`Starting multiplayer app with ID: ${playerId}`);
+            
+            // Test Supabase connection first
             try {
-                const { error } = await supabase.from(TABLE_NAME).select('id').limit(1);
-                if (error && error.code === '42P01') {
-                    console.warn('Table not found. Please create table "player_positions" in Supabase with columns: id (text), x (float8), z (float8), updated_at (timestamptz)');
-                    document.getElementById('status').innerHTML = '⚠️ Table missing - multiplayer disabled';
+                const { data, error } = await supabase.from(TABLE_NAME).select('count').limit(1);
+                if (error) {
+                    debugLog(`Table check error: ${error.message}`);
+                    document.getElementById('status').innerHTML = '⚠️ Table missing';
                     document.getElementById('status').style.color = '#ff6666';
                 } else {
+                    debugLog(`Table "${TABLE_NAME}" exists and is accessible`);
                     await initRealtime();
-                    // Also fetch existing players on startup
-                    const { data: existing } = await supabase.from(TABLE_NAME).select('*');
-                    if (existing) {
-                        existing.forEach(row => handlePlayerUpdate(row));
-                    }
                 }
             } catch(e) {
-                console.error('Supabase init error:', e);
-                document.getElementById('status').innerHTML = '⚠️ Connection error';
+                debugLog(`Connection test failed: ${e.message}`);
+                document.getElementById('status').innerHTML = '⚠️ Connection Failed';
             }
             
             animate();
@@ -608,14 +646,13 @@
             labelRenderer.setSize(window.innerWidth, window.innerHeight);
         });
         
-        // Cleanup on page unload: remove player from table
+        // Cleanup on page unload
         window.addEventListener('beforeunload', async () => {
+            debugLog(`Cleaning up player ${playerId.slice(-6)}`);
             try {
                 await supabase.from(TABLE_NAME).delete().eq('id', playerId);
             } catch(e) {}
         });
-        
-        console.log('Multiplayer 3D World initialized. Player ID:', playerId);
     </script>
 </body>
 </html>
