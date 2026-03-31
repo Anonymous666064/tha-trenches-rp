@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>3D Multiplayer - Working Sync with Vehicles</title>
+    <title>3D Multiplayer - Fixed Sync</title>
     <style>
         * {
             margin: 0;
@@ -736,26 +736,47 @@
             localPlayerMesh.position.copy(playerPosition);
             scene.add(localPlayerMesh);
             
-            await supabase.from('players').insert({
+            // Insert player into database
+            const { error } = await supabase.from('players').insert({
                 player_id: myPlayerId,
                 session_id: sessionCode,
                 pos_x: startX,
                 pos_z: startZ,
-                last_seen: new Date()
+                last_seen: new Date().toISOString()
             });
             
+            if (error) {
+                console.error("Error inserting player:", error);
+                showNotification("Error joining game!", "#ff5555");
+                return false;
+            }
+            
+            // Load existing players
             await loadPlayersInSession(sessionCode);
+            
+            // Subscribe to real-time updates
             subscribeToSession(sessionCode);
             
+            // Start heartbeat to keep player alive
             heartbeatInterval = setInterval(() => updatePositionInDB(), 50);
+            
             updatePlayersUI();
             showNotification(`✅ Joined game! Code: ${sessionCode}`, '#4ae04a');
             return true;
         }
         
         async function loadPlayersInSession(sessionCode) {
-            const { data, error } = await supabase.from('players').select('*').eq('session_id', sessionCode);
-            if (error) return;
+            const { data, error } = await supabase
+                .from('players')
+                .select('*')
+                .eq('session_id', sessionCode);
+            
+            if (error) {
+                console.error("Error loading players:", error);
+                return;
+            }
+            
+            console.log(`Loaded ${data?.length || 0} players from database`);
             
             for (let p of data) {
                 if (p.player_id !== myPlayerId && !remotePlayers.has(p.player_id)) {
@@ -763,6 +784,7 @@
                     playerModel.position.set(p.pos_x, 0.7, p.pos_z);
                     scene.add(playerModel);
                     remotePlayers.set(p.player_id, { mesh: playerModel, lastX: p.pos_x, lastZ: p.pos_z });
+                    console.log(`Added remote player: ${p.player_id}`);
                 }
             }
             updatePlayersUI();
@@ -770,17 +792,22 @@
         }
         
         function subscribeToSession(sessionCode) {
-            if (subscription) supabase.removeChannel(subscription);
+            if (subscription) {
+                supabase.removeChannel(subscription);
+            }
+            
+            console.log("Subscribing to real-time updates for session:", sessionCode);
             
             subscription = supabase
                 .channel(`game:${sessionCode}`)
                 .on('postgres_changes', {
-                    event: '*',
+                    event: 'INSERT',
                     schema: 'public',
                     table: 'players',
                     filter: `session_id=eq.${sessionCode}`
                 }, (payload) => {
-                    if (payload.eventType === 'INSERT' && payload.new.player_id !== myPlayerId) {
+                    console.log("INSERT event:", payload.new);
+                    if (payload.new.player_id !== myPlayerId && !remotePlayers.has(payload.new.player_id)) {
                         const playerModel = createPlayerModel(0xff8844, false, payload.new.player_id);
                         playerModel.position.set(payload.new.pos_x, 0.7, payload.new.pos_z);
                         scene.add(playerModel);
@@ -789,25 +816,42 @@
                         updatePlayerCount();
                         showNotification(`👤 Player joined!`, '#4ec9e0');
                     }
-                    else if (payload.eventType === 'UPDATE' && payload.new.player_id !== myPlayerId) {
+                })
+                .on('postgres_changes', {
+                    event: 'UPDATE',
+                    schema: 'public',
+                    table: 'players',
+                    filter: `session_id=eq.${sessionCode}`
+                }, (payload) => {
+                    if (payload.new.player_id !== myPlayerId) {
                         const remote = remotePlayers.get(payload.new.player_id);
                         if (remote) {
                             remote.mesh.position.x += (payload.new.pos_x - remote.mesh.position.x) * 0.3;
                             remote.mesh.position.z += (payload.new.pos_z - remote.mesh.position.z) * 0.3;
-                        }
-                    }
-                    else if (payload.eventType === 'DELETE' && payload.old.player_id !== myPlayerId) {
-                        const remote = remotePlayers.get(payload.old.player_id);
-                        if (remote) {
-                            scene.remove(remote.mesh);
-                            remotePlayers.delete(payload.old.player_id);
-                            updatePlayersUI();
-                            updatePlayerCount();
-                            showNotification(`👋 Player left`, '#ffaa00');
+                            remote.lastX = payload.new.pos_x;
+                            remote.lastZ = payload.new.pos_z;
                         }
                     }
                 })
-                .subscribe();
+                .on('postgres_changes', {
+                    event: 'DELETE',
+                    schema: 'public',
+                    table: 'players',
+                    filter: `session_id=eq.${sessionCode}`
+                }, (payload) => {
+                    console.log("DELETE event:", payload.old);
+                    const remote = remotePlayers.get(payload.old.player_id);
+                    if (remote) {
+                        scene.remove(remote.mesh);
+                        remotePlayers.delete(payload.old.player_id);
+                        updatePlayersUI();
+                        updatePlayerCount();
+                        showNotification(`👋 Player left`, '#ffaa00');
+                    }
+                })
+                .subscribe((status) => {
+                    console.log("Subscription status:", status);
+                });
         }
         
         async function updatePositionInDB() {
@@ -820,11 +864,14 @@
                 pos = playerPosition;
             }
             
-            await supabase.from('players').update({
-                pos_x: pos.x,
-                pos_z: pos.z,
-                last_seen: new Date()
-            }).eq('player_id', myPlayerId);
+            await supabase
+                .from('players')
+                .update({
+                    pos_x: pos.x,
+                    pos_z: pos.z,
+                    last_seen: new Date().toISOString()
+                })
+                .eq('player_id', myPlayerId);
         }
         
         async function leaveGameSession() {
@@ -857,6 +904,9 @@
             let html = `<div class="player-entry local">👑 YOU (${isHost ? 'Host' : 'Player'})</div>`;
             for (let [id] of remotePlayers) {
                 html += `<div class="player-entry">🎮 ${id.slice(0, 8)}</div>`;
+            }
+            if (remotePlayers.size === 0) {
+                html += '<div style="color:#888;">Waiting for players...</div>';
             }
             container.innerHTML = html;
         }
