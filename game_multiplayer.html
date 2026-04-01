@@ -3,14 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>3D Multiplayer Game - Supabase Edition</title>
+    <title>RP World - Open World Multiplayer RPG</title>
     <style>
-        body {
+        * {
             margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
             overflow: hidden;
             font-family: 'Segoe UI', 'Poppins', monospace;
         }
         
+        /* Main UI */
         #ui {
             position: absolute;
             top: 20px;
@@ -18,132 +24,186 @@
             z-index: 100;
             background: rgba(0,0,0,0.85);
             backdrop-filter: blur(8px);
-            border-radius: 20px;
-            padding: 15px 25px;
+            border-radius: 15px;
+            padding: 15px;
             color: white;
             border: 1px solid rgba(255,255,255,0.2);
-            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
             pointer-events: auto;
-            font-size: 14px;
+            font-size: 12px;
             min-width: 280px;
             max-width: 320px;
         }
         
-        #ui h1 {
-            margin: 0 0 8px 0;
-            font-size: 1.4rem;
-            letter-spacing: 2px;
-            text-align: center;
+        /* Stats Bars */
+        .stat-bar {
+            margin: 5px 0;
+        }
+        
+        .stat-label {
+            display: inline-block;
+            width: 50px;
+        }
+        
+        .bar-bg {
+            display: inline-block;
+            width: 150px;
+            height: 8px;
+            background: #333;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-left: 5px;
+        }
+        
+        .bar-fill {
+            height: 100%;
+            transition: width 0.3s;
+        }
+        
+        .health-fill { background: #ff4444; width: 100%; }
+        .hunger-fill { background: #ffaa44; width: 100%; }
+        .thirst-fill { background: #44aaff; width: 100%; }
+        
+        .money {
             color: #ffaa44;
-        }
-        
-        .server-panel {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin: 15px 0;
-        }
-        
-        .input-group {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-        }
-        
-        input {
-            flex: 1;
-            background: #222;
-            border: 1px solid #555;
-            color: #0f0;
-            padding: 8px 12px;
-            border-radius: 30px;
-            font-family: monospace;
+            font-size: 18px;
             font-weight: bold;
-            outline: none;
-            font-size: 14px;
+            margin: 5px 0;
         }
         
-        button {
-            background: linear-gradient(135deg, #3a6ea5, #1e3a5f);
-            border: none;
-            color: white;
-            padding: 8px 16px;
+        /* Phone */
+        #phone {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #2c3e50, #1a2632);
             border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             cursor: pointer;
-            font-weight: bold;
-            transition: 0.2s;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-            font-family: inherit;
+            z-index: 200;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            border: 2px solid #4a6a8a;
+            transition: transform 0.2s;
         }
         
-        button:hover {
-            transform: scale(1.02);
-            filter: brightness(1.1);
+        #phone:hover {
+            transform: scale(1.05);
         }
         
-        .danger-btn {
-            background: linear-gradient(135deg, #9e3c3c, #6e2c2c);
+        #phone-icon {
+            font-size: 30px;
         }
         
-        .success-btn {
-            background: linear-gradient(135deg, #2c7a4d, #1e5a3a);
+        #phone-apps {
+            position: absolute;
+            bottom: 90px;
+            right: 20px;
+            background: rgba(0,0,0,0.95);
+            border-radius: 15px;
+            padding: 15px;
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 200px;
+            z-index: 200;
+            border: 1px solid #4a6a8a;
         }
         
-        .info-panel {
-            margin-top: 15px;
-            border-top: 1px solid rgba(255,255,255,0.3);
-            padding-top: 12px;
-            font-size: 13px;
-        }
-        
-        .player-count {
-            font-size: 1.3rem;
-            font-weight: bold;
-            color: #88ff88;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-        
-        .log-container {
-            background: rgba(0,0,0,0.6);
-            border-radius: 12px;
-            padding: 8px;
-            max-height: 150px;
-            overflow-y: auto;
-            font-family: monospace;
-            font-size: 11px;
-            margin-top: 10px;
-        }
-        
-        .log-entry {
-            border-bottom: 1px solid #333;
-            padding: 4px 2px;
-            color: #ddd;
-        }
-        
-        .log-entry.info { color: #aaffdd; }
-        .log-entry.join { color: #aaffaa; }
-        .log-entry.leave { color: #ffaa88; }
-        
-        #server-status {
-            font-size: 12px;
-            background: #111c;
-            border-radius: 12px;
-            padding: 6px;
+        .app-btn {
+            background: #2c3e50;
+            padding: 10px;
+            border-radius: 10px;
+            cursor: pointer;
             text-align: center;
-            margin-top: 8px;
+            transition: 0.2s;
         }
         
-        .username-input {
-            margin-bottom: 10px;
+        .app-btn:hover {
+            background: #3e5a6e;
         }
         
-        @media (max-width: 600px) {
-            #ui { transform: scale(0.9); transform-origin: top left; width: 280px; padding: 10px; }
-            button, input { font-size: 12px; }
+        /* Crosshair */
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 4px;
+            height: 4px;
+            background: white;
+            border-radius: 50%;
+            z-index: 150;
+            box-shadow: 0 0 0 2px rgba(0,0,0,0.5), 0 0 0 4px rgba(255,255,255,0.3);
         }
         
+        /* Wasted Screen */
+        #wasted {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 300;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            color: red;
+            font-size: 48px;
+            font-weight: bold;
+        }
+        
+        #respawn-btn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 20px;
+            background: #444;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        /* Vehicle UI */
+        #vehicle-ui {
+            position: absolute;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 10px;
+            display: none;
+            z-index: 100;
+        }
+        
+        /* NPC Interaction */
+        #npc-interaction {
+            position: absolute;
+            bottom: 200px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.9);
+            padding: 15px;
+            border-radius: 10px;
+            display: none;
+            z-index: 150;
+            min-width: 250px;
+        }
+        
+        .shop-item {
+            margin: 5px 0;
+            padding: 5px;
+            background: #333;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        /* Controls */
         #controls-note {
             position: absolute;
             bottom: 15px;
@@ -152,60 +212,92 @@
             padding: 4px 12px;
             border-radius: 20px;
             color: white;
-            font-size: 12px;
+            font-size: 10px;
             pointer-events: none;
             z-index: 99;
         }
         
-        .loading {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.9);
-            padding: 20px;
-            border-radius: 10px;
+        .server-panel {
+            margin-top: 10px;
+        }
+        
+        input, button {
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 5px;
+            border: none;
+        }
+        
+        button {
+            background: #4a6a8a;
             color: white;
-            z-index: 200;
-            display: none;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background: #5a7a9a;
+        }
+        
+        .log-container {
+            margin-top: 10px;
+            max-height: 100px;
+            overflow-y: auto;
+            font-size: 10px;
         }
     </style>
 </head>
 <body>
     <div id="ui">
-        <h1>🌀 NEXUS ARENA</h1>
-        <div class="username-input">
-            <input type="text" id="username" placeholder="Your Username" maxlength="20" value="Player_" + Math.floor(Math.random() * 1000)">
+        <div class="money">💰 $<span id="money">500</span></div>
+        <div class="stat-bar">
+            <span class="stat-label">❤️ Health</span>
+            <div class="bar-bg"><div class="bar-fill health-fill" id="health-bar" style="width: 100%"></div></div>
         </div>
+        <div class="stat-bar">
+            <span class="stat-label">🍔 Hunger</span>
+            <div class="bar-bg"><div class="bar-fill hunger-fill" id="hunger-bar" style="width: 100%"></div></div>
+        </div>
+        <div class="stat-bar">
+            <span class="stat-label">💧 Thirst</span>
+            <div class="bar-bg"><div class="bar-fill thirst-fill" id="thirst-bar" style="width: 100%"></div></div>
+        </div>
+        
         <div class="server-panel">
-            <div class="input-group">
-                <input type="text" id="serverCode" placeholder="Server ID / Code" value="LOBBY_001">
-                <button id="createBtn" class="success-btn">✨ CREATE</button>
-            </div>
-            <div class="input-group">
-                <input type="text" id="joinCode" placeholder="Enter code to join">
-                <button id="joinBtn">🔗 JOIN</button>
-            </div>
+            <input type="text" id="username" placeholder="Username" value="Player_" + Math.floor(Math.random() * 1000)>
+            <input type="text" id="serverCode" placeholder="Server Code" value="RP_WORLD">
+            <button id="joinGame">Join Game</button>
         </div>
-        <div class="info-panel">
-            <div class="player-count">
-                👥 Players: <span id="playerCountDisplay">0</span>
-                <span style="font-size:12px">(in server)</span>
-            </div>
-            <div id="server-status">⚡ No server connected</div>
-            <div class="log-container" id="connectivityLog">
-                <div class="log-entry info">🟢 Welcome! Enter username and create/join a server.</div>
-            </div>
-        </div>
+        <div class="log-container" id="log"></div>
     </div>
+    
+    <div id="phone" onclick="togglePhone()">
+        <div id="phone-icon">📱</div>
+    </div>
+    
+    <div id="phone-apps">
+        <div class="app-btn" onclick="openCarShop()">🚗 Car Dealership</div>
+        <div class="app-btn" onclick="spawnVehicle()">🚙 Spawn Vehicle</div>
+        <div class="app-btn" onclick="openInventory()">📦 Inventory</div>
+        <div class="app-btn" onclick="startWeedJob()">🌿 Weed Farm</div>
+    </div>
+    
+    <div id="crosshair"></div>
+    
+    <div id="wasted">
+        <div>💀 WASTED 💀</div>
+        <button id="respawn-btn" onclick="respawn()">Respawn ($100)</button>
+    </div>
+    
+    <div id="vehicle-ui">
+        🚗 In Vehicle | Press E to exit
+    </div>
+    
+    <div id="npc-interaction"></div>
+    
     <div id="controls-note">
-        🕹️ WASD / Arrow Keys to move | 🖱️ Drag to rotate camera
+        WASD Move | Mouse Aim | Click to Shoot | E Interact | TAB Phone | F Enter/Exit Vehicle
     </div>
-    <div class="loading" id="loading">
-        Connecting to server...
-    </div>
-
-    <!-- Import Three.js and Supabase -->
+    
     <script type="importmap">
         {
             "imports": {
@@ -215,37 +307,42 @@
             }
         }
     </script>
-
+    
     <script type="module">
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
         import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
         import { createClient } from '@supabase/supabase-js';
-
-        // Supabase configuration
+        
+        // Supabase setup
         const SUPABASE_URL = 'https://hcvewiwhtxqpbogcrukk.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjdmV3aXdodHhxcGJvZ2NydWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTQ4MzMsImV4cCI6MjA5MDQ3MDgzM30.UsdvDyrGl4OhmbDjonyOagknHf--Zhe-fhCi0LFVoQw';
-        
         const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
+        
         // Game state
         let currentServerId = null;
         let myPlayerId = null;
         let myUsername = '';
-        let localPlayerMesh = null;
+        let localPlayer = null;
         let localLabel = null;
-        let otherPlayers = new Map(); // id -> { mesh, label, data }
-        let updateInterval = null;
-        let syncInterval = null;
+        let otherPlayers = new Map();
+        let npcs = [];
+        let currentVehicle = null;
+        let isInVehicle = false;
+        let currentWeapon = 'pistol';
+        let ammo = { pistol: 30, shotgun: 15, rifle: 40 };
+        let inventory = [];
+        let weedPlants = [];
+        let dayTime = 0; // 0-1, 0=noon, 1=midnight
+        let dayNightCycle = true;
         
         // Three.js setup
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x050b1a);
-        scene.fog = new THREE.FogExp2(0x050b1a, 0.008);
+        scene.background = new THREE.Color(0x87CEEB);
+        scene.fog = new THREE.Fog(0x87CEEB, 100, 200);
         
-        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(8, 6, 12);
-        camera.lookAt(0, 0, 0);
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 2, 3);
         
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -260,360 +357,458 @@
         labelRenderer.domElement.style.pointerEvents = 'none';
         document.body.appendChild(labelRenderer.domElement);
         
-        const controls = new OrbitControls(camera, renderer.domElement);
-        controls.enableDamping = true;
-        controls.dampingFactor = 0.05;
-        controls.autoRotate = false;
-        controls.enableZoom = true;
-        controls.target.set(0, 1, 0);
+        // First-person controls
+        let mouseX = 0, mouseY = 0;
+        let pitch = 0, yaw = 0;
+        
+        document.addEventListener('mousemove', (e) => {
+            if (document.pointerLockElement === renderer.domElement) {
+                mouseX += e.movementX * 0.002;
+                mouseY += e.movementY * 0.002;
+                mouseY = Math.max(-Math.PI/2, Math.min(Math.PI/2, mouseY));
+                yaw = mouseX;
+                pitch = mouseY;
+                camera.rotation.order = 'YXZ';
+                camera.rotation.y = yaw;
+                camera.rotation.x = pitch;
+            }
+        });
+        
+        renderer.domElement.addEventListener('click', () => {
+            renderer.domElement.requestPointerLock();
+        });
+        
+        // Terrain generation
+        const terrainSize = 200;
+        const terrainGeometry = new THREE.PlaneGeometry(terrainSize, terrainSize, 128, 128);
+        terrainGeometry.rotateX(-Math.PI / 2);
+        
+        const vertices = terrainGeometry.attributes.position.array;
+        for (let i = 0; i < vertices.length; i += 3) {
+            const x = vertices[i];
+            const z = vertices[i+2];
+            // Create hills and flat city area
+            let y = 0;
+            if (Math.abs(x) < 30 && Math.abs(z) < 30) {
+                y = 0; // Flat city area
+            } else {
+                y = Math.sin(x * 0.1) * Math.cos(z * 0.1) * 2 + 
+                    Math.sin(x * 0.3) * 0.5 + 
+                    Math.cos(z * 0.3) * 0.5;
+            }
+            vertices[i+1] = y;
+        }
+        
+        terrainGeometry.computeVertexNormals();
+        const terrainMaterial = new THREE.MeshStandardMaterial({ color: 0x5c9e5e, roughness: 0.8, metalness: 0.1 });
+        const terrain = new THREE.Mesh(terrainGeometry, terrainMaterial);
+        terrain.receiveShadow = true;
+        scene.add(terrain);
+        
+        // City buildings
+        const buildingMat = new THREE.MeshStandardMaterial({ color: 0xaaaaaa });
+        for (let i = -4; i <= 4; i++) {
+            for (let j = -4; j <= 4; j++) {
+                if (i === 0 && j === 0) continue;
+                const building = new THREE.Mesh(
+                    new THREE.BoxGeometry(3, Math.random() * 5 + 3, 3),
+                    buildingMat
+                );
+                building.position.set(i * 8, 1.5, j * 8);
+                building.castShadow = true;
+                building.receiveShadow = true;
+                scene.add(building);
+            }
+        }
+        
+        // Roads
+        const roadMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+        for (let i = -40; i <= 40; i += 8) {
+            const roadX = new THREE.Mesh(new THREE.BoxGeometry(6, 0.1, terrainSize), roadMat);
+            roadX.position.set(i, 0.1, 0);
+            scene.add(roadX);
+            
+            const roadZ = new THREE.Mesh(new THREE.BoxGeometry(terrainSize, 0.1, 6), roadMat);
+            roadZ.position.set(0, 0.1, i);
+            scene.add(roadZ);
+        }
+        
+        // NPCs
+        const npcPositions = [
+            { x: 15, z: 12, type: 'food', name: 'Convenience Store Clerk' },
+            { x: -12, z: 18, type: 'weapons', name: 'Gun Dealer' },
+            { x: 8, z: -15, type: 'drug_dealer', name: 'Weed Dealer' }
+        ];
+        
+        npcPositions.forEach(pos => {
+            const npcMat = new THREE.MeshStandardMaterial({ color: 0xffaa88 });
+            const npc = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.8, 0.8), npcMat);
+            npc.position.set(pos.x, 0.9, pos.z);
+            npc.userData = { type: pos.type, name: pos.name };
+            scene.add(npc);
+            npcs.push(npc);
+            
+            const npcLabel = makeLabel(pos.name, '#ffaa88');
+            npcLabel.position.set(pos.x, 1.8, pos.z);
+            scene.add(npcLabel);
+        });
         
         // Lighting
-        const ambientLight = new THREE.AmbientLight(0x404060);
+        const ambientLight = new THREE.AmbientLight(0x404040);
         scene.add(ambientLight);
         const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-        dirLight.position.set(5, 10, 7);
+        dirLight.position.set(10, 20, 5);
         dirLight.castShadow = true;
         scene.add(dirLight);
         
-        const fillLight = new THREE.PointLight(0x4466cc, 0.3);
-        fillLight.position.set(-2, 3, 4);
-        scene.add(fillLight);
-        
-        // Ground
-        const gridHelper = new THREE.GridHelper(30, 20, 0x88aaff, 0x335588);
-        gridHelper.position.y = -0.5;
-        scene.add(gridHelper);
-        
-        const groundPlane = new THREE.Mesh(
-            new THREE.PlaneGeometry(25, 25),
-            new THREE.MeshStandardMaterial({ color: 0x1a2a3a, roughness: 0.7 })
-        );
-        groundPlane.rotation.x = -Math.PI / 2;
-        groundPlane.position.y = -0.5;
-        groundPlane.receiveShadow = true;
-        scene.add(groundPlane);
-        
         // Helper functions
-        function getRandomColor() {
-            const hue = Math.random() * 360;
-            return `hsl(${hue}, 70%, 55%)`;
-        }
-        
-        function createPlayerModel(colorHex, isLocal = false) {
-            const group = new THREE.Group();
-            const bodyMat = new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.3 });
-            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 1.0, 8), bodyMat);
-            body.position.y = 0.5;
-            body.castShadow = true;
-            group.add(body);
-            
-            const headMat = new THREE.MeshStandardMaterial({ color: 0xffccaa });
-            const head = new THREE.Mesh(new THREE.SphereGeometry(0.4, 24, 24), headMat);
-            head.position.y = 1.05;
-            head.castShadow = true;
-            group.add(head);
-            
-            // Eyes
-            const eyeMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-            const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), eyeMat);
-            leftEye.position.set(-0.18, 1.18, 0.42);
-            const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), eyeMat);
-            rightEye.position.set(0.18, 1.18, 0.42);
-            group.add(leftEye);
-            group.add(rightEye);
-            
-            const pupilMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
-            const leftPupil = new THREE.Mesh(new THREE.SphereGeometry(0.07, 16, 16), pupilMat);
-            leftPupil.position.set(-0.18, 1.16, 0.52);
-            const rightPupil = new THREE.Mesh(new THREE.SphereGeometry(0.07, 16, 16), pupilMat);
-            rightPupil.position.set(0.18, 1.16, 0.52);
-            group.add(leftPupil);
-            group.add(rightPupil);
-            
-            if (isLocal) {
-                const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.1, 0.4, 6), 
-                    new THREE.MeshStandardMaterial({ color: 0xffaa44 }));
-                antenna.position.y = 1.45;
-                group.add(antenna);
-            }
-            
-            return group;
-        }
-        
-        function makeLabel(text, color = '#ffffff') {
+        function makeLabel(text, color) {
             const div = document.createElement('div');
             div.textContent = text;
             div.style.color = color;
-            div.style.fontSize = '14px';
+            div.style.fontSize = '12px';
             div.style.fontWeight = 'bold';
             div.style.textShadow = '1px 1px black';
             div.style.background = 'rgba(0,0,0,0.6)';
             div.style.padding = '2px 8px';
             div.style.borderRadius = '20px';
-            div.style.border = `1px solid ${color}`;
-            div.style.whiteSpace = 'nowrap';
             return new CSS2DObject(div);
         }
         
-        function addLogEntry(msg, type = 'info') {
-            const logDiv = document.getElementById('connectivityLog');
+        function createPlayerModel(color) {
+            const group = new THREE.Group();
+            const body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.2, 0.6), new THREE.MeshStandardMaterial({ color }));
+            body.position.y = 0.6;
+            body.castShadow = true;
+            group.add(body);
+            
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.4), new THREE.MeshStandardMaterial({ color: 0xffccaa }));
+            head.position.y = 1.3;
+            head.castShadow = true;
+            group.add(head);
+            
+            return group;
+        }
+        
+        function createVehicle(model, color) {
+            const group = new THREE.Group();
+            const body = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.4, 2), new THREE.MeshStandardMaterial({ color }));
+            body.position.y = 0.2;
+            body.castShadow = true;
+            group.add(body);
+            
+            const roof = new THREE.Mesh(new THREE.BoxGeometry(1, 0.3, 1.2), new THREE.MeshStandardMaterial({ color: 0x888888 }));
+            roof.position.y = 0.6;
+            group.add(roof);
+            
+            return group;
+        }
+        
+        // Game mechanics
+        let playerStats = { health: 100, hunger: 100, thirst: 100, money: 500 };
+        
+        function updateUI() {
+            document.getElementById('money').innerText = playerStats.money;
+            document.getElementById('health-bar').style.width = `${playerStats.health}%`;
+            document.getElementById('hunger-bar').style.width = `${playerStats.hunger}%`;
+            document.getElementById('thirst-bar').style.width = `${playerStats.thirst}%`;
+        }
+        
+        function addLog(msg) {
+            const logDiv = document.getElementById('log');
             const entry = document.createElement('div');
-            entry.className = `log-entry ${type}`;
             entry.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}`;
             logDiv.appendChild(entry);
-            entry.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            if (logDiv.children.length > 25) logDiv.removeChild(logDiv.children[0]);
+            entry.scrollIntoView({ behavior: 'smooth' });
+            if (logDiv.children.length > 10) logDiv.removeChild(logDiv.children[0]);
         }
         
-        async function syncPlayers() {
-            if (!currentServerId) return;
-            
-            const { data, error } = await supabase
-                .from('players')
-                .select('*')
-                .eq('server_id', currentServerId)
-                .gte('last_seen', new Date(Date.now() - 30000).toISOString());
-            
-            if (error) {
-                console.error('Error syncing players:', error);
-                return;
+        function takeDamage(amount) {
+            playerStats.health = Math.max(0, playerStats.health - amount);
+            updateUI();
+            if (playerStats.health <= 0) {
+                die();
             }
-            
-            // Update player count
-            document.getElementById('playerCountDisplay').innerText = data.length;
-            
-            // Handle remote players
-            const currentRemoteIds = new Set(otherPlayers.keys());
-            
-            for (const player of data) {
-                if (player.id === myPlayerId) continue;
+        }
+        
+        function die() {
+            document.getElementById('wasted').style.display = 'flex';
+            addLog('You died! Respawn to continue.');
+        }
+        
+        async function respawn() {
+            if (playerStats.money >= 100) {
+                playerStats.money -= 100;
+                playerStats.health = 100;
+                playerStats.hunger = 80;
+                playerStats.thirst = 80;
+                updateUI();
+                document.getElementById('wasted').style.display = 'none';
                 
-                if (!otherPlayers.has(player.id)) {
-                    // Add new player
-                    const mesh = createPlayerModel(player.color, false);
-                    mesh.position.set(player.x, player.y, player.z);
-                    scene.add(mesh);
-                    
-                    const label = makeLabel(player.username, '#aaffdd');
-                    label.position.set(player.x, player.y + 1.5, player.z);
-                    scene.add(label);
-                    
-                    otherPlayers.set(player.id, { mesh, label, data: player });
-                    addLogEntry(`🟢 ${player.username} joined the server`, 'join');
-                } else {
-                    // Update existing player position
-                    const playerObj = otherPlayers.get(player.id);
-                    playerObj.mesh.position.set(player.x, player.y, player.z);
-                    playerObj.label.position.set(player.x, player.y + 1.5, player.z);
-                    playerObj.data = player;
+                if (localPlayer) {
+                    localPlayer.position.set(0, 1, 0);
+                    camera.position.copy(localPlayer.position);
                 }
-                currentRemoteIds.delete(player.id);
-            }
-            
-            // Remove disconnected players
-            for (const id of currentRemoteIds) {
-                const player = otherPlayers.get(id);
-                scene.remove(player.mesh);
-                scene.remove(player.label);
-                addLogEntry(`🔴 ${player.data.username} left the server`, 'leave');
-                otherPlayers.delete(id);
+                
+                addLog('You respawned at the city center!');
+            } else {
+                addLog('Not enough money to respawn!');
             }
         }
         
-        async function updatePlayerPosition() {
-            if (!currentServerId || !myPlayerId || !localPlayerMesh) return;
-            
-            const { error } = await supabase
-                .from('players')
-                .update({
-                    x: localPlayerMesh.position.x,
-                    y: localPlayerMesh.position.y,
-                    z: localPlayerMesh.position.z,
-                    last_seen: new Date().toISOString()
-                })
-                .eq('id', myPlayerId);
-            
-            if (error) {
-                console.error('Error updating position:', error);
-            }
-        }
-        
-        async function leaveServer() {
-            if (myPlayerId) {
-                await supabase.from('players').delete().eq('id', myPlayerId);
-            }
-            
-            if (updateInterval) clearInterval(updateInterval);
-            if (syncInterval) clearInterval(syncInterval);
-            
-            for (const [id, player] of otherPlayers) {
-                scene.remove(player.mesh);
-                scene.remove(player.label);
-            }
-            otherPlayers.clear();
-            
-            if (localPlayerMesh) {
-                scene.remove(localPlayerMesh);
-                if (localLabel) scene.remove(localLabel);
-                localPlayerMesh = null;
-                localLabel = null;
-            }
-            
-            currentServerId = null;
-            myPlayerId = null;
-            document.getElementById('server-status').innerHTML = '⚡ No server connected';
-            document.getElementById('playerCountDisplay').innerText = '0';
-            addLogEntry('Disconnected from server', 'info');
-        }
-        
-        async function joinServer(serverId, isCreate = false) {
-            myUsername = document.getElementById('username').value.trim();
-            if (!myUsername) {
-                addLogEntry('Please enter a username', 'info');
+        // Shooting mechanics
+        function shoot() {
+            if (!document.pointerLockElement) return;
+            if (ammo[currentWeapon] <= 0) {
+                addLog('Out of ammo!');
                 return;
             }
             
-            if (!serverId.trim()) {
-                addLogEntry('Invalid server ID', 'info');
-                return;
+            ammo[currentWeapon]--;
+            const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+            const raycaster = new THREE.Raycaster(camera.position, direction, 0, 10);
+            
+            // Check for other players
+            for (let [id, player] of otherPlayers) {
+                const intersects = raycaster.intersectObject(player.mesh);
+                if (intersects.length > 0) {
+                    addLog(`Hit ${player.data.username}!`);
+                    // In real implementation, would send damage to server
+                    break;
+                }
             }
             
-            await leaveServer();
-            currentServerId = serverId.trim();
+            // Muzzle flash effect
+            const flash = new THREE.PointLight(0xffaa00, 1, 5);
+            flash.position.copy(camera.position);
+            scene.add(flash);
+            setTimeout(() => scene.remove(flash), 50);
+        }
+        
+        document.addEventListener('click', (e) => {
+            if (document.pointerLockElement === renderer.domElement) {
+                shoot();
+            }
+        });
+        
+        // Vehicle mechanics
+        function enterVehicle(vehicle) {
+            isInVehicle = true;
+            currentVehicle = vehicle;
+            document.getElementById('vehicle-ui').style.display = 'block';
+            addLog('Entered vehicle');
+        }
+        
+        function exitVehicle() {
+            isInVehicle = false;
+            currentVehicle = null;
+            document.getElementById('vehicle-ui').style.display = 'none';
+            addLog('Exited vehicle');
+        }
+        
+        // Phone functions
+        window.togglePhone = () => {
+            const apps = document.getElementById('phone-apps');
+            apps.style.display = apps.style.display === 'flex' ? 'none' : 'flex';
+        };
+        
+        window.openCarShop = () => {
+            addLog('Car dealership: Available cars - Sedan ($5000), Sports Car ($15000)');
+        };
+        
+        window.spawnVehicle = () => {
+            if (playerStats.money >= 5000) {
+                const vehicle = createVehicle('sedan', 0xff0000);
+                vehicle.position.copy(localPlayer.position);
+                scene.add(vehicle);
+                addLog('Vehicle spawned! Press F to enter.');
+            } else {
+                addLog('Not enough money! Need $5000 for a vehicle.');
+            }
+        };
+        
+        window.openInventory = () => {
+            addLog(`Inventory: ${inventory.length} items. Weapons: ${currentWeapon} (${ammo[currentWeapon]} ammo)`);
+        };
+        
+        window.startWeedJob = () => {
+            addLog('Weed farming: Buy seeds from Weed Dealer, plant and harvest!');
+        };
+        
+        // NPC interaction
+        function interactWithNPC() {
+            const raycaster = new THREE.Raycaster(camera.position, camera.getWorldDirection(new THREE.Vector3()), 0, 3);
+            for (let npc of npcs) {
+                const intersects = raycaster.intersectObject(npc);
+                if (intersects.length > 0) {
+                    const type = npc.userData.type;
+                    showShopUI(type);
+                    break;
+                }
+            }
+        }
+        
+        function showShopUI(type) {
+            const ui = document.getElementById('npc-interaction');
+            ui.innerHTML = `<h3>${type === 'food' ? 'Convenience Store' : type === 'weapons' ? 'Gun Shop' : 'Weed Dealer'}</h3>`;
             
-            const spawnPos = { x: (Math.random() - 0.5) * 6, y: 0.5, z: (Math.random() - 0.5) * 6 };
-            const playerColor = getRandomColor();
+            if (type === 'food') {
+                ui.innerHTML += `
+                    <div class="shop-item" onclick="buyItem('water', 10)">💧 Water - $10 (Restores thirst)</div>
+                    <div class="shop-item" onclick="buyItem('burger', 15)">🍔 Burger - $15 (Restores hunger)</div>
+                `;
+            } else if (type === 'weapons') {
+                ui.innerHTML += `
+                    <div class="shop-item" onclick="buyWeapon('pistol', 500)">🔫 Pistol - $500 (30 ammo)</div>
+                    <div class="shop-item" onclick="buyWeapon('shotgun', 1200)">🔫 Shotgun - $1200 (15 ammo)</div>
+                    <div class="shop-item" onclick="buyWeapon('rifle', 2000)">🔫 Rifle - $2000 (40 ammo)</div>
+                `;
+            } else if (type === 'drug_dealer') {
+                ui.innerHTML += `
+                    <div class="shop-item" onclick="buyItem('weed_seed', 50)">🌱 Weed Seed - $50</div>
+                    <div class="shop-item" onclick="sellWeed()">💵 Sell Weed - $100 each</div>
+                `;
+            }
             
-            // Create player in database
+            ui.style.display = 'block';
+            setTimeout(() => { ui.style.display = 'none'; }, 5000);
+        }
+        
+        window.buyItem = (item, price) => {
+            if (playerStats.money >= price) {
+                playerStats.money -= price;
+                if (item === 'water') playerStats.thirst = Math.min(100, playerStats.thirst + 30);
+                if (item === 'burger') playerStats.hunger = Math.min(100, playerStats.hunger + 40);
+                if (item === 'weed_seed') inventory.push({ name: 'weed_seed', qty: 1 });
+                updateUI();
+                addLog(`Bought ${item} for $${price}`);
+            } else {
+                addLog('Not enough money!');
+            }
+        };
+        
+        window.buyWeapon = (weapon, price) => {
+            if (playerStats.money >= price) {
+                playerStats.money -= price;
+                currentWeapon = weapon;
+                addLog(`Bought ${weapon}!`);
+                updateUI();
+            }
+        };
+        
+        window.sellWeed = () => {
+            addLog('Sell weed feature - grow weed first!');
+        };
+        
+        // Day/night cycle
+        function updateDayNight() {
+            if (dayNightCycle) {
+                dayTime += 0.001;
+                if (dayTime > 1) dayTime -= 1;
+                const intensity = Math.sin(dayTime * Math.PI);
+                dirLight.intensity = 0.5 + intensity * 0.5;
+                scene.background.setHSL(0.55, 0.5, 0.3 + intensity * 0.3);
+            }
+        }
+        
+        // Movement and update
+        const keys = { w: false, s: false, a: false, d: false };
+        let speed = 5;
+        
+        document.addEventListener('keydown', (e) => {
+            const key = e.key.toLowerCase();
+            if (key === 'w') keys.w = true;
+            if (key === 's') keys.s = true;
+            if (key === 'a') keys.a = true;
+            if (key === 'd') keys.d = true;
+            if (key === 'e') interactWithNPC();
+            if (key === 'f') {
+                if (isInVehicle) exitVehicle();
+                else if (currentVehicle) enterVehicle(currentVehicle);
+            }
+            if (key === 'tab') togglePhone();
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            const key = e.key.toLowerCase();
+            if (key === 'w') keys.w = false;
+            if (key === 's') keys.s = false;
+            if (key === 'a') keys.a = false;
+            if (key === 'd') keys.d = false;
+        });
+        
+        function updateMovement() {
+            if (!localPlayer) return;
+            
+            const move = new THREE.Vector3();
+            const cameraDirection = camera.getWorldDirection(new THREE.Vector3());
+            const right = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), cameraDirection).normalize();
+            
+            if (keys.w) move.sub(cameraDirection);
+            if (keys.s) move.add(cameraDirection);
+            if (keys.a) move.sub(right);
+            if (keys.d) move.add(right);
+            
+            move.y = 0;
+            move.normalize();
+            move.multiplyScalar(speed * 0.016);
+            
+            let newPos = localPlayer.position.clone().add(move);
+            newPos.y = terrainGeometry.attributes.position.getY(Math.floor(newPos.x + terrainSize/2), Math.floor(newPos.z + terrainSize/2)) + 0.5;
+            localPlayer.position.copy(newPos);
+            camera.position.copy(newPos);
+            camera.position.y += 0.5;
+        }
+        
+        // Join game
+        document.getElementById('joinGame').onclick = async () => {
+            myUsername = document.getElementById('username').value;
+            currentServerId = document.getElementById('serverCode').value;
+            
             const { data, error } = await supabase
                 .from('players')
                 .insert({
                     username: myUsername,
                     server_id: currentServerId,
-                    x: spawnPos.x,
-                    y: spawnPos.y,
-                    z: spawnPos.z,
-                    color: playerColor
+                    x: 0, y: 1, z: 0,
+                    color: '#44aaff',
+                    money: 500
                 })
                 .select()
                 .single();
             
             if (error) {
-                addLogEntry(`Error joining server: ${error.message}`, 'info');
+                addLog('Error joining: ' + error.message);
                 return;
             }
             
             myPlayerId = data.id;
+            localPlayer = createPlayerModel('#44aaff');
+            localPlayer.position.set(0, 1, 0);
+            scene.add(localPlayer);
+            camera.position.copy(localPlayer.position);
+            camera.position.y += 0.5;
             
-            // Create local player mesh
-            localPlayerMesh = createPlayerModel(playerColor, true);
-            localPlayerMesh.position.set(spawnPos.x, spawnPos.y, spawnPos.z);
-            scene.add(localPlayerMesh);
-            
-            localLabel = makeLabel(myUsername, '#ffff88');
-            localLabel.position.set(spawnPos.x, spawnPos.y + 1.5, spawnPos.z);
-            scene.add(localLabel);
-            
-            document.getElementById('server-status').innerHTML = `🟢 Connected to: ${currentServerId}`;
-            addLogEntry(`${isCreate ? 'Created' : 'Joined'} server "${currentServerId}" as ${myUsername}`, 'success');
-            
-            // Start sync intervals
-            await syncPlayers(); // Initial sync
-            syncInterval = setInterval(() => syncPlayers(), 1000); // Sync every second
-            updateInterval = setInterval(() => updatePlayerPosition(), 50); // Update position 20 times per second
-        }
-        
-        // Keyboard movement
-        const keyState = { w: false, s: false, a: false, d: false };
-        window.addEventListener('keydown', (e) => {
-            const key = e.key.toLowerCase();
-            if (key === 'w' || key === 'arrowup') keyState.w = true;
-            if (key === 's' || key === 'arrowdown') keyState.s = true;
-            if (key === 'a' || key === 'arrowleft') keyState.a = true;
-            if (key === 'd' || key === 'arrowright') keyState.d = true;
-        });
-        
-        window.addEventListener('keyup', (e) => {
-            const key = e.key.toLowerCase();
-            if (key === 'w' || key === 'arrowup') keyState.w = false;
-            if (key === 's' || key === 'arrowdown') keyState.s = false;
-            if (key === 'a' || key === 'arrowleft') keyState.a = false;
-            if (key === 'd' || key === 'arrowright') keyState.d = false;
-        });
-        
-        function updateMovement() {
-            if (!localPlayerMesh) return;
-            
-            let move = new THREE.Vector3(0, 0, 0);
-            if (keyState.w) move.z -= 1;
-            if (keyState.s) move.z += 1;
-            if (keyState.a) move.x -= 1;
-            if (keyState.d) move.x += 1;
-            
-            if (move.length() > 0) move.normalize();
-            const speed = 5.5;
-            move.multiplyScalar(speed * 0.016);
-            
-            let newPos = localPlayerMesh.position.clone().add(move);
-            newPos.x = Math.min(12, Math.max(-12, newPos.x));
-            newPos.z = Math.min(12, Math.max(-12, newPos.z));
-            newPos.y = 0.5;
-            
-            localPlayerMesh.position.copy(newPos);
-            localLabel.position.copy(newPos);
-            localLabel.position.y += 1.5;
-        }
-        
-        // UI Event Listeners
-        document.getElementById('createBtn').addEventListener('click', () => {
-            const code = document.getElementById('serverCode').value.trim();
-            if (code) joinServer(code, true);
-            else addLogEntry('Enter a server name', 'info');
-        });
-        
-        document.getElementById('joinBtn').addEventListener('click', () => {
-            const code = document.getElementById('joinCode').value.trim();
-            if (code) joinServer(code, false);
-            else addLogEntry('Enter a server code to join', 'info');
-        });
-        
-        // Set random username on load
-        const randomNum = Math.floor(Math.random() * 1000);
-        document.getElementById('username').value = `Explorer_${randomNum}`;
+            addLog(`Joined server as ${myUsername}!`);
+            document.getElementById('ui').style.display = 'block';
+        };
         
         // Animation loop
         function animate() {
             updateMovement();
-            controls.update();
+            updateDayNight();
+            if (playerStats.hunger > 0) playerStats.hunger -= 0.01;
+            if (playerStats.thirst > 0) playerStats.thirst -= 0.015;
+            if (playerStats.hunger <= 0 || playerStats.thirst <= 0) takeDamage(0.5);
+            updateUI();
+            
             renderer.render(scene, camera);
             labelRenderer.render(scene, camera);
             requestAnimationFrame(animate);
         }
         
         animate();
-        
-        // Cleanup on page unload
-        window.addEventListener('beforeunload', () => {
-            if (myPlayerId) {
-                supabase.from('players').delete().eq('id', myPlayerId);
-            }
-        });
-        
-        addLogEntry('✨ System ready! Enter username and create/join a server.', 'info');
-        addLogEntry('💡 Open this page in multiple tabs/windows to see real multiplayer with Supabase!', 'info');
-        
-        // Add decorative stars
-        const starGeometry = new THREE.BufferGeometry();
-        const starCount = 800;
-        const positions = new Float32Array(starCount * 3);
-        for (let i = 0; i < starCount; i++) {
-            positions[i*3] = (Math.random() - 0.5) * 200;
-            positions[i*3+1] = (Math.random() - 0.5) * 50 + 10;
-            positions[i*3+2] = (Math.random() - 0.5) * 80 - 40;
-        }
-        starGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-        const stars = new THREE.Points(starGeometry, new THREE.PointsMaterial({ color: 0xffffff, size: 0.1 }));
-        scene.add(stars);
+        addLog('Game loaded! Join a server to start playing.');
     </script>
 </body>
 </html>
