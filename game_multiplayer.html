@@ -876,7 +876,6 @@
                 if (e.code === 'KeyV') { cameraMode = cameraMode === 'tpv' ? 'fpv' : 'tpv'; document.getElementById('camera-mode-indicator').textContent = `VIEW: ${cameraMode.toUpperCase()}`; }
                 if (e.code === 'Tab') { e.preventDefault(); const inv = document.getElementById('inventory-panel'); inv.style.display = inv.style.display === 'none' ? 'block' : 'none'; }
                 if (e.code === 'KeyO') { const phone = document.getElementById('phone-ui'); phone.style.display = phone.style.display === 'none' ? 'flex' : 'none'; }
-                // Prevent default for movement keys
                 if (['KeyW','KeyS','KeyA','KeyD','Space'].includes(e.code)) e.preventDefault();
             });
             document.addEventListener('keyup', e => { keys[e.code] = false; });
