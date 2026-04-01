@@ -3,73 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Multiplayer PVP Arena - Supabase</title>
+    <title>Multiplayer PVP Arena</title>
     <style>
-        body {
+        * {
             margin: 0;
-            overflow: hidden;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 0;
+            box-sizing: border-box;
         }
         
-        /* Auth & Server Modal Styles */
-        .modal-overlay {
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+        
+        /* Modal Styles */
+        .modal {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            backdrop-filter: blur(8px);
+            background: rgba(0, 0, 0, 0.95);
+            backdrop-filter: blur(10px);
             display: flex;
             justify-content: center;
             align-items: center;
             z-index: 1000;
-            font-family: 'Segoe UI', sans-serif;
         }
         
-        .modal-container {
-            background: linear-gradient(135deg, #1a2a3a 0%, #0f1720 100%);
+        .modal-content {
+            background: linear-gradient(135deg, #1e2a3a, #0f1720);
             border-radius: 20px;
-            padding: 30px 40px;
-            width: 380px;
+            padding: 40px;
+            width: 400px;
+            border: 1px solid rgba(255, 170, 102, 0.3);
             box-shadow: 0 20px 40px rgba(0,0,0,0.5);
-            border: 1px solid rgba(255,170,102,0.3);
         }
         
         .modal-title {
-            font-size: 28px;
+            font-size: 32px;
             font-weight: bold;
             text-align: center;
             background: linear-gradient(135deg, #ffaa66, #ff8844);
             -webkit-background-clip: text;
             background-clip: text;
             color: transparent;
-            margin-bottom: 20px;
+            margin-bottom: 30px;
         }
         
-        .input-group {
-            margin-bottom: 15px;
-        }
-        
-        .input-group input, .input-group select {
+        input {
             width: 100%;
             padding: 12px 15px;
+            margin: 10px 0;
             background: rgba(30, 40, 55, 0.9);
             border: 1px solid #3a4a5a;
             border-radius: 10px;
             color: white;
             font-size: 14px;
             outline: none;
-            box-sizing: border-box;
         }
         
-        .input-group input:focus, .input-group select:focus {
+        input:focus {
             border-color: #ffaa66;
         }
         
-        .btn {
+        button {
             width: 100%;
             padding: 12px;
+            margin: 10px 0;
             background: linear-gradient(135deg, #ffaa66, #ff8844);
             border: none;
             border-radius: 10px;
@@ -77,44 +78,44 @@
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
-            margin-top: 10px;
             transition: transform 0.2s;
         }
         
-        .btn:hover {
+        button:hover {
             transform: translateY(-2px);
         }
         
-        .btn-secondary {
-            background: linear-gradient(135deg, #4a6a8a, #2a4a6a);
-        }
-        
-        .error-msg {
+        .error {
             color: #ff8866;
-            font-size: 12px;
             text-align: center;
             margin-top: 10px;
+            font-size: 12px;
         }
         
-        .success-msg {
+        .success {
             color: #66ff99;
-            font-size: 12px;
             text-align: center;
             margin-top: 10px;
+            font-size: 12px;
         }
         
-        .server-code {
-            background: #00000044;
-            padding: 10px;
-            border-radius: 8px;
+        .link {
             text-align: center;
-            font-family: monospace;
-            font-size: 20px;
-            letter-spacing: 2px;
-            margin: 10px 0;
+            margin-top: 15px;
+            color: #8a9bb0;
+            cursor: pointer;
         }
         
-        /* In-Game UI */
+        .link a {
+            color: #ffaa66;
+            text-decoration: none;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        /* Game UI */
         #game-ui {
             position: absolute;
             top: 20px;
@@ -124,10 +125,8 @@
             border-radius: 8px;
             color: white;
             font-family: monospace;
-            font-size: 14px;
             z-index: 10;
             backdrop-filter: blur(4px);
-            pointer-events: none;
         }
         
         #health-bar {
@@ -142,22 +141,10 @@
         }
         
         #health-fill {
-            width: 100%;
-            height: 20px;
+            height: 25px;
             background: linear-gradient(90deg, #ff4444, #ff8844);
             border-radius: 8px;
             transition: width 0.2s;
-        }
-        
-        #health-text {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: white;
-            font-size: 12px;
-            font-weight: bold;
-            text-shadow: 0 0 3px black;
         }
         
         #server-info {
@@ -169,25 +156,8 @@
             border-radius: 8px;
             color: #ffaa66;
             font-family: monospace;
-            font-size: 12px;
             text-align: right;
             z-index: 10;
-            pointer-events: none;
-        }
-        
-        #player-list {
-            position: absolute;
-            bottom: 100px;
-            right: 20px;
-            background: rgba(0,0,0,0.7);
-            padding: 10px 18px;
-            border-radius: 8px;
-            color: white;
-            font-family: monospace;
-            font-size: 12px;
-            min-width: 150px;
-            z-index: 10;
-            pointer-events: none;
         }
         
         #controls {
@@ -201,7 +171,6 @@
             font-family: monospace;
             font-size: 12px;
             z-index: 10;
-            pointer-events: none;
         }
         
         #controls kbd {
@@ -211,86 +180,81 @@
             color: #ffaa66;
         }
         
-        .hidden {
-            display: none;
-        }
-        
         .cursor-none {
             cursor: none;
+        }
+        
+        #lock-message {
+            position: absolute;
+            bottom: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.85);
+            padding: 15px 30px;
+            border-radius: 40px;
+            color: white;
+            font-family: monospace;
+            font-size: 18px;
+            border: 1px solid #ffaa66;
+            pointer-events: none;
+            z-index: 20;
+            white-space: nowrap;
         }
     </style>
 </head>
 <body>
-    <!-- Auth Modal -->
-    <div id="auth-modal" class="modal-overlay">
-        <div class="modal-container">
+    <!-- Login Modal -->
+    <div id="login-modal" class="modal">
+        <div class="modal-content">
             <div class="modal-title">⚔️ PVP ARENA ⚔️</div>
-            <div id="login-form">
-                <div class="input-group"><input type="text" id="login-username" placeholder="Username"></div>
-                <div class="input-group"><input type="password" id="login-password" placeholder="Password"></div>
-                <button class="btn" id="login-btn">LOGIN</button>
-                <div class="error-msg" id="login-error"></div>
-                <div class="auth-switch" style="text-align:center; margin-top:15px; color:#8a9bb0;">
-                    No account? <a id="switch-to-signup" style="color:#ffaa66; cursor:pointer;">Sign up</a>
-                </div>
-            </div>
-            <div id="signup-form" style="display:none;">
-                <div class="input-group"><input type="text" id="signup-username" placeholder="Username"></div>
-                <div class="input-group"><input type="password" id="signup-password" placeholder="Password"></div>
-                <button class="btn" id="signup-btn">SIGN UP</button>
-                <div class="error-msg" id="signup-error"></div>
-                <div class="auth-switch" style="text-align:center; margin-top:15px;">
-                    <a id="switch-to-login" style="color:#ffaa66; cursor:pointer;">Back to Login</a>
-                </div>
-            </div>
+            <input type="text" id="login-username" placeholder="Username">
+            <input type="password" id="login-password" placeholder="Password">
+            <button id="login-btn">LOGIN</button>
+            <div id="login-error" class="error"></div>
+            <div class="link">Don't have an account? <a id="show-signup">Sign Up</a></div>
         </div>
     </div>
     
-    <!-- Server Selection Modal -->
-    <div id="server-modal" class="modal-overlay hidden">
-        <div class="modal-container">
-            <div class="modal-title">🏰 SERVER SELECTION</div>
-            <button class="btn" id="create-server-btn">✨ CREATE NEW SERVER</button>
-            <div class="input-group" style="margin-top: 15px;">
-                <input type="text" id="join-code" placeholder="Enter Server Code to Join">
-            </div>
-            <button class="btn btn-secondary" id="join-server-btn">🔗 JOIN SERVER</button>
-            <div id="server-error" class="error-msg"></div>
-            <div id="server-code-display" class="server-code hidden"></div>
+    <!-- Signup Modal -->
+    <div id="signup-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-title">📝 CREATE ACCOUNT</div>
+            <input type="text" id="signup-username" placeholder="Username">
+            <input type="password" id="signup-password" placeholder="Password">
+            <input type="password" id="signup-confirm" placeholder="Confirm Password">
+            <button id="signup-btn">SIGN UP</button>
+            <div id="signup-error" class="error"></div>
+            <div class="link">Already have an account? <a id="show-login">Login</a></div>
         </div>
     </div>
     
-    <!-- Waiting for Players Modal -->
-    <div id="waiting-modal" class="modal-overlay hidden">
-        <div class="modal-container">
-            <div class="modal-title">⏳ WAITING FOR PLAYERS</div>
-            <div id="waiting-code" class="server-code"></div>
-            <div id="waiting-players-list"></div>
-            <button class="btn btn-secondary" id="start-game-btn">▶ START GAME (1+ players)</button>
-            <div class="error-msg" id="waiting-error"></div>
+    <!-- Server Modal -->
+    <div id="server-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-title">🏰 SERVER</div>
+            <button id="create-server-btn">✨ CREATE NEW SERVER</button>
+            <div style="text-align: center; margin: 10px 0; color: #8a9bb0;">OR</div>
+            <input type="text" id="join-code" placeholder="Enter Server Code">
+            <button id="join-server-btn">🔗 JOIN SERVER</button>
+            <div id="server-error" class="error"></div>
         </div>
     </div>
     
-    <!-- In-Game UI -->
+    <!-- Game UI -->
     <div id="game-ui" class="hidden">
-        🎮 <span id="player-name">Player</span> | HP: <span id="hp-value">100</span>
+        🎮 <span id="player-name">Player</span>
     </div>
     <div id="health-bar" class="hidden">
-        <div id="health-fill" style="width:100%"></div>
-        <div id="health-text">❤️ 100 HP</div>
+        <div id="health-fill" style="width: 100%"></div>
     </div>
     <div id="server-info" class="hidden">
-        🏰 Server: <span id="server-code-display-game"></span><br>
-        👥 Players: <span id="player-count">1</span>
-    </div>
-    <div id="player-list" class="hidden">
-        <strong>⚔️ PLAYERS ⚔️</strong><br>
-        <div id="players-list-content"></div>
+        🏰 Server: <span id="server-code-display"></span>
     </div>
     <div id="controls" class="hidden">
-        🖱️ <kbd>CLICK</kbd> lock mouse | <kbd>WASD</kbd> move | <kbd>SPACE</kbd> jump | <kbd>LEFT CLICK</kbd> punch!
+        🖱️ <kbd>CLICK</kbd> lock | <kbd>WASD</kbd> move | <kbd>SPACE</kbd> jump | <kbd>LEFT CLICK</kbd> punch!
     </div>
-    
+    <div id="lock-message" class="hidden">🔒 Click to lock mouse and play!</div>
+
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script type="importmap">
         {
@@ -310,63 +274,19 @@
         
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
-        // ==================== SQL SCHEMA FOR SUPABASE ====================
-        /*
-        -- Run this SQL in your Supabase SQL Editor:
-        
-        -- Users table
-        CREATE TABLE users (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            username TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL,
-            created_at TIMESTAMP DEFAULT NOW()
-        );
-        
-        -- Servers table
-        CREATE TABLE servers (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            server_code TEXT UNIQUE NOT NULL,
-            host_username TEXT NOT NULL,
-            is_active BOOLEAN DEFAULT true,
-            created_at TIMESTAMP DEFAULT NOW()
-        );
-        
-        -- Players in servers (active sessions)
-        CREATE TABLE server_players (
-            id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-            server_code TEXT REFERENCES servers(server_code) ON DELETE CASCADE,
-            username TEXT NOT NULL,
-            position_x FLOAT DEFAULT 0,
-            position_z FLOAT DEFAULT 0,
-            health INT DEFAULT 100,
-            is_ready BOOLEAN DEFAULT false,
-            joined_at TIMESTAMP DEFAULT NOW(),
-            UNIQUE(server_code, username)
-        );
-        
-        -- Player stats (persistent)
-        CREATE TABLE player_stats (
-            username TEXT PRIMARY KEY REFERENCES users(username) ON DELETE CASCADE,
-            kills INT DEFAULT 0,
-            deaths INT DEFAULT 0,
-            last_login TIMESTAMP DEFAULT NOW()
-        );
-        */
-        
         // ==================== GAME STATE ====================
         let currentUser = null;
         let currentServer = null;
         let gameActive = false;
-        let players = {}; // { username: { mesh, health, position, lastAttackTime } }
         let localPlayerHealth = 100;
         let localPlayerMesh = null;
-        let attackCooldown = false;
+        let otherPlayers = {};
         let lastAttackTime = 0;
-        const ATTACK_COOLDOWN_MS = 800;
-        const ATTACK_RANGE = 2.5;
+        const ATTACK_COOLDOWN = 800;
         const ATTACK_DAMAGE = 25;
+        const ATTACK_RANGE = 2.5;
         
-        // Movement & Jump
+        // Movement
         let moveState = { forward: false, backward: false, left: false, right: false, jump: false };
         let isGrounded = true;
         let verticalVelocity = 0;
@@ -397,17 +317,17 @@
         
         // Ground
         const groundMat = new THREE.MeshStandardMaterial({ color: 0x5a6e5a, roughness: 0.85 });
-        const groundPlane = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), groundMat);
+        const groundPlane = new THREE.Mesh(new THREE.PlaneGeometry(50, 50), groundMat);
         groundPlane.rotation.x = -Math.PI / 2;
         groundPlane.position.y = -0.1;
         groundPlane.receiveShadow = true;
         scene.add(groundPlane);
         
-        const gridHelper = new THREE.GridHelper(60, 30, 0x88aaff, 0x446688);
+        const gridHelper = new THREE.GridHelper(50, 25, 0x88aaff, 0x446688);
         gridHelper.position.y = -0.05;
         scene.add(gridHelper);
         
-        // Spawn Points
+        // Spawn points
         const MAIN_SPAWN = { x: 0, z: 0 };
         const RESPAWN_POINTS = [
             { x: 12, z: 12 }, { x: -12, z: 12 }, { x: 12, z: -12 }, { x: -12, z: -12 },
@@ -421,214 +341,155 @@
         // Create player model
         function createPlayerModel(color, username) {
             const group = new THREE.Group();
-            const body = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.55, 1.0, 24), new THREE.MeshStandardMaterial({ color: color, metalness: 0.3 }));
+            const body = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.55, 0.55, 1.0, 24),
+                new THREE.MeshStandardMaterial({ color: color, metalness: 0.3 })
+            );
             body.castShadow = true;
             body.position.y = 0.5;
             group.add(body);
-            const head = new THREE.Mesh(new THREE.SphereGeometry(0.45, 16), new THREE.MeshStandardMaterial({ color: 0x88ccff }));
+            
+            const head = new THREE.Mesh(
+                new THREE.SphereGeometry(0.45, 16),
+                new THREE.MeshStandardMaterial({ color: 0x88ccff })
+            );
             head.position.y = 1.05;
             head.castShadow = true;
             group.add(head);
             
-            // Name tag
-            const canvas = document.createElement('canvas');
-            canvas.width = 256;
-            canvas.height = 64;
-            const ctx = canvas.getContext('2d');
-            ctx.fillStyle = 'rgba(0,0,0,0.7)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = '#ffaa66';
-            ctx.font = 'Bold 20px Arial';
-            ctx.textAlign = 'center';
-            ctx.fillText(username, canvas.width/2, 30);
-            const texture = new THREE.CanvasTexture(canvas);
-            const labelMat = new THREE.MeshStandardMaterial({ map: texture, side: THREE.DoubleSide });
-            const label = new THREE.Mesh(new THREE.PlaneGeometry(2, 0.6), labelMat);
-            label.position.y = 1.5;
-            group.add(label);
-            
             return group;
         }
         
-        // Local player
-        localPlayerMesh = createPlayerModel(0x44aaff, currentUser?.username || 'You');
-        scene.add(localPlayerMesh);
-        
         // ==================== SUPABASE FUNCTIONS ====================
+        async function callFunction(funcName, params) {
+            const { data, error } = await supabase.rpc(funcName, params);
+            if (error) throw error;
+            return data;
+        }
+        
         async function signup(username, password) {
-            const { data, error } = await supabase
-                .from('users')
-                .insert([{ username, password }])
-                .select();
-            if (error) return { success: false, error: error.message };
-            await supabase.from('player_stats').insert([{ username, kills: 0, deaths: 0 }]);
-            return { success: true };
+            const result = await callFunction('create_user', { p_username: username, p_password: password });
+            return result;
         }
         
         async function login(username, password) {
-            const { data, error } = await supabase
-                .from('users')
-                .select('*')
-                .eq('username', username)
-                .eq('password', password)
-                .single();
-            if (error || !data) return { success: false, error: 'Invalid credentials' };
-            await supabase.from('player_stats').upsert({ username, last_login: new Date() });
-            return { success: true, user: data };
+            const result = await callFunction('login_user', { p_username: username, p_password: password });
+            return result;
         }
         
         async function createServer(hostUsername) {
-            const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-            const { error } = await supabase.from('servers').insert([{ server_code: code, host_username: hostUsername }]);
-            if (error) return { success: false, error: error.message };
-            return { success: true, code };
+            const result = await callFunction('create_server', { p_host_username: hostUsername });
+            return result;
         }
         
-        async function joinServer(code, username) {
-            const { data: server, error: serverError } = await supabase
-                .from('servers')
-                .select('*')
-                .eq('server_code', code)
-                .eq('is_active', true)
-                .single();
-            if (serverError || !server) return { success: false, error: 'Server not found' };
-            
-            const { error: joinError } = await supabase
-                .from('server_players')
-                .insert([{ server_code: code, username, position_x: MAIN_SPAWN.x, position_z: MAIN_SPAWN.z, health: 100 }]);
-            if (joinError) return { success: false, error: joinError.message };
-            return { success: true, server };
+        async function joinServer(serverCode, username) {
+            const result = await callFunction('join_server', { p_server_code: serverCode, p_username: username });
+            return result;
         }
         
-        async function updatePlayerState(username, serverCode, position, health) {
-            await supabase
-                .from('server_players')
-                .update({ position_x: position.x, position_z: position.z, health })
-                .eq('server_code', serverCode)
-                .eq('username', username);
+        async function getServerPlayers(serverCode) {
+            const result = await callFunction('get_server_players', { p_server_code: serverCode });
+            return result;
         }
         
-        async function getPlayersInServer(serverCode) {
-            const { data } = await supabase
-                .from('server_players')
-                .select('*')
-                .eq('server_code', serverCode);
-            return data || [];
+        async function updatePlayerState(serverCode, username, x, z, health) {
+            await callFunction('update_player_state', {
+                p_server_code: serverCode,
+                p_username: username,
+                p_x: x,
+                p_z: z,
+                p_health: health
+            });
         }
         
-        async function attackPlayer(attacker, target, serverCode, damage) {
-            const { data: targetData } = await supabase
-                .from('server_players')
-                .select('health')
-                .eq('server_code', serverCode)
-                .eq('username', target)
-                .single();
-            
-            if (targetData) {
-                const newHealth = Math.max(0, targetData.health - damage);
-                await supabase
-                    .from('server_players')
-                    .update({ health: newHealth })
-                    .eq('server_code', serverCode)
-                    .eq('username', target);
-                
-                if (newHealth <= 0) {
-                    // Kill: respawn target
-                    const respawnPoint = getRandomRespawn();
-                    await supabase
-                        .from('server_players')
-                        .update({ health: 100, position_x: respawnPoint.x, position_z: respawnPoint.z })
-                        .eq('server_code', serverCode)
-                        .eq('username', target);
-                    
-                    // Update stats
-                    await supabase.rpc('increment_kills', { player_name: attacker });
-                    await supabase.rpc('increment_deaths', { player_name: target });
-                }
-                return newHealth;
-            }
-            return null;
+        async function performAttack(serverCode, attacker, victim, damage) {
+            const result = await callFunction('handle_attack', {
+                p_server_code: serverCode,
+                p_attacker: attacker,
+                p_victim: victim,
+                p_damage: damage
+            });
+            return result;
         }
         
-        // ==================== GAME LOOP & SYNC ====================
+        async function respawn(serverCode, username, x, z) {
+            await callFunction('respawn_player', {
+                p_server_code: serverCode,
+                p_username: username,
+                p_x: x,
+                p_z: z
+            });
+        }
+        
+        // ==================== GAME LOGIC ====================
         let syncInterval;
         
         async function syncGameState() {
-            if (!currentServer || !currentUser) return;
-            const playersData = await getPlayersInServer(currentServer);
+            if (!currentServer || !currentUser || !gameActive) return;
             
-            for (const p of playersData) {
-                if (p.username === currentUser.username) {
-                    localPlayerHealth = p.health;
-                    document.getElementById('hp-value').innerText = localPlayerHealth;
+            const players = await getServerPlayers(currentServer);
+            
+            for (const player of players) {
+                if (player.username === currentUser.username) {
+                    localPlayerHealth = player.health;
                     const percent = (localPlayerHealth / 100) * 100;
                     document.getElementById('health-fill').style.width = `${percent}%`;
-                    document.getElementById('health-text').innerHTML = `❤️ ${localPlayerHealth} HP`;
                     
                     if (localPlayerHealth <= 0) {
-                        // Respawn at random point
-                        const respawn = getRandomRespawn();
-                        localPlayerMesh.position.set(respawn.x, 0.5, respawn.z);
-                        await updatePlayerState(currentUser.username, currentServer, respawn, 100);
+                        const respawnPoint = getRandomRespawn();
+                        localPlayerMesh.position.set(respawnPoint.x, 0.55, respawnPoint.z);
+                        await respawn(currentServer, currentUser.username, respawnPoint.x, respawnPoint.z);
                         localPlayerHealth = 100;
                     }
                 } else {
-                    if (!players[p.username]) {
-                        const color = 0xff6666;
-                        const mesh = createPlayerModel(color, p.username);
+                    if (!otherPlayers[player.username]) {
+                        const mesh = createPlayerModel(0xff6666, player.username);
                         scene.add(mesh);
-                        players[p.username] = { mesh, health: p.health, lastAttackTime: 0 };
+                        otherPlayers[player.username] = mesh;
                     }
-                    players[p.username].mesh.position.set(p.position_x, 0.5, p.position_z);
-                    players[p.username].health = p.health;
+                    otherPlayers[player.username].position.set(player.position_x, 0.55, player.position_z);
                 }
             }
             
             // Remove disconnected players
-            for (const username in players) {
-                if (!playersData.find(p => p.username === username)) {
-                    scene.remove(players[username].mesh);
-                    delete players[username];
+            for (const username in otherPlayers) {
+                if (!players.find(p => p.username === username)) {
+                    scene.remove(otherPlayers[username]);
+                    delete otherPlayers[username];
                 }
             }
-            
-            document.getElementById('player-count').innerText = playersData.length;
-            const listHtml = playersData.map(p => `${p.username} ❤️ ${p.health}`).join('<br>');
-            document.getElementById('players-list-content').innerHTML = listHtml;
         }
         
-        // ==================== COMBAT SYSTEM ====================
-        function performAttack() {
+        function handleAttack() {
             if (!mouseLockActive || !currentServer || !currentUser) return;
+            
             const now = Date.now();
-            if (now - lastAttackTime < ATTACK_COOLDOWN_MS) return;
+            if (now - lastAttackTime < ATTACK_COOLDOWN) return;
             lastAttackTime = now;
             
-            // Raycast forward to detect other players
             const direction = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw)).normalize();
             const origin = localPlayerMesh.position.clone();
             origin.y += 0.8;
             
-            for (const [username, player] of Object.entries(players)) {
-                const targetPos = player.mesh.position.clone();
+            for (const [username, mesh] of Object.entries(otherPlayers)) {
+                const targetPos = mesh.position.clone();
                 targetPos.y += 0.8;
-                const toTarget = targetPos.clone().sub(origin);
-                const dist = toTarget.length();
+                const dist = origin.distanceTo(targetPos);
+                
                 if (dist < ATTACK_RANGE) {
-                    const angle = Math.abs(direction.angleTo(toTarget.normalize()));
+                    const toTarget = targetPos.clone().sub(origin).normalize();
+                    const angle = direction.angleTo(toTarget);
+                    
                     if (angle < Math.PI / 3) {
-                        // Attack!
-                        attackPlayer(currentUser.username, username, currentServer, ATTACK_DAMAGE);
-                        // Visual feedback
-                        player.mesh.children[0].material.emissiveIntensity = 0.8;
-                        setTimeout(() => { player.mesh.children[0].material.emissiveIntensity = 0; }, 150);
+                        performAttack(currentServer, currentUser.username, username, ATTACK_DAMAGE);
+                        mesh.children[0].material.emissiveIntensity = 0.8;
+                        setTimeout(() => { mesh.children[0].material.emissiveIntensity = 0; }, 150);
                         break;
                     }
                 }
             }
         }
         
-        // ==================== MOVEMENT & JUMP ====================
         function handleMovement(delta) {
             if (!mouseLockActive) return;
             
@@ -644,7 +505,7 @@
             const speed = 7.0;
             let newX = localPlayerMesh.position.x + move.x * speed * delta;
             let newZ = localPlayerMesh.position.z + move.z * speed * delta;
-            const boundary = 28;
+            const boundary = 22;
             newX = Math.max(-boundary, Math.min(boundary, newX));
             newZ = Math.max(-boundary, Math.min(boundary, newZ));
             localPlayerMesh.position.x = newX;
@@ -673,21 +534,21 @@
             const lookDir = new THREE.Vector3(Math.sin(yaw), Math.sin(pitch), Math.cos(yaw));
             camera.lookAt(cameraPos.clone().add(lookDir));
             
-            // Sync position to server (throttled)
-            if (currentServer && currentUser && Math.random() < 0.1) {
-                updatePlayerState(currentUser.username, currentServer, localPlayerMesh.position, localPlayerHealth);
+            // Throttled position update
+            if (Math.random() < 0.1) {
+                updatePlayerState(currentServer, currentUser.username, newX, newZ, localPlayerHealth);
             }
         }
         
-        // ==================== EVENT HANDLERS ====================
-        // Auth handlers (simplified for demo)
+        // ==================== UI HANDLERS ====================
         document.getElementById('login-btn').onclick = async () => {
             const username = document.getElementById('login-username').value;
             const password = document.getElementById('login-password').value;
             const result = await login(username, password);
+            
             if (result.success) {
                 currentUser = { username };
-                document.getElementById('auth-modal').classList.add('hidden');
+                document.getElementById('login-modal').classList.add('hidden');
                 document.getElementById('server-modal').classList.remove('hidden');
             } else {
                 document.getElementById('login-error').innerText = result.error;
@@ -697,33 +558,41 @@
         document.getElementById('signup-btn').onclick = async () => {
             const username = document.getElementById('signup-username').value;
             const password = document.getElementById('signup-password').value;
+            const confirm = document.getElementById('signup-confirm').value;
+            
+            if (password !== confirm) {
+                document.getElementById('signup-error').innerText = 'Passwords do not match';
+                return;
+            }
+            
             const result = await signup(username, password);
             if (result.success) {
+                document.getElementById('signup-modal').classList.add('hidden');
+                document.getElementById('login-modal').classList.remove('hidden');
                 document.getElementById('signup-error').innerText = '';
-                document.getElementById('signup-form').style.display = 'none';
-                document.getElementById('login-form').style.display = 'block';
             } else {
                 document.getElementById('signup-error').innerText = result.error;
             }
         };
         
-        document.getElementById('switch-to-signup').onclick = () => {
-            document.getElementById('login-form').style.display = 'none';
-            document.getElementById('signup-form').style.display = 'block';
+        document.getElementById('show-signup').onclick = () => {
+            document.getElementById('login-modal').classList.add('hidden');
+            document.getElementById('signup-modal').classList.remove('hidden');
         };
         
-        document.getElementById('switch-to-login').onclick = () => {
-            document.getElementById('signup-form').style.display = 'none';
-            document.getElementById('login-form').style.display = 'block';
+        document.getElementById('show-login').onclick = () => {
+            document.getElementById('signup-modal').classList.add('hidden');
+            document.getElementById('login-modal').classList.remove('hidden');
         };
         
         document.getElementById('create-server-btn').onclick = async () => {
             const result = await createServer(currentUser.username);
             if (result.success) {
-                currentServer = result.code;
+                currentServer = result.server_code;
                 await joinServer(currentServer, currentUser.username);
-                document.getElementById('server-modal').classList.add('hidden');
                 startGame();
+            } else {
+                document.getElementById('server-error').innerText = result.error;
             }
         };
         
@@ -732,7 +601,6 @@
             const result = await joinServer(code, currentUser.username);
             if (result.success) {
                 currentServer = code;
-                document.getElementById('server-modal').classList.add('hidden');
                 startGame();
             } else {
                 document.getElementById('server-error').innerText = result.error;
@@ -741,29 +609,33 @@
         
         function startGame() {
             gameActive = true;
-            document.getElementById('waiting-modal').classList.add('hidden');
+            document.getElementById('server-modal').classList.add('hidden');
             document.getElementById('game-ui').classList.remove('hidden');
             document.getElementById('health-bar').classList.remove('hidden');
             document.getElementById('server-info').classList.remove('hidden');
-            document.getElementById('player-list').classList.remove('hidden');
             document.getElementById('controls').classList.remove('hidden');
-            document.getElementById('server-code-display-game').innerText = currentServer;
+            document.getElementById('lock-message').classList.remove('hidden');
+            document.getElementById('player-name').innerText = currentUser.username;
+            document.getElementById('server-code-display').innerText = currentServer;
             
+            localPlayerMesh = createPlayerModel(0x44aaff, currentUser.username);
             localPlayerMesh.position.set(MAIN_SPAWN.x, 0.55, MAIN_SPAWN.z);
+            scene.add(localPlayerMesh);
             
             // Mouse lock
             const canvas = renderer.domElement;
             canvas.addEventListener('click', () => {
                 if (!mouseLockActive) canvas.requestPointerLock();
             });
+            
             document.addEventListener('pointerlockchange', () => {
                 mouseLockActive = document.pointerLockElement === canvas;
                 document.body.style.cursor = mouseLockActive ? 'none' : 'auto';
+                document.getElementById('lock-message').classList.add('hidden');
             });
             
-            // Attack on click
             canvas.addEventListener('mousedown', (e) => {
-                if (e.button === 0 && mouseLockActive) performAttack();
+                if (e.button === 0 && mouseLockActive) handleAttack();
             });
             
             // Keyboard
@@ -776,6 +648,7 @@
                 if (key === ' ') { moveState.jump = true; e.preventDefault(); }
                 if (key === 'escape' && mouseLockActive) document.exitPointerLock();
             });
+            
             window.addEventListener('keyup', (e) => {
                 const key = e.key.toLowerCase();
                 if (key === 'w') moveState.forward = false;
@@ -795,18 +668,24 @@
             animate();
         }
         
-        // Animation
+        // Animation loop
         let lastTime = performance.now();
+        
         function animate() {
             const now = performance.now();
             let delta = Math.min(0.033, (now - lastTime) / 1000);
             lastTime = now;
+            
             if (gameActive) handleMovement(delta);
             renderer.render(scene, camera);
             requestAnimationFrame(animate);
         }
         
-        animate();
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
     </script>
 </body>
 </html>
