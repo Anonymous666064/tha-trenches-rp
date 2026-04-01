@@ -157,6 +157,8 @@
         let gameData = { money: 100000, bank: 2500, ownedVehicles: ["Test Vehicle"], ownedHouses: [], friends: [] };
         let policeJob = { active: false, onDuty: false, paycheck: 500, lastPayTime: 0 };
         let activeUberJob = null;
+        
+        // World arrays
         let weedPots = [];
         let gasStationsList = [];
         let gunDealers = [];
@@ -171,6 +173,8 @@
         let trafficSignalIntersections = [];
         let bloodPools = [];
         let collisionBoxes = [];
+        let stripClubs = [];          // <-- FIXED: missing array
+        let roadSegments = [];        // optional, used in some functions
         
         // Camera controls
         let cameraAngle = 0, cameraPitch = 0;
