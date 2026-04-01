@@ -211,9 +211,38 @@
             const { data, error } = await supabase.auth.signInWithPassword({ email, password });
             if (error) { document.getElementById('auth-message').textContent = error.message; return false; }
             currentUser = data.user;
-            // Load user profile
-            const { data: profile } = await supabase.from('user_profiles').select('*').eq('user_id', currentUser.id).single();
-            if (profile) {
+            // Load or create profile
+            const { data: profile, error: profileError } = await supabase.from('user_profiles').select('*').eq('user_id', currentUser.id).maybeSingle();
+            if (profileError && profileError.code !== 'PGRST116') {
+                console.error(profileError);
+                document.getElementById('auth-message').textContent = 'Error loading profile';
+                return false;
+            }
+            if (!profile) {
+                // Create profile
+                const { error: insertError } = await supabase.from('user_profiles').insert({
+                    user_id: currentUser.id,
+                    username: `User_${Math.floor(Math.random() * 10000)}`,
+                    game_data: JSON.stringify({ money: 100000, ownedVehicles: [], ownedHouses: [] })
+                });
+                if (insertError) {
+                    console.error(insertError);
+                    document.getElementById('auth-message').textContent = 'Error creating profile';
+                    return false;
+                }
+                // Reload profile
+                const { data: newProfile } = await supabase.from('user_profiles').select('*').eq('user_id', currentUser.id).single();
+                if (newProfile) {
+                    const loaded = JSON.parse(newProfile.game_data || '{}');
+                    gameData.money = loaded.money ?? 100000;
+                    gameData.ownedVehicles = loaded.ownedVehicles ?? [];
+                    gameData.ownedHouses = loaded.ownedHouses ?? [];
+                    playerStats.money = gameData.money;
+                    playerStats.kills = loaded.kills ?? 0;
+                    inventory = loaded.inventory ?? { slots: [], selectedSlot: 0 };
+                    myUsername = newProfile.username;
+                }
+            } else {
                 const loaded = JSON.parse(profile.game_data || '{}');
                 gameData.money = loaded.money ?? 100000;
                 gameData.ownedVehicles = loaded.ownedVehicles ?? [];
@@ -221,6 +250,7 @@
                 playerStats.money = gameData.money;
                 playerStats.kills = loaded.kills ?? 0;
                 inventory = loaded.inventory ?? { slots: [], selectedSlot: 0 };
+                myUsername = profile.username;
             }
             document.getElementById('auth-modal').style.display = 'none';
             document.getElementById('server-choice').style.display = 'flex';
@@ -230,8 +260,7 @@
             if (password !== confirm) { document.getElementById('auth-message').textContent = 'Passwords do not match'; return false; }
             const { data, error } = await supabase.auth.signUp({ email, password });
             if (error) { document.getElementById('auth-message').textContent = error.message; return false; }
-            // Create profile
-            await supabase.from('user_profiles').insert({ user_id: data.user.id, username, game_data: JSON.stringify({ money: 100000, ownedVehicles: [], ownedHouses: [] }) });
+            // After signup, log in (which will create profile)
             return login(email, password);
         }
         async function createServer(serverId) {
@@ -251,7 +280,6 @@
             await joinGame();
         }
         async function joinGame() {
-            myUsername = (await supabase.from('user_profiles').select('username').eq('user_id', currentUser.id).single()).data.username;
             const spawnPos = { x: 0, y: 0.8, z: 0 };
             const playerColor = `hsl(${Math.random()*360}, 70%, 55%)`;
             const { data, error } = await supabase.from('players').insert({
@@ -549,38 +577,43 @@
                     return;
                 }
             }
-            for (let b of buildings) {
-                if (distanceXZ(localPlayerMesh.position, b.position) < 8) {
-                    if (b === gasStation?.mesh) {
-                        showNotification('Gas station: Refuel here', '#88ff88');
-                        if (myVehicleId && mySeat === 'driver') {
-                            const veh = vehicles.get(myVehicleId);
-                            if (veh && (veh.mesh.userData.fuel || 100) < 100) {
-                                const cost = (100 - (veh.mesh.userData.fuel || 100)) * 0.7;
-                                if (playerStats.money >= cost) {
-                                    playerStats.money -= cost;
-                                    veh.mesh.userData.fuel = 100;
-                                    updateUI();
-                                    showNotification(`Refueled! Cost $${cost.toFixed(0)}`, '#4ae04a');
-                                } else showNotification('Not enough money', '#ff5555');
-                            }
-                        }
-                    } else if (b === policeStation?.mesh) {
-                        showNotification('Police station - you can\'t enter yet', '#ffaa00');
-                    } else if (b === hospital?.mesh) {
-                        showNotification('Hospital - healing services', '#88ff88');
-                        if (playerStats.health < 100) {
-                            const cost = 50;
-                            if (playerStats.money >= cost) {
-                                playerStats.money -= cost;
-                                playerStats.health = 100;
-                                updateUI();
-                                showNotification('Healed!', '#4ae04a');
-                            } else showNotification('Not enough money', '#ff5555');
-                        }
-                    } else {
-                        showNotification('House interior not implemented yet', '#ffaa00');
+            // Only check buildings if they exist
+            if (gasStation && gasStation.mesh && distanceXZ(localPlayerMesh.position, gasStation.mesh.position) < 8) {
+                showNotification('Gas station: Refuel here', '#88ff88');
+                if (myVehicleId && mySeat === 'driver') {
+                    const veh = vehicles.get(myVehicleId);
+                    if (veh && (veh.mesh.userData.fuel || 100) < 100) {
+                        const cost = (100 - (veh.mesh.userData.fuel || 100)) * 0.7;
+                        if (playerStats.money >= cost) {
+                            playerStats.money -= cost;
+                            veh.mesh.userData.fuel = 100;
+                            updateUI();
+                            showNotification(`Refueled! Cost $${cost.toFixed(0)}`, '#4ae04a');
+                        } else showNotification('Not enough money', '#ff5555');
                     }
+                }
+                return;
+            }
+            if (policeStation && policeStation.mesh && distanceXZ(localPlayerMesh.position, policeStation.mesh.position) < 8) {
+                showNotification('Police station - you can\'t enter yet', '#ffaa00');
+                return;
+            }
+            if (hospital && hospital.mesh && distanceXZ(localPlayerMesh.position, hospital.mesh.position) < 8) {
+                showNotification('Hospital - healing services', '#88ff88');
+                if (playerStats.health < 100) {
+                    const cost = 50;
+                    if (playerStats.money >= cost) {
+                        playerStats.money -= cost;
+                        playerStats.health = 100;
+                        updateUI();
+                        showNotification('Healed!', '#4ae04a');
+                    } else showNotification('Not enough money', '#ff5555');
+                }
+                return;
+            }
+            for (let house of houses) {
+                if (house.mesh && distanceXZ(localPlayerMesh.position, house.mesh.position) < 8) {
+                    showNotification('House interior not implemented yet', '#ffaa00');
                     return;
                 }
             }
@@ -654,7 +687,7 @@
                 updateUI();
                 document.getElementById('wasted').style.display = 'none';
                 addLog('You respawned at the hospital!', 'info');
-                const spawnPos = hospital ? new THREE.Vector3(hospital.position.x, 0.8, hospital.position.z) : new THREE.Vector3(0,0.8,0);
+                const spawnPos = hospital && hospital.mesh ? new THREE.Vector3(hospital.mesh.position.x, 0.8, hospital.mesh.position.z) : new THREE.Vector3(0,0.8,0);
                 const playerColor = `hsl(${Math.random()*360},70%,55%)`;
                 await supabase.from('players').update({
                     is_alive: true, health: 100,
