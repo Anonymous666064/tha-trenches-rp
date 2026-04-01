@@ -137,6 +137,7 @@
             border-radius: 50%;
             z-index: 150;
             box-shadow: 0 0 0 2px rgba(0,0,0,0.5), 0 0 0 4px rgba(255,255,255,0.3);
+            pointer-events: none;
         }
         
         /* Wasted Screen */
@@ -146,7 +147,7 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.9);
+            background: rgba(0,0,0,0.95);
             z-index: 300;
             display: none;
             align-items: center;
@@ -155,17 +156,29 @@
             color: red;
             font-size: 48px;
             font-weight: bold;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
         }
         
         #respawn-btn {
             margin-top: 20px;
-            padding: 10px 20px;
+            padding: 10px 30px;
             font-size: 20px;
-            background: #444;
+            background: #ff4444;
             color: white;
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            transition: 0.2s;
+        }
+        
+        #respawn-btn:hover {
+            background: #ff6666;
+            transform: scale(1.05);
         }
         
         /* Vehicle UI */
@@ -187,24 +200,27 @@
             bottom: 200px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(0,0,0,0.9);
+            background: rgba(0,0,0,0.95);
             padding: 15px;
             border-radius: 10px;
             display: none;
             z-index: 150;
             min-width: 250px;
+            text-align: center;
         }
         
         .shop-item {
             margin: 5px 0;
-            padding: 5px;
+            padding: 8px;
             background: #333;
             border-radius: 5px;
             cursor: pointer;
+            transition: 0.2s;
         }
         
         .shop-item:hover {
             background: #555;
+            transform: scale(1.02);
         }
         
         /* Controls */
@@ -212,13 +228,14 @@
             position: absolute;
             bottom: 15px;
             left: 15px;
-            background: rgba(0,0,0,0.5);
-            padding: 4px 12px;
+            background: rgba(0,0,0,0.6);
+            padding: 6px 12px;
             border-radius: 20px;
             color: white;
-            font-size: 10px;
+            font-size: 11px;
             pointer-events: none;
             z-index: 99;
+            font-family: monospace;
         }
         
         .server-panel {
@@ -227,19 +244,27 @@
         
         input, button {
             margin: 5px 0;
-            padding: 5px;
+            padding: 8px;
             border-radius: 5px;
             border: none;
+        }
+        
+        input {
+            background: #222;
+            color: white;
+            border: 1px solid #555;
         }
         
         button {
             background: #4a6a8a;
             color: white;
             cursor: pointer;
+            transition: 0.2s;
         }
         
         button:hover {
             background: #5a7a9a;
+            transform: scale(1.02);
         }
         
         .log-container {
@@ -253,11 +278,29 @@
             padding: 2px 0;
             border-bottom: 1px solid #333;
         }
+        
+        .log-entry.kill {
+            color: #ff8888;
+        }
+        
+        .log-entry.join {
+            color: #88ff88;
+        }
+        
+        .instruction {
+            font-size: 11px;
+            color: #ffaa44;
+            text-align: center;
+            margin-top: 5px;
+            padding: 3px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 5px;
+        }
     </style>
 </head>
 <body>
     <div id="ui">
-        <div class="money">💰 $<span id="money">500</span></div>
+        <div class="money">💰 $<span id="money">100000</span></div>
         <div class="stat-bar">
             <span class="stat-label">❤️ Health</span>
             <div class="bar-bg"><div class="bar-fill health-fill" id="health-bar" style="width: 100%"></div></div>
@@ -272,12 +315,13 @@
         </div>
         
         <div class="server-panel">
-            <input type="text" id="username" placeholder="Username" value="Player_" + Math.floor(Math.random() * 1000)>
+            <input type="text" id="username" placeholder="Username" value="">
             <input type="text" id="serverCode" placeholder="Server Code" value="RP_WORLD">
-            <button id="joinGame">Join Game</button>
-            <button id="leaveGame" style="background:#8a4a4a;">Leave Game</button>
+            <button id="joinGame">🎮 Join Game</button>
+            <button id="leaveGame" style="background:#8a4a4a;">🚪 Leave Game</button>
         </div>
         <div class="log-container" id="log"></div>
+        <div class="instruction">💡 Click on game to lock mouse | Click to shoot | ESC to unlock</div>
     </div>
     
     <div id="phone" onclick="togglePhone()">
@@ -295,17 +339,18 @@
     
     <div id="wasted">
         <div>💀 WASTED 💀</div>
-        <button id="respawn-btn" onclick="respawn()">Respawn ($100)</button>
+        <div style="font-size: 20px; margin-top: 10px;">You were killed!</div>
+        <button id="respawn-btn" onclick="respawn()">Respawn ($1000)</button>
     </div>
     
     <div id="vehicle-ui">
-        🚗 In Vehicle | Press E to exit
+        🚗 In Vehicle | Press F to exit
     </div>
     
     <div id="npc-interaction"></div>
     
     <div id="controls-note">
-        WASD Move | Hold Right Click + Drag to Rotate Camera | E Interact | TAB Phone | F Enter/Exit Vehicle
+        🎮 WASD Move | 🖱️ Click to Lock Mouse | 🔫 Click to Shoot | E Interact | TAB Phone | F Enter/Exit Vehicle
     </div>
     
     <script type="importmap">
@@ -339,29 +384,29 @@
         let currentVehicle = null;
         let isInVehicle = false;
         let currentWeapon = 'pistol';
-        let ammo = { pistol: 30, shotgun: 15, rifle: 40 };
+        let ammo = { pistol: 999, shotgun: 999, rifle: 999 };
         let inventory = [];
         let updateInterval = null;
         let syncInterval = null;
-        let dayTime = 0.5;
+        let isDead = false;
         
-        // Player stats
-        let playerStats = { health: 100, hunger: 100, thirst: 100, money: 500 };
+        // Player stats with 100,000 starting money
+        let playerStats = { health: 100, hunger: 100, thirst: 100, money: 100000 };
         
-        // Camera control variables
-        let cameraAngleX = 0; // Horizontal rotation
-        let cameraAngleY = 0.5; // Vertical rotation (slightly above)
-        const cameraDistance = 5;
-        let isMouseDown = false;
-        let lastMouseX = 0;
-        let lastMouseY = 0;
+        // Camera control with mouse lock
+        let mouseX = 0;
+        let mouseY = 0;
+        let cameraPitch = 0;
+        let cameraYaw = 0;
+        let isPointerLocked = false;
         
         // Three.js setup
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87CEEB);
-        scene.fog = new THREE.Fog(0x87CEEB, 80, 150);
+        scene.background = new THREE.Color(0x0a0a2a);
+        scene.fog = new THREE.Fog(0x0a0a2a, 80, 150);
         
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 1.6, 0);
         
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -383,7 +428,7 @@
         
         const vertices = terrainGeometry.attributes.position.array;
         for (let i = 0; i < vertices.length; i += 3) {
-            vertices[i+1] = 0; // Flat terrain
+            vertices[i+1] = 0;
         }
         
         terrainGeometry.computeVertexNormals();
@@ -392,12 +437,12 @@
         terrain.receiveShadow = true;
         scene.add(terrain);
         
-        // City buildings (flat area)
+        // City buildings
         const buildingColors = [0xccaa88, 0xaa8866, 0x88aacc, 0x88ccaa, 0xcc88aa];
         
         for (let i = -6; i <= 6; i++) {
             for (let j = -6; j <= 6; j++) {
-                if (Math.abs(i) < 3 && Math.abs(j) < 3) continue; // Center plaza
+                if (Math.abs(i) < 3 && Math.abs(j) < 3) continue;
                 const height = Math.random() * 5 + 2;
                 const building = new THREE.Mesh(
                     new THREE.BoxGeometry(2.8, height, 2.8),
@@ -424,7 +469,7 @@
             scene.add(roadZ);
         }
         
-        // Add grass/ground details
+        // Ground plane
         const groundMat = new THREE.MeshStandardMaterial({ color: 0x6aab5a });
         const groundPlane = new THREE.Mesh(new THREE.PlaneGeometry(terrainSize, terrainSize), groundMat);
         groundPlane.rotation.x = -Math.PI / 2;
@@ -460,13 +505,7 @@
         dirLight.position.set(10, 20, 5);
         dirLight.castShadow = true;
         dirLight.receiveShadow = true;
-        dirLight.shadow.mapSize.width = 1024;
-        dirLight.shadow.mapSize.height = 1024;
         scene.add(dirLight);
-        
-        const fillLight = new THREE.PointLight(0x4466cc, 0.3);
-        fillLight.position.set(0, 5, 0);
-        scene.add(fillLight);
         
         // Helper functions
         function makeLabel(text, color) {
@@ -481,6 +520,7 @@
             div.style.borderRadius = '20px';
             div.style.border = `1px solid ${color}`;
             div.style.whiteSpace = 'nowrap';
+            div.style.pointerEvents = 'none';
             return new CSS2DObject(div);
         }
         
@@ -500,24 +540,6 @@
             head.position.y = 1.25;
             head.castShadow = true;
             group.add(head);
-            
-            // Eyes
-            const eyeMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-            const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), eyeMat);
-            leftEye.position.set(-0.2, 1.35, 0.45);
-            const rightEye = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), eyeMat);
-            rightEye.position.set(0.2, 1.35, 0.45);
-            group.add(leftEye);
-            group.add(rightEye);
-            
-            // Pupils
-            const pupilMat = new THREE.MeshStandardMaterial({ color: 0x000000 });
-            const leftPupil = new THREE.Mesh(new THREE.SphereGeometry(0.07, 16, 16), pupilMat);
-            leftPupil.position.set(-0.2, 1.33, 0.55);
-            const rightPupil = new THREE.Mesh(new THREE.SphereGeometry(0.07, 16, 16), pupilMat);
-            rightPupil.position.set(0.2, 1.33, 0.55);
-            group.add(leftPupil);
-            group.add(rightPupil);
             
             if (isLocal) {
                 const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.65, 0.25, 8), new THREE.MeshStandardMaterial({ color: 0xff4444 }));
@@ -553,45 +575,43 @@
             return group;
         }
         
-        // Camera control with right mouse button
-        function handleMouseDown(event) {
-            if (event.button === 2) { // Right mouse button
-                isMouseDown = true;
-                lastMouseX = event.clientX;
-                lastMouseY = event.clientY;
-                event.preventDefault();
-                renderer.domElement.style.cursor = 'grabbing';
+        // Mouse lock for aiming
+        renderer.domElement.addEventListener('click', () => {
+            renderer.domElement.requestPointerLock();
+        });
+        
+        document.addEventListener('pointerlockchange', lockChange);
+        document.addEventListener('mozpointerlockchange', lockChange);
+        
+        function lockChange() {
+            if (document.pointerLockElement === renderer.domElement) {
+                isPointerLocked = true;
+                document.addEventListener('mousemove', onMouseMove);
+                addLog('🔒 Mouse locked - You can now aim and shoot!', 'info');
+            } else {
+                isPointerLocked = false;
+                document.removeEventListener('mousemove', onMouseMove);
+                addLog('🔓 Mouse unlocked', 'info');
             }
         }
         
-        function handleMouseUp(event) {
-            if (event.button === 2) {
-                isMouseDown = false;
-                renderer.domElement.style.cursor = 'default';
-            }
+        function onMouseMove(e) {
+            if (!isPointerLocked) return;
+            
+            mouseX += e.movementX * 0.002;
+            mouseY += e.movementY * 0.002;
+            
+            // Limit vertical look
+            mouseY = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, mouseY));
+            
+            cameraYaw = mouseX;
+            cameraPitch = mouseY;
+            
+            // Apply camera rotation
+            camera.rotation.order = 'YXZ';
+            camera.rotation.y = cameraYaw;
+            camera.rotation.x = cameraPitch;
         }
-        
-        function handleMouseMove(event) {
-            if (isMouseDown) {
-                const deltaX = event.clientX - lastMouseX;
-                const deltaY = event.clientY - lastMouseY;
-                
-                cameraAngleX += deltaX * 0.01;
-                cameraAngleY += deltaY * 0.01;
-                
-                // Limit vertical angle to avoid flipping
-                cameraAngleY = Math.max(0.2, Math.min(1.2, cameraAngleY));
-                
-                lastMouseX = event.clientX;
-                lastMouseY = event.clientY;
-            }
-        }
-        
-        // Prevent context menu on right click
-        renderer.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
-        renderer.domElement.addEventListener('mousedown', handleMouseDown);
-        window.addEventListener('mouseup', handleMouseUp);
-        window.addEventListener('mousemove', handleMouseMove);
         
         // UI Updates
         function updateUI() {
@@ -604,51 +624,108 @@
         function addLog(msg, type = 'info') {
             const logDiv = document.getElementById('log');
             const entry = document.createElement('div');
-            entry.className = 'log-entry';
+            entry.className = `log-entry ${type}`;
             entry.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}`;
             logDiv.appendChild(entry);
             entry.scrollIntoView({ behavior: 'smooth' });
             if (logDiv.children.length > 15) logDiv.removeChild(logDiv.children[0]);
         }
         
-        // Combat system
-        function dealDamageToPlayer(targetId, damage) {
-            const target = otherPlayers.get(targetId);
-            if (target) {
-                addLog(`Hit ${target.data.username} for ${damage} damage!`, 'info');
-                // Simulate damage - in real implementation, update database
-                if (Math.random() > 0.7) {
-                    removeRemotePlayer(targetId);
-                    addLog(`💀 ${target.data.username} was killed!`, 'info');
-                }
-            }
+        // Combat system - Kill other players
+        async function killPlayer(targetId, targetName) {
+            // Remove the player from the game
+            removeRemotePlayer(targetId);
+            
+            // Delete from database
+            await supabase.from('players').delete().eq('id', targetId);
+            
+            addLog(`💀 YOU KILLED ${targetName}! +$5000 reward!`, 'kill');
+            
+            // Add reward money to killer
+            playerStats.money += 5000;
+            updateUI();
         }
         
-        function shoot() {
-            if (!localPlayerMesh) return;
+        async function shoot() {
+            if (!localPlayerMesh || isDead || !isPointerLocked) return;
+            
+            if (ammo[currentWeapon] <= 0) {
+                addLog('Out of ammo! Buy more from Gun Dealer.', 'info');
+                return;
+            }
+            
+            ammo[currentWeapon]--;
             
             // Get camera direction for shooting
             const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-            const raycaster = new THREE.Raycaster(camera.position, direction, 0, 15);
+            const raycaster = new THREE.Raycaster(camera.position, direction, 0, 20);
             
             // Check for other players
             for (let [id, player] of otherPlayers) {
                 const intersects = raycaster.intersectObject(player.mesh);
                 if (intersects.length > 0) {
-                    dealDamageToPlayer(id, 35);
+                    // Hit another player - kill them instantly for demo
+                    await killPlayer(id, player.name);
                     break;
                 }
             }
             
-            // Muzzle flash
-            const flash = new THREE.PointLight(0xff6600, 1, 5);
+            // Muzzle flash effect
+            const flash = new THREE.PointLight(0xff6600, 1, 8);
             flash.position.copy(camera.position);
             scene.add(flash);
             setTimeout(() => scene.remove(flash), 50);
             
             // Recoil effect
-            cameraAngleY += 0.05;
-            setTimeout(() => { cameraAngleY -= 0.05; }, 50);
+            cameraPitch += 0.03;
+            mouseY = cameraPitch;
+            setTimeout(() => {
+                cameraPitch -= 0.03;
+                mouseY = cameraPitch;
+            }, 50);
+        }
+        
+        // Handle player death
+        async function die() {
+            if (isDead) return;
+            isDead = true;
+            
+            // Remove player from database
+            if (myPlayerId) {
+                await supabase.from('players').delete().eq('id', myPlayerId);
+            }
+            
+            // Show wasted screen
+            document.getElementById('wasted').style.display = 'flex';
+            
+            // Remove local player from scene
+            if (localPlayerMesh) {
+                scene.remove(localPlayerMesh);
+                scene.remove(localLabel);
+            }
+            
+            addLog('💀 You were killed! Respawn to continue.', 'kill');
+        }
+        
+        async function respawn() {
+            if (playerStats.money >= 1000) {
+                playerStats.money -= 1000;
+                playerStats.health = 100;
+                playerStats.hunger = 80;
+                playerStats.thirst = 80;
+                isDead = false;
+                updateUI();
+                document.getElementById('wasted').style.display = 'none';
+                
+                // Rejoin the server
+                if (currentServerId) {
+                    await joinServer(currentServerId, false);
+                }
+                
+                addLog('You respawned at the city center!', 'info');
+            } else {
+                addLog('Not enough money to respawn! Need $1000', 'info');
+            }
         }
         
         // Remote player management
@@ -663,7 +740,6 @@
             scene.add(label);
             otherPlayers.set(id, { mesh, label, name, data: { username: name } });
             addLog(`🟢 ${name} joined the server`, 'join');
-            updatePlayerCountUI();
         }
         
         function removeRemotePlayer(id) {
@@ -671,14 +747,9 @@
             if (entry) {
                 scene.remove(entry.mesh);
                 scene.remove(entry.label);
-                addLog(`🔴 ${entry.name} left the server`, 'leave');
+                addLog(`🔴 ${entry.name} left the server`, 'info');
                 otherPlayers.delete(id);
-                updatePlayerCountUI();
             }
-        }
-        
-        function updatePlayerCountUI() {
-            const count = otherPlayers.size + (localPlayerMesh ? 1 : 0);
         }
         
         // Database sync functions
@@ -717,7 +788,7 @@
         }
         
         async function updatePlayerPosition() {
-            if (!currentServerId || !myPlayerId || !localPlayerMesh) return;
+            if (!currentServerId || !myPlayerId || !localPlayerMesh || isDead) return;
             
             const { error } = await supabase
                 .from('players')
@@ -733,7 +804,7 @@
         }
         
         async function leaveServer() {
-            if (myPlayerId) {
+            if (myPlayerId && !isDead) {
                 await supabase.from('players').delete().eq('id', myPlayerId);
             }
             
@@ -761,8 +832,8 @@
         async function joinServer(serverId, isCreate = false) {
             myUsername = document.getElementById('username').value.trim();
             if (!myUsername) {
-                addLog('Please enter a username', 'info');
-                return;
+                myUsername = `Player_${Math.floor(Math.random() * 1000)}`;
+                document.getElementById('username').value = myUsername;
             }
             
             if (!serverId.trim()) {
@@ -773,7 +844,7 @@
             await leaveServer();
             currentServerId = serverId.trim();
             
-            const spawnPos = { x: (Math.random() - 0.5) * 12, y: 0.8, z: (Math.random() - 0.5) * 12 };
+            const spawnPos = { x: (Math.random() - 0.5) * 15, y: 0.8, z: (Math.random() - 0.5) * 15 };
             const playerColor = `hsl(${Math.random() * 360}, 70%, 55%)`;
             
             const { data, error } = await supabase
@@ -805,7 +876,12 @@
             localLabel.position.set(spawnPos.x, spawnPos.y + 1.6, spawnPos.z);
             scene.add(localLabel);
             
+            // Set camera position
+            camera.position.copy(localPlayerMesh.position);
+            camera.position.y += 1.6;
+            
             addLog(`${isCreate ? 'Created' : 'Joined'} server "${currentServerId}" as ${myUsername}`, 'success');
+            addLog(`💰 You have $${playerStats.money} to spend!`, 'info');
             
             await syncPlayers();
             syncInterval = setInterval(() => syncPlayers(), 1000);
@@ -827,6 +903,9 @@
                 e.preventDefault();
                 togglePhone();
             }
+            if (key === 'escape' && isPointerLocked) {
+                document.exitPointerLock();
+            }
         });
         
         document.addEventListener('keyup', (e) => {
@@ -838,26 +917,23 @@
         });
         
         function updateMovement() {
-            if (!localPlayerMesh) return;
+            if (!localPlayerMesh || isDead) return;
             
             // Calculate camera direction for movement (horizontal only)
-            const cameraDirection = new THREE.Vector3();
-            camera.getWorldDirection(cameraDirection);
-            cameraDirection.y = 0;
-            cameraDirection.normalize();
-            
-            const cameraRight = new THREE.Vector3();
-            cameraRight.crossVectors(new THREE.Vector3(0, 1, 0), cameraDirection);
-            cameraRight.normalize();
+            const forward = new THREE.Vector3();
+            const right = new THREE.Vector3();
+            camera.getWorldDirection(forward);
+            forward.y = 0;
+            forward.normalize();
+            right.crossVectors(new THREE.Vector3(0, 1, 0), forward);
             
             const move = new THREE.Vector3();
+            if (keys.w) move.add(forward);
+            if (keys.s) move.sub(forward);
+            if (keys.d) move.add(right);
+            if (keys.a) move.sub(right);
             
-            if (keys.w) move.add(cameraDirection);
-            if (keys.s) move.sub(cameraDirection);
-            if (keys.d) move.add(cameraRight);
-            if (keys.a) move.sub(cameraRight);
-            
-            move.normalize();
+            if (move.length() > 0) move.normalize();
             move.multiplyScalar(moveSpeed * 0.016);
             
             let newPos = localPlayerMesh.position.clone().add(move);
@@ -868,26 +944,15 @@
             localPlayerMesh.position.copy(newPos);
             localLabel.position.copy(newPos);
             localLabel.position.y += 1.6;
-        }
-        
-        // Update camera position based on player and rotation angles
-        function updateCamera() {
-            if (!localPlayerMesh) return;
             
-            // Calculate camera position in spherical coordinates
-            const x = Math.sin(cameraAngleX) * Math.cos(cameraAngleY) * cameraDistance;
-            const z = Math.cos(cameraAngleX) * Math.cos(cameraAngleY) * cameraDistance;
-            const y = Math.sin(cameraAngleY) * cameraDistance + 1.5;
-            
-            camera.position.x = localPlayerMesh.position.x + x;
-            camera.position.z = localPlayerMesh.position.z + z;
-            camera.position.y = localPlayerMesh.position.y + y;
-            camera.lookAt(localPlayerMesh.position);
+            // Update camera position to follow player
+            camera.position.copy(localPlayerMesh.position);
+            camera.position.y += 1.6;
         }
         
         // NPC Interaction
         function interactWithNPC() {
-            if (!localPlayerMesh) return;
+            if (!localPlayerMesh || isDead) return;
             
             for (let npc of npcs) {
                 const distance = localPlayerMesh.position.distanceTo(npc.position);
@@ -911,9 +976,9 @@
                 `;
             } else if (type === 'weapons') {
                 ui.innerHTML += `
-                    <div class="shop-item" onclick="buyWeapon('pistol', 500)">🔫 Pistol - $500 (30 ammo)</div>
-                    <div class="shop-item" onclick="buyWeapon('shotgun', 1200)">🔫 Shotgun - $1200 (15 ammo)</div>
-                    <div class="shop-item" onclick="buyWeapon('rifle', 2000)">🔫 Rifle - $2000 (40 ammo)</div>
+                    <div class="shop-item" onclick="buyWeapon('pistol', 500)">🔫 Pistol - $500 (Unlimited Ammo)</div>
+                    <div class="shop-item" onclick="buyWeapon('shotgun', 1200)">🔫 Shotgun - $1200 (Unlimited Ammo)</div>
+                    <div class="shop-item" onclick="buyWeapon('rifle', 2000)">🔫 Rifle - $2000 (Unlimited Ammo)</div>
                 `;
             } else if (type === 'drug_dealer') {
                 ui.innerHTML += `
@@ -944,7 +1009,8 @@
             if (playerStats.money >= price) {
                 playerStats.money -= price;
                 currentWeapon = weapon;
-                addLog(`Bought ${weapon}!`);
+                ammo[weapon] = 999; // Unlimited ammo essentially
+                addLog(`Bought ${weapon}! Unlimited ammo!`);
                 updateUI();
             } else {
                 addLog('Not enough money!');
@@ -982,68 +1048,16 @@
         };
         
         window.openInventory = () => {
-            addLog(`📦 Inventory: ${inventory.length} items | Weapon: ${currentWeapon} | Ammo: ${ammo[currentWeapon]}`);
+            addLog(`📦 Inventory: ${inventory.length} items | Weapon: ${currentWeapon} | Ammo: Unlimited`);
         };
         
         window.startWeedJob = () => {
             addLog('🌿 Weed Farming: Buy seeds from Weed Dealer, plant, wait to grow, then sell!');
         };
         
-        window.respawn = () => {
-            if (playerStats.money >= 100) {
-                playerStats.money -= 100;
-                playerStats.health = 100;
-                playerStats.hunger = 80;
-                playerStats.thirst = 80;
-                updateUI();
-                document.getElementById('wasted').style.display = 'none';
-                
-                if (localPlayerMesh) {
-                    localPlayerMesh.position.set(0, 0.8, 0);
-                }
-                addLog('You respawned at the city center!');
-            } else {
-                addLog('Not enough money to respawn!');
-            }
-        };
-        
-        function die() {
-            document.getElementById('wasted').style.display = 'flex';
-            addLog('You died! Click respawn to continue.');
-        }
-        
-        function takeDamage(amount) {
-            playerStats.health = Math.max(0, playerStats.health - amount);
-            updateUI();
-            if (playerStats.health <= 0) {
-                die();
-            }
-        }
-        
-        // Survival mechanics
-        setInterval(() => {
-            if (localPlayerMesh) {
-                playerStats.hunger = Math.max(0, playerStats.hunger - 0.3);
-                playerStats.thirst = Math.max(0, playerStats.thirst - 0.4);
-                if (playerStats.hunger <= 0 || playerStats.thirst <= 0) {
-                    takeDamage(1);
-                }
-                updateUI();
-            }
-        }, 5000);
-        
-        // Day/Night cycle
-        function updateDayNight() {
-            dayTime += 0.0005;
-            if (dayTime > 1) dayTime -= 1;
-            const intensity = Math.sin(dayTime * Math.PI);
-            dirLight.intensity = 0.4 + intensity * 0.6;
-            scene.background.setHSL(0.55, 0.5, 0.2 + intensity * 0.3);
-        }
-        
         // Shooting with left mouse click
         renderer.domElement.addEventListener('click', (e) => {
-            if (e.button === 0 && !isMouseDown) { // Left click only when not rotating camera
+            if (isPointerLocked && !isDead) {
                 shoot();
             }
         });
@@ -1061,10 +1075,31 @@
         // Set random username
         document.getElementById('username').value = `Player_${Math.floor(Math.random() * 1000)}`;
         
+        // Survival mechanics
+        setInterval(() => {
+            if (localPlayerMesh && !isDead) {
+                playerStats.hunger = Math.max(0, playerStats.hunger - 0.3);
+                playerStats.thirst = Math.max(0, playerStats.thirst - 0.4);
+                if (playerStats.hunger <= 0 || playerStats.thirst <= 0) {
+                    die();
+                }
+                updateUI();
+            }
+        }, 5000);
+        
+        // Day/Night cycle
+        let dayTime = 0.5;
+        function updateDayNight() {
+            dayTime += 0.0005;
+            if (dayTime > 1) dayTime -= 1;
+            const intensity = Math.sin(dayTime * Math.PI);
+            dirLight.intensity = 0.4 + intensity * 0.6;
+            scene.background.setHSL(0.55, 0.5, 0.1 + intensity * 0.2);
+        }
+        
         // Animation loop
         function animate() {
             updateMovement();
-            updateCamera();
             updateDayNight();
             renderer.render(scene, camera);
             labelRenderer.render(scene, camera);
@@ -1072,12 +1107,13 @@
         }
         
         animate();
-        addLog('✨ Welcome to RP World! Join a server to start playing.', 'info');
-        addLog('💡 Hold RIGHT CLICK + Drag to rotate camera 360 degrees!', 'info');
+        addLog('✨ Welcome to RP World! Click on game to lock mouse and start playing!', 'info');
+        addLog('💰 You start with $100,000! Go buy weapons and hunt other players!', 'info');
+        addLog('💀 Kill other players to earn $5,000 rewards!', 'info');
         
         // Add decorative elements
         const starGeometry = new THREE.BufferGeometry();
-        const starCount = 500;
+        const starCount = 800;
         const starPositions = new Float32Array(starCount * 3);
         for (let i = 0; i < starCount; i++) {
             starPositions[i*3] = (Math.random() - 0.5) * 200;
