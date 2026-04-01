@@ -46,14 +46,14 @@ Players: <span id="playerCount">0</span>
 <script>
 const sb = supabase.createClient(
   "https://hcvewiwhtxqpbogcrukk.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjdmV3aXdodHhxcGJvZ2NydWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTQ4MzMsImV4cCI6MjA5MDQ3MDgzM30.UsdvDyrGl4OhmbDjonyOagknHf--Zhe-fhCi0LFVoQw"
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.UsdvDyrGl4OhmbDjonyOagknHf--Zhe-fhCi0LFVoQw"
 );
 
 let mode, user, serverId;
 window.selectMode = m => { mode = m; menu.classList.add("hidden"); auth.classList.remove("hidden"); };
 
 window.login = async () => {
-  let {data, error} = await sb.auth.signInWithPassword({email: email.value, password: password.value});
+  const { data, error } = await sb.auth.signInWithPassword({email: email.value, password: password.value});
   if(error) return alert(error.message);
   user = data.user;
   afterAuth();
@@ -70,24 +70,58 @@ function afterAuth(){
   else startGame();
 }
 
+// ========================
+// CREATE SERVER
+// ========================
 window.createServer = async () => {
   const code = serverCode.value;
-  const {data, error} = await sb.from("servers").insert([{code}]).select();
+
+  // Check if server code exists
+  const { data: existing, error: checkError } = await sb.from("servers")
+    .select("*")
+    .eq("code", code)
+    .single()
+    .catch(() => null);
+
+  if(existing){
+    alert("Server code already exists, joining it instead.");
+    serverId = existing.id;
+    serverText.innerText = existing.code;
+    startGame();
+    return;
+  }
+
+  // Create new server
+  const { data, error } = await sb.from("servers")
+    .insert([{ code }])
+    .select();
+
   if(error) return alert(error.message);
-  serverId = data[0].id;       // Use UUID for DB
-  serverText.innerText = code; // Show code in UI
+
+  serverId = data[0].id;
+  serverText.innerText = code;
   startGame();
 };
 
+// ========================
+// JOIN SERVER
+// ========================
 window.joinServer = async () => {
-  const {data, error} = await sb.from("servers").select("*").eq("code", serverCode.value).single();
+  const { data, error } = await sb.from("servers")
+    .select("*")
+    .eq("code", serverCode.value)
+    .single();
+
   if(error) return alert("Server not found");
-  serverId = data.id;           // UUID for DB
+
+  serverId = data.id;
   serverText.innerText = data.code;
   startGame();
 };
 
-/* THREE.JS SETUP */
+// ========================
+// THREE.JS SETUP
+// ========================
 let scene, camera, renderer, player, players = {}, yaw = 0, pitch = 0;
 
 function startGame(){
@@ -117,7 +151,9 @@ function startGame(){
   if(mode==="multi") setupMultiplayer();
 }
 
-/* MOUSE LOOK */
+// ========================
+// MOUSE LOOK
+// ========================
 document.addEventListener("mousemove", e => {
   if(document.pointerLockElement){
     yaw -= e.movementX * 0.002;
@@ -126,7 +162,9 @@ document.addEventListener("mousemove", e => {
   }
 });
 
-/* MOVEMENT */
+// ========================
+// MOVEMENT
+// ========================
 let keys = {};
 document.addEventListener("keydown", e => keys[e.key] = true);
 document.addEventListener("keyup", e => keys[e.key] = false);
@@ -140,7 +178,9 @@ function move(){
   if(keys["d"]) player.position.add(new THREE.Vector3(Math.sin(yaw-Math.PI/2)*speed,0,Math.cos(yaw-Math.PI/2)*speed));
 }
 
-/* MULTIPLAYER */
+// ========================
+// MULTIPLAYER
+// ========================
 async function setupMultiplayer(){
   setInterval(updateMyPosition, 100);
   sb.channel("room-" + serverId)
@@ -176,7 +216,9 @@ async function updatePlayers(){
   });
 }
 
-/* LOOP */
+// ========================
+// LOOP
+// ========================
 function animate(){
   requestAnimationFrame(animate);
   move();
@@ -188,7 +230,9 @@ function animate(){
   renderer.render(scene, camera);
 }
 
-/* RESIZE */
+// ========================
+// RESIZE
+// ========================
 addEventListener("resize", () => {
   camera.aspect = innerWidth/innerHeight;
   camera.updateProjectionMatrix();
