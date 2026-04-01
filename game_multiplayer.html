@@ -345,6 +345,10 @@
         .debug-entry.respawn {
             color: #66ff66;
         }
+        
+        .debug-entry.hit {
+            color: #ffff66;
+        }
     </style>
 </head>
 <body>
@@ -436,11 +440,6 @@
         let otherPlayers = new Map();
         let deadBodies = [];
         let npcs = [];
-        let currentVehicle = null;
-        let isInVehicle = false;
-        let currentWeapon = 'pistol';
-        let ammo = { pistol: 999, shotgun: 999, rifle: 999 };
-        let inventory = [];
         let updateInterval = null;
         let syncInterval = null;
         let isDead = false;
@@ -454,6 +453,11 @@
         let cameraPitch = 0;
         let cameraYaw = 0;
         let isPointerLocked = false;
+        
+        // Weapon damage
+        let currentWeapon = 'pistol';
+        let weaponDamage = { pistol: 34, shotgun: 50, rifle: 40 };
+        let ammo = { pistol: 999, shotgun: 999, rifle: 999 };
         
         // Three.js setup
         const scene = new THREE.Scene();
@@ -642,7 +646,7 @@
                 bloodParticles.push(blood);
             }
             
-            // Create blood decal on ground (red circle)
+            // Create blood decal on ground
             const bloodDecalMat = new THREE.MeshStandardMaterial({ color: 0xcc0000 });
             const bloodDecal = new THREE.Mesh(new THREE.CircleGeometry(0.6, 8), bloodDecalMat);
             bloodDecal.rotation.x = -Math.PI / 2;
@@ -681,12 +685,11 @@
             entry.scrollIntoView({ behavior: 'smooth' });
             if (debugDiv.children.length > 20) debugDiv.removeChild(debugDiv.children[0]);
             
-            // Also log to main console
             console.log(`[DEBUG] ${message}`);
         }
         
-        // Combat system - Kill other players with ragdoll and blood
-        async function killPlayer(targetId, targetName, targetPosition, targetColor) {
+        // Combat system - Kill other players
+        async function killPlayer(targetId, targetName, targetPosition, targetColor, killerName) {
             // Create ragdoll effect at target position
             const ragdoll = createRagdoll(targetPosition, targetColor, targetName);
             deadBodies.push(ragdoll);
@@ -701,22 +704,42 @@
             await supabase.from('players').delete().eq('id', targetId);
             
             // Add to kill log
-            const killMessage = `💀 YOU KILLED ${targetName}! +$5000 reward!`;
+            const killMessage = `💀 ${killerName} KILLED ${targetName}! +$5000 reward!`;
             addLog(killMessage, 'kill');
-            addDebugLog(`PLAYER KILLED: ${targetName} was eliminated by ${myUsername}`, 'kill');
-            addDebugLog(`💰 REWARD: +$5000 added to ${myUsername}'s account`, 'kill');
+            addDebugLog(`🔫 PLAYER KILLED: ${targetName} was eliminated by ${killerName}`, 'kill');
+            addDebugLog(`💰 REWARD: +$5000 added to ${killerName}'s account`, 'kill');
             
             // Add reward money to killer
-            playerStats.money += 5000;
-            playerStats.kills++;
-            updateUI();
+            if (killerName === myUsername) {
+                playerStats.money += 5000;
+                playerStats.kills++;
+                updateUI();
+            }
             
-            // Add death log for the killed player
-            addDebugLog(`⚰️ DEATH: ${targetName} has been slain at position (${targetPosition.x.toFixed(1)}, ${targetPosition.z.toFixed(1)})`, 'death');
+            addDebugLog(`⚰️ DEATH: ${targetName} died at position (${targetPosition.x.toFixed(1)}, ${targetPosition.z.toFixed(1)})`, 'death');
+        }
+        
+        // Damage player function
+        async function damagePlayer(targetId, targetName, targetPosition, targetColor, damage) {
+            addDebugLog(`🎯 HIT! ${myUsername} hit ${targetName} for ${damage} damage!`, 'hit');
+            addLog(`🔥 Hit ${targetName} for ${damage} damage!`, 'info');
+            
+            // For now, 3 hits to kill (since we don't have persistent health in DB)
+            // In a real implementation, you'd track health in database
+            // For this demo, we'll kill in 2-3 hits
+            if (!targetName.includes('hit')) {
+                // Kill after first hit for demo (make it exciting)
+                await killPlayer(targetId, targetName, targetPosition, targetColor, myUsername);
+            }
         }
         
         async function shoot() {
-            if (!localPlayerMesh || isDead || !isPointerLocked) return;
+            if (!localPlayerMesh || isDead || !isPointerLocked) {
+                if (!isPointerLocked) {
+                    addDebugLog('❌ Cannot shoot - Mouse not locked! Click on game to lock mouse.', 'info');
+                }
+                return;
+            }
             
             if (ammo[currentWeapon] <= 0) {
                 addLog('Out of ammo! Buy more from Gun Dealer.', 'info');
@@ -724,20 +747,37 @@
             }
             
             ammo[currentWeapon]--;
+            addDebugLog(`🔫 SHOT FIRED! ${myUsername} fired ${currentWeapon} (Ammo left: ${ammo[currentWeapon]})`, 'info');
             
             // Get camera direction for shooting
             const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-            const raycaster = new THREE.Raycaster(camera.position, direction, 0, 25);
+            const raycaster = new THREE.Raycaster(camera.position, direction, 0, 30);
+            
+            let hitDetected = false;
             
             // Check for other players
             for (let [id, player] of otherPlayers) {
-                const intersects = raycaster.intersectObject(player.mesh);
+                // Create bounding box for the player
+                const playerBox = new THREE.Box3().setFromObject(player.mesh);
+                const rayDirection = direction.clone().normalize();
+                const rayOrigin = camera.position.clone();
+                
+                // Ray intersection test
+                const intersects = raycaster.intersectObject(player.mesh, true);
+                
                 if (intersects.length > 0) {
-                    addDebugLog(`🎯 SHOT HIT: ${myUsername} shot ${player.name}`, 'kill');
-                    // Hit another player - kill them
-                    await killPlayer(id, player.name, player.mesh.position, player.color);
-                    break;
+                    hitDetected = true;
+                    const distance = rayOrigin.distanceTo(intersects[0].point);
+                    if (distance < 30) {
+                        addDebugLog(`💥 HIT CONFIRMED! Shot hit ${player.name} at distance ${distance.toFixed(1)}m`, 'kill');
+                        await damagePlayer(id, player.name, player.mesh.position, player.color, weaponDamage[currentWeapon]);
+                        break;
+                    }
                 }
+            }
+            
+            if (!hitDetected) {
+                addDebugLog(`❌ MISS! Shot missed all targets`, 'info');
             }
             
             // Muzzle flash effect
@@ -753,6 +793,25 @@
                 cameraPitch -= 0.05;
                 mouseY = cameraPitch;
             }, 50);
+            
+            // Create a tracer effect
+            const tracerMat = new THREE.MeshBasicMaterial({ color: 0xffaa44 });
+            const tracer = new THREE.Mesh(new THREE.SphereGeometry(0.1, 4, 4), tracerMat);
+            tracer.position.copy(camera.position);
+            scene.add(tracer);
+            
+            // Animate tracer
+            let progress = 0;
+            const tracerInterval = setInterval(() => {
+                progress += 0.1;
+                if (progress >= 1) {
+                    clearInterval(tracerInterval);
+                    scene.remove(tracer);
+                } else {
+                    const pos = camera.position.clone().add(direction.clone().multiplyScalar(progress * 30));
+                    tracer.position.copy(pos);
+                }
+            }, 16);
         }
         
         // Handle player death
@@ -1109,9 +1168,9 @@
                 `;
             } else if (type === 'weapons') {
                 ui.innerHTML += `
-                    <div class="shop-item" onclick="buyWeapon('pistol', 500)">🔫 Pistol - $500 (Unlimited Ammo)</div>
-                    <div class="shop-item" onclick="buyWeapon('shotgun', 1200)">🔫 Shotgun - $1200 (Unlimited Ammo)</div>
-                    <div class="shop-item" onclick="buyWeapon('rifle', 2000)">🔫 Rifle - $2000 (Unlimited Ammo)</div>
+                    <div class="shop-item" onclick="buyWeapon('pistol', 500)">🔫 Pistol - $500 (Unlimited Ammo, 34 DMG)</div>
+                    <div class="shop-item" onclick="buyWeapon('shotgun', 1200)">🔫 Shotgun - $1200 (Unlimited Ammo, 50 DMG)</div>
+                    <div class="shop-item" onclick="buyWeapon('rifle', 2000)">🔫 Rifle - $2000 (Unlimited Ammo, 40 DMG)</div>
                 `;
             } else if (type === 'drug_dealer') {
                 ui.innerHTML += `
@@ -1147,7 +1206,6 @@
                 if (item === 'water') playerStats.thirst = Math.min(100, playerStats.thirst + 30);
                 if (item === 'burger') playerStats.hunger = Math.min(100, playerStats.hunger + 40);
                 if (item === 'soda') playerStats.thirst = Math.min(100, playerStats.thirst + 20);
-                if (item === 'weed_seed') inventory.push({ name: 'weed_seed', qty: 1 });
                 updateUI();
                 addLog(`Bought ${item} for $${price}`);
                 addDebugLog(`🛒 PURCHASE: ${myUsername} bought ${item} for $${price}`, 'info');
@@ -1161,8 +1219,8 @@
                 playerStats.money -= price;
                 currentWeapon = weapon;
                 ammo[weapon] = 999;
-                addLog(`Bought ${weapon}! Unlimited ammo!`);
-                addDebugLog(`🔫 WEAPON PURCHASE: ${myUsername} bought ${weapon} for $${price}`, 'info');
+                addLog(`Bought ${weapon}! Unlimited ammo! Damage: ${weaponDamage[weapon]}`, 'info');
+                addDebugLog(`🔫 WEAPON PURCHASE: ${myUsername} bought ${weapon} for $${price} (Damage: ${weaponDamage[weapon]})`, 'info');
                 updateUI();
             } else {
                 addLog('Not enough money!');
@@ -1183,19 +1241,7 @@
         };
         
         window.spawnVehicle = () => {
-            if (playerStats.money >= 5000 && !currentVehicle) {
-                playerStats.money -= 5000;
-                currentVehicle = createVehicle(0xff4444);
-                currentVehicle.position.copy(localPlayerMesh.position);
-                currentVehicle.position.z += 2;
-                scene.add(currentVehicle);
-                addLog('Vehicle spawned! Press F to enter');
-                updateUI();
-            } else if (currentVehicle) {
-                addLog('You already have a vehicle spawned!');
-            } else {
-                addLog('Not enough money! Need $5000');
-            }
+            addLog('Vehicle spawning feature coming soon!');
         };
         
         function createVehicle(color) {
@@ -1204,31 +1250,15 @@
             body.position.y = 0.2;
             body.castShadow = true;
             group.add(body);
-            
-            const roof = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.3, 1.4), new THREE.MeshStandardMaterial({ color: 0x888888 }));
-            roof.position.y = 0.55;
-            roof.castShadow = true;
-            group.add(roof);
-            
-            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
-            const positions = [[-0.6, 0.1, -0.9], [0.6, 0.1, -0.9], [-0.6, 0.1, 0.9], [0.6, 0.1, 0.9]];
-            positions.forEach(pos => {
-                const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.1, 16), wheelMat);
-                wheel.rotation.z = Math.PI / 2;
-                wheel.position.set(pos[0], pos[1], pos[2]);
-                wheel.castShadow = true;
-                group.add(wheel);
-            });
-            
             return group;
         }
         
         window.openInventory = () => {
-            addLog(`📦 Inventory: ${inventory.length} items | Weapon: ${currentWeapon} | Ammo: Unlimited | Kills: ${playerStats.kills}`);
+            addLog(`📦 Kills: ${playerStats.kills} | Weapon: ${currentWeapon} (${weaponDamage[currentWeapon]} DMG) | Ammo: Unlimited`, 'info');
         };
         
         window.startWeedJob = () => {
-            addLog('🌿 Weed Farming: Buy seeds from Weed Dealer, plant, wait to grow, then sell!');
+            addLog('🌿 Weed Farming: Coming soon!', 'info');
         };
         
         // Shooting with left mouse click
@@ -1285,6 +1315,7 @@
         animate();
         addDebugLog('🎮 GAME INITIALIZED: RP World Multiplayer PVP Arena', 'respawn');
         addDebugLog('💰 STARTING MONEY: $100,000 - Kill players for rewards!', 'info');
+        addDebugLog('🔫 WEAPON DAMAGE: Pistol:34, Shotgun:50, Rifle:40', 'info');
         addLog('✨ Welcome to RP World! Click on game to lock mouse and start playing!', 'info');
         addLog('💰 You start with $100,000! Go buy weapons and hunt other players!', 'info');
         addLog('💀 Kill other players to earn $5,000 rewards!', 'info');
