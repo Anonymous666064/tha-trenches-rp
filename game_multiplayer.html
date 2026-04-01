@@ -194,14 +194,19 @@
             z-index: 20;
             white-space: nowrap;
         }
+        
+        .loading {
+            opacity: 0.7;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
     <div id="login-modal" class="modal">
         <div class="modal-content">
             <div class="modal-title">⚔️ PVP ARENA ⚔️</div>
-            <input type="text" id="login-username" placeholder="Username">
-            <input type="password" id="login-password" placeholder="Password">
+            <input type="text" id="login-username" placeholder="Username (min 3 characters)">
+            <input type="password" id="login-password" placeholder="Password (min 4 characters)">
             <button id="login-btn">LOGIN</button>
             <div id="login-error" class="error"></div>
             <div class="link">Don't have an account? <a id="show-signup">Sign Up</a></div>
@@ -260,7 +265,7 @@
         // ==================== SUPABASE CONFIG ====================
         // REPLACE WITH YOUR SUPABASE URL AND ANON KEY
         const SUPABASE_URL = 'https://hcvewiwhtxqpbogcrukk.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjdmV3aXdodHhxcGJvZ2NydWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTQ4MzMsImV4cCI6MjA5MDQ3MDgzM30.UsdvDyrGl4OhmbDjonyOagknHf--Zhe-fhCi0LFVoQw';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjdmV3aXdodHhxcGJvZ2NydWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDM2MTg0MjEsImV4cCI6MjA1OTE5NDQyMX0.FkQy8E9Os5BNc47lHpJ9vnyDcJOdGtFWSasOFlfX4-g';
         
         const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
@@ -524,6 +529,7 @@
             }
         }
         
+        // UI Handlers
         document.getElementById('login-btn').onclick = async () => {
             const username = document.getElementById('login-username').value.trim();
             const password = document.getElementById('login-password').value;
@@ -539,11 +545,12 @@
                     currentUser = { username };
                     document.getElementById('login-modal').classList.add('hidden');
                     document.getElementById('server-modal').classList.remove('hidden');
+                    document.getElementById('login-error').innerText = '';
                 } else {
                     document.getElementById('login-error').innerText = result.error;
                 }
             } catch (err) {
-                document.getElementById('login-error').innerText = 'Connection error. Check console.';
+                document.getElementById('login-error').innerText = 'Connection error. Please try again.';
             }
         };
         
@@ -554,6 +561,14 @@
             
             if (!username || !password) {
                 document.getElementById('signup-error').innerText = 'Please fill all fields';
+                return;
+            }
+            if (username.length < 3) {
+                document.getElementById('signup-error').innerText = 'Username must be at least 3 characters';
+                return;
+            }
+            if (password.length < 4) {
+                document.getElementById('signup-error').innerText = 'Password must be at least 4 characters';
                 return;
             }
             if (password !== confirm) {
@@ -574,7 +589,7 @@
                     document.getElementById('signup-error').innerText = result.error;
                 }
             } catch (err) {
-                document.getElementById('signup-error').innerText = err.message;
+                document.getElementById('signup-error').innerText = err.message || 'Failed to create account';
             }
         };
         
@@ -646,7 +661,9 @@
             document.addEventListener('pointerlockchange', () => {
                 mouseLockActive = document.pointerLockElement === canvas;
                 document.body.style.cursor = mouseLockActive ? 'none' : 'auto';
-                document.getElementById('lock-message').classList.add('hidden');
+                if (mouseLockActive) {
+                    document.getElementById('lock-message').classList.add('hidden');
+                }
             });
             
             canvas.addEventListener('mousedown', (e) => {
