@@ -74,7 +74,7 @@
             backdrop-filter: blur(16px);
             border-radius: 24px;
             padding: 20px;
-            width: 320px;
+            width: 350px;
             color: white;
             border: 1px solid #00ffcc88;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
@@ -84,28 +84,63 @@
         }
         .modal input, .modal select {
             width: 90%;
-            padding: 8px;
+            padding: 10px;
             margin: 8px 0;
             background: #222;
             border: 1px solid #00ffcc;
             color: white;
             border-radius: 8px;
+            font-size: 14px;
         }
         .modal button {
             background: #00ccaa;
             border: none;
-            padding: 8px 16px;
+            padding: 10px 20px;
             border-radius: 20px;
             margin-top: 12px;
             cursor: pointer;
             font-weight: bold;
-            width: 100%;
+            font-size: 14px;
+            transition: 0.2s;
+        }
+        .modal button:hover {
+            background: #00ffcc;
+            transform: scale(1.02);
         }
         .close-btn {
             background: #aa3355;
         }
+        .close-btn:hover {
+            background: #cc4466;
+        }
         .hidden {
             display: none;
+        }
+        .error-message {
+            color: #ff6666;
+            font-size: 12px;
+            margin-top: 5px;
+            text-align: center;
+        }
+        .success-message {
+            color: #66ff66;
+            font-size: 12px;
+            margin-top: 5px;
+            text-align: center;
+        }
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .button-group button {
+            flex: 1;
+        }
+        .login-btn {
+            background: #3388ff;
+        }
+        .register-btn {
+            background: #ff8833;
         }
         .phone-app {
             width: 280px;
@@ -126,6 +161,11 @@
             border-radius: 20px;
             cursor: pointer;
             font-size: 14px;
+            transition: 0.2s;
+        }
+        .app-btn:hover {
+            background: #2f2f4f;
+            transform: scale(1.05);
         }
         .chat-box {
             max-height: 200px;
@@ -155,9 +195,15 @@
             pointer-events: auto;
             z-index: 200;
         }
-        @keyframes pulse {
-            0% { opacity: 0.6; }
-            100% { opacity: 1; }
+        .username-display {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.6);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            pointer-events: none;
         }
     </style>
 </head>
@@ -171,22 +217,29 @@
                 <div>💰 $<span id="money-val">0</span></div>
             </div>
         </div>
+        <div class="username-display" id="username-display"></div>
         <div class="phone-icon" id="phoneBtn">📱</div>
 
-        <!-- Login Modal -->
-        <div id="loginModal" class="modal">
-            <h3>🔐 LOGIN / REGISTER</h3>
+        <!-- Login/Register Modal -->
+        <div id="authModal" class="modal">
+            <h3>🎮 NEON METROPOLIS</h3>
+            <p style="font-size: 12px; text-align: center;">Enter your credentials</p>
             <input type="text" id="username" placeholder="Username" autocomplete="off">
             <input type="password" id="password" placeholder="Password">
-            <button id="loginBtn">Login / Register</button>
+            <div class="button-group">
+                <button id="loginBtn" class="login-btn">🔐 Login</button>
+                <button id="registerBtn" class="register-btn">✨ Register</button>
+            </div>
+            <div id="authMessage" class="error-message"></div>
         </div>
 
         <!-- Server Modal -->
         <div id="serverModal" class="modal hidden">
             <h3>🌐 MULTIPLAYER</h3>
+            <p>Welcome, <span id="welcomeUsername"></span>!</p>
             <button id="createServerBtn">✨ Create New Server</button>
             <input type="text" id="joinCode" placeholder="Enter Server Code">
-            <button id="joinServerBtn">Join Server</button>
+            <button id="joinServerBtn">🔗 Join Server</button>
             <button id="closeServerBtn" class="close-btn">Close</button>
         </div>
 
@@ -242,23 +295,15 @@
         // Global state
         let currentUser = null;
         let currentServerId = null;
-        let playersMap = new Map(); // id -> { mesh, data }
+        let playersMap = new Map();
         let localPlayerMesh = null;
         let localPlayerData = { id: null, username: "", money: 1000, health: 100, hunger: 100, thirst: 100, position: { x: 0, y: 2, z: 0 } };
         let keys = { w: false, s: false, a: false, d: false, shift: false };
         let camera, scene, renderer;
         let moveSpeed = 5;
-        
-        // Simple world objects
         let worldGroup;
-        
-        // Ragdoll flag / respawn
         let isDead = false;
-        
-        // Realtime subscriptions
         let playersChannel = null;
-        
-        // Chat messages
         let chatMessages = [];
         
         // ---------- THREE.JS Setup ----------
@@ -317,43 +362,48 @@
         worldGroup.add(parkTree);
         scene.add(worldGroup);
         
-        // Local player representation (cube for now, but could be model)
+        // Local player representation
         const geometry = new THREE.BoxGeometry(0.8, 1.6, 0.8);
         const material = new THREE.MeshStandardMaterial({ color: 0x44aaff, emissive: 0x2266aa });
         localPlayerMesh = new THREE.Mesh(geometry, material);
         localPlayerMesh.castShadow = true;
         scene.add(localPlayerMesh);
         
-        // other players will be simple spheres/boxes
         function createRemotePlayer(color = 0xffaa44) {
             const box = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.6, 0.8), new THREE.MeshStandardMaterial({ color }));
             box.castShadow = true;
             return box;
         }
         
-        // ---------- Helper Functions ----------
-        async function initTablesIfNeeded() {
-            // In a real scenario tables must exist; but we'll just use supabase client to check presence - assume tables exist.
-            // For demo we just ensure we can fetch player
-            console.log("Supabase ready");
-        }
-        
-        async function registerOrLogin(username, password) {
-            // Simple auth using custom table "players" (We'll treat password as plaintext for demo but ideally hash)
-            // We'll use supabase to select player with username & password.
-            const { data, error } = await supabase
-                .from('players')
-                .select('*')
-                .eq('username', username)
-                .eq('password', password);
-            if (error) console.error(error);
-            if (data && data.length > 0) {
-                return data[0];
-            } else {
-                // Register new
+        // ---------- Authentication Functions ----------
+        async function registerUser(username, password) {
+            if (!username || !password) {
+                showAuthMessage("Please enter username and password", "error");
+                return null;
+            }
+            
+            try {
+                // Check if user exists
+                const { data: existing, error: checkError } = await supabase
+                    .from('players')
+                    .select('username')
+                    .eq('username', username);
+                
+                if (checkError) {
+                    console.error("Check error:", checkError);
+                    showAuthMessage("Database error: " + checkError.message, "error");
+                    return null;
+                }
+                
+                if (existing && existing.length > 0) {
+                    showAuthMessage("Username already exists! Please login.", "error");
+                    return null;
+                }
+                
+                // Create new user
                 const newPlayer = {
-                    username,
-                    password,
+                    username: username,
+                    password: password,
                     money: 1000,
                     health: 100,
                     hunger: 100,
@@ -362,10 +412,71 @@
                     position_y: 2,
                     position_z: 0
                 };
-                const { data: inserted, error: insErr } = await supabase.from('players').insert([newPlayer]).select();
-                if (insErr) throw insErr;
-                return inserted[0];
+                
+                const { data: inserted, error: insertError } = await supabase
+                    .from('players')
+                    .insert([newPlayer])
+                    .select();
+                
+                if (insertError) {
+                    console.error("Insert error:", insertError);
+                    showAuthMessage("Registration failed: " + insertError.message, "error");
+                    return null;
+                }
+                
+                if (inserted && inserted.length > 0) {
+                    showAuthMessage("Registration successful! Welcome!", "success");
+                    return inserted[0];
+                }
+                
+                return null;
+            } catch (error) {
+                console.error("Register error:", error);
+                showAuthMessage("Connection error. Please try again.", "error");
+                return null;
             }
+        }
+        
+        async function loginUser(username, password) {
+            if (!username || !password) {
+                showAuthMessage("Please enter username and password", "error");
+                return null;
+            }
+            
+            try {
+                const { data, error } = await supabase
+                    .from('players')
+                    .select('*')
+                    .eq('username', username)
+                    .eq('password', password);
+                
+                if (error) {
+                    console.error("Login error:", error);
+                    showAuthMessage("Database error: " + error.message, "error");
+                    return null;
+                }
+                
+                if (data && data.length > 0) {
+                    showAuthMessage("Login successful! Welcome back!", "success");
+                    return data[0];
+                } else {
+                    showAuthMessage("Invalid username or password!", "error");
+                    return null;
+                }
+            } catch (error) {
+                console.error("Login error:", error);
+                showAuthMessage("Connection error. Please try again.", "error");
+                return null;
+            }
+        }
+        
+        function showAuthMessage(message, type) {
+            const msgDiv = document.getElementById('authMessage');
+            msgDiv.textContent = message;
+            msgDiv.className = type === 'error' ? 'error-message' : 'success-message';
+            setTimeout(() => {
+                msgDiv.textContent = '';
+            }, 3000);
         }
         
         async function updateLocalPlayerDB() {
@@ -386,7 +497,8 @@
             localPlayerData.health = 100;
             localPlayerData.hunger = 80;
             localPlayerData.thirst = 80;
-            localPlayerMesh.position.set(15, 2, 15); // hospital
+            localPlayerMesh.position.set(15, 2, 15);
+            localPlayerMesh.visible = true;
             updateLocalPlayerDB();
             document.getElementById('respawn-screen').classList.add('hidden');
         }
@@ -394,14 +506,12 @@
         function applyDamage(amount) {
             if (isDead) return;
             localPlayerData.health = Math.max(0, localPlayerData.health - amount);
+            updateHUD();
             if (localPlayerData.health <= 0) {
                 isDead = true;
                 localPlayerData.health = 0;
                 document.getElementById('respawn-screen').classList.remove('hidden');
-                // ragdoll effect: hide mesh? we just show screen.
                 localPlayerMesh.visible = false;
-            } else {
-                localPlayerMesh.visible = true;
             }
             updateLocalPlayerDB();
         }
@@ -410,7 +520,7 @@
         async function joinServer(serverCode) {
             if (playersChannel) await supabase.removeChannel(playersChannel);
             currentServerId = serverCode;
-            // For simplicity we use a channel based on server code: "server:code"
+            
             playersChannel = supabase.channel(`server:${serverCode}`, {
                 config: { broadcast: { ack: true }, presence: { key: currentUser.id } }
             });
@@ -438,14 +548,14 @@
             
             await playersChannel.subscribe(async (status) => {
                 if (status === 'SUBSCRIBED') {
-                    // Track presence
-                    const presenceTrack = await playersChannel.track({
+                    await playersChannel.track({
                         user_id: currentUser.id,
                         username: currentUser.username,
                         x: localPlayerMesh.position.x,
                         y: localPlayerMesh.position.y,
                         z: localPlayerMesh.position.z
                     });
+                    
                     playersChannel.on('presence', { event: 'sync' }, () => {
                         const state = playersChannel.presenceState();
                         for (let [id, presences] of Object.entries(state)) {
@@ -461,7 +571,6 @@
                                 p.mesh.position.set(pdata.x, pdata.y, pdata.z);
                             }
                         }
-                        // Clean up
                         for (let [id] of playersMap) {
                             if (!state[id] && id !== currentUser.id) {
                                 scene.remove(playersMap.get(id).mesh);
@@ -472,7 +581,6 @@
                 }
             });
             
-            // periodic broadcast position
             setInterval(() => {
                 if (currentServerId && playersChannel && !isDead) {
                     playersChannel.send({
@@ -490,36 +598,32 @@
         
         // ---------- UI & Phone Apps ----------
         function updateHUD() {
-            document.getElementById('health-val').innerText = localPlayerData.health;
-            document.getElementById('hunger-val').innerText = localPlayerData.hunger;
-            document.getElementById('thirst-val').innerText = localPlayerData.thirst;
+            document.getElementById('health-val').innerText = Math.floor(localPlayerData.health);
+            document.getElementById('hunger-val').innerText = Math.floor(localPlayerData.hunger);
+            document.getElementById('thirst-val').innerText = Math.floor(localPlayerData.thirst);
             document.getElementById('money-val').innerText = localPlayerData.money;
         }
         
         function updateChatUI() {
-            const chatDiv = document.getElementById('appContent');
-            if (chatDiv && document.getElementById('phoneModal').classList.contains('hidden') === false) {
-                // only if phone open with chat active? we handle separately.
-            }
-            const globalChatBox = document.querySelector('#appContent .chat-box');
-            if (globalChatBox) {
-                globalChatBox.innerHTML = chatMessages.slice(0, 15).map(m => `<div><b>${m.username}:</b> ${m.message}</div>`).join('');
+            const chatDiv = document.querySelector('#appContent .chat-box');
+            if (chatDiv) {
+                chatDiv.innerHTML = chatMessages.slice(0, 15).map(m => `<div><b>${m.username}:</b> ${m.message}</div>`).join('');
             }
         }
         
         function openPhoneApp(appName) {
             const contentDiv = document.getElementById('appContent');
             if (appName === 'jobs') {
-                contentDiv.innerHTML = `<h4>Jobs</h4><p>🚔 Police | 🚕 Taxi | 🌿 Weed Seller</p><button id="weedJob">Sell Weed (+$50)</button>`;
+                contentDiv.innerHTML = `<h4>💼 Jobs</h4><p>🚔 Police Officer - $150/shift</p><p>🚕 Taxi Driver - $80/ride</p><p>🌿 Weed Farmer - $250/sale</p><button id="weedJob">Sell Weed (+$50)</button>`;
                 document.getElementById('weedJob')?.addEventListener('click', () => {
                     localPlayerData.money += 50;
                     updateLocalPlayerDB();
                     updateHUD();
+                    alert("You sold weed! +$50");
                 });
             } else if (appName === 'vehicles') {
-                contentDiv.innerHTML = `<h4>My Vehicles</h4><p>🚗 Sedan (Spawn)</p><button id="spawnCarBtn">Spawn Car</button>`;
+                contentDiv.innerHTML = `<h4>🚗 My Vehicles</h4><p>🚗 Sedan (Spawn)</p><button id="spawnCarBtn">Spawn Vehicle</button>`;
                 document.getElementById('spawnCarBtn')?.addEventListener('click', () => {
-                    // simple vehicle entity locally for fun
                     const carGeo = new THREE.BoxGeometry(1, 0.5, 1.8);
                     const carMat = new THREE.MeshStandardMaterial({ color: 0xff3300 });
                     const car = new THREE.Mesh(carGeo, carMat);
@@ -527,41 +631,54 @@
                     car.position.y -= 0.6;
                     scene.add(car);
                     setTimeout(() => scene.remove(car), 5000);
+                    alert("Vehicle spawned temporarily!");
                 });
             } else if (appName === 'chat') {
-                contentDiv.innerHTML = `<div class="chat-box" id="chatMsgList"></div><input id="chatInputField" placeholder="Say something"><button id="sendMsgBtn">Send</button>`;
+                contentDiv.innerHTML = `<div class="chat-box" id="chatMsgList"></div><input id="chatInputField" placeholder="Say something" style="width:95%; margin-top:5px;"><button id="sendMsgBtn">Send</button>`;
                 updateChatUI();
                 document.getElementById('sendMsgBtn')?.addEventListener('click', () => {
                     const input = document.getElementById('chatInputField');
                     if (input.value && playersChannel) {
-                        playersChannel.send({ type: 'broadcast', event: 'chat', payload: { username: currentUser.username, message: input.value, timestamp: Date.now() } });
+                        playersChannel.send({ type: 'broadcast', event: 'chat', payload: { username: currentUser.username, message: input.value } });
                         input.value = '';
                     }
                 });
             } else if (appName === 'blackmarket') {
-                contentDiv.innerHTML = `<h4>🖤 Black Market</h4><div id="bmItems"><div class="blackmarket-item">🔫 Pistol - $300 <button class="buyGun">Buy</button></div><div class="blackmarket-item">🌿 Weed - $50 <button class="buyWeed">Buy</button></div></div>`;
-                document.querySelector('.buyGun')?.addEventListener('click', () => {
-                    if (localPlayerData.money >= 300) {
-                        localPlayerData.money -= 300;
-                        updateHUD();
-                        alert("Bought Pistol! (damage +)");
-                        localPlayerData.hasGun = true;
-                    }
-                });
-                document.querySelector('.buyWeed')?.addEventListener('click', () => {
-                    if (localPlayerData.money >= 50) {
-                        localPlayerData.money -= 50;
-                        updateHUD();
-                        localPlayerData.hunger = Math.min(100, localPlayerData.hunger + 15);
-                        updateHUD();
-                    }
-                });
+                contentDiv.innerHTML = `<h4>🖤 Black Market</h4><div id="bmItems"><div class="blackmarket-item">🔫 Pistol - $300 <button class="buyGun">Buy</button></div><div class="blackmarket-item">💊 Medkit - $100 <button class="buyMedkit">Buy</button></div><div class="blackmarket-item">🌿 Weed - $50 <button class="buyWeed">Buy</button></div></div>`;
+                setTimeout(() => {
+                    document.querySelector('.buyGun')?.addEventListener('click', () => {
+                        if (localPlayerData.money >= 300) {
+                            localPlayerData.money -= 300;
+                            updateHUD();
+                            alert("Bought Pistol! Press F to shoot nearby players!");
+                        } else alert("Not enough money!");
+                    });
+                    document.querySelector('.buyMedkit')?.addEventListener('click', () => {
+                        if (localPlayerData.money >= 100 && localPlayerData.health < 100) {
+                            localPlayerData.money -= 100;
+                            localPlayerData.health = Math.min(100, localPlayerData.health + 50);
+                            updateHUD();
+                            alert("Health restored!");
+                        } else alert("Cannot use medkit!");
+                    });
+                    document.querySelector('.buyWeed')?.addEventListener('click', () => {
+                        if (localPlayerData.money >= 50) {
+                            localPlayerData.money -= 50;
+                            localPlayerData.hunger = Math.min(100, localPlayerData.hunger + 15);
+                            updateHUD();
+                            alert("You consumed weed and feel less hungry!");
+                        }
+                    });
+                }, 100);
             }
         }
         
-        // ---------- Combat: click to shoot at player in front ----------
+        // ---------- Combat: shoot ray ----------
         function shootRay() {
-            if (isDead) return;
+            if (isDead) {
+                alert("You are dead! Respawn first.");
+                return;
+            }
             const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
             const raycaster = new THREE.Raycaster(localPlayerMesh.position, direction, 0, 8);
             let hitPlayerId = null;
@@ -573,14 +690,14 @@
                 }
             }
             if (hitPlayerId && playersChannel) {
-                playersChannel.send({ type: 'broadcast', event: 'player-damage', payload: { targetId: hitPlayerId, damage: 34, attacker: currentUser.id } });
+                playersChannel.send({ type: 'broadcast', event: 'player-damage', payload: { targetId: hitPlayerId, damage: 34 } });
+                alert("You shot a player!");
             } else {
-                // just visual feedback
-                console.log("miss");
+                alert("No player in range!");
             }
         }
         
-        // ---------- Movement & Input ----------
+        // ---------- Movement ----------
         function handleMovement(deltaTime) {
             if (isDead) return;
             const speed = moveSpeed * deltaTime * (keys.shift ? 2 : 1);
@@ -589,21 +706,21 @@
             if (keys.s) move.z += 1;
             if (keys.a) move.x -= 1;
             if (keys.d) move.x += 1;
-            move.normalize();
+            if (move.length() > 0) move.normalize();
             move.applyQuaternion(camera.quaternion);
             move.y = 0;
             localPlayerMesh.position.x += move.x * speed;
             localPlayerMesh.position.z += move.z * speed;
-            // Simple bounds
             localPlayerMesh.position.x = Math.max(-45, Math.min(45, localPlayerMesh.position.x));
             localPlayerMesh.position.z = Math.max(-45, Math.min(45, localPlayerMesh.position.z));
             camera.position.copy(localPlayerMesh.position);
             camera.position.y += 1.2;
-            // update hunger/thirst over time
+            
+            // hunger/thirst decay
             if (Date.now() % 60 === 0) {
-                localPlayerData.hunger = Math.max(0, localPlayerData.hunger - 0.005);
-                localPlayerData.thirst = Math.max(0, localPlayerData.thirst - 0.006);
-                if (localPlayerData.hunger <= 0 || localPlayerData.thirst <= 0) applyDamage(0.5);
+                localPlayerData.hunger = Math.max(0, localPlayerData.hunger - 0.003);
+                localPlayerData.thirst = Math.max(0, localPlayerData.thirst - 0.004);
+                if (localPlayerData.hunger <= 0 || localPlayerData.thirst <= 0) applyDamage(0.3);
                 updateHUD();
             }
         }
@@ -615,7 +732,6 @@
             if (e.key === 'a') keys.a = true;
             if (e.key === 'd') keys.d = true;
             if (e.key === 'Shift') keys.shift = true;
-            if (e.key === ' ' && !isDead) { /* jump placeholder */ }
             if (e.key === 'f') shootRay();
             if (e.key === 't') {
                 document.getElementById('chatInputArea').style.display = 'block';
@@ -629,6 +745,7 @@
             if (e.key === 'd') keys.d = false;
             if (e.key === 'Shift') keys.shift = false;
         });
+        
         document.getElementById('sendChatBtn')?.addEventListener('click', () => {
             const input = document.getElementById('chatMsgInput');
             if (input.value && playersChannel) {
@@ -638,13 +755,12 @@
             }
         });
         
-        // UI buttons
+        // Auth UI handlers
         document.getElementById('loginBtn').onclick = async () => {
-            const user = document.getElementById('username').value;
-            const pass = document.getElementById('password').value;
-            if (!user || !pass) return;
-            try {
-                const player = await registerOrLogin(user, pass);
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const player = await loginUser(username, password);
+            if (player) {
                 currentUser = player;
                 localPlayerData.money = player.money;
                 localPlayerData.health = player.health;
@@ -652,30 +768,58 @@
                 localPlayerData.thirst = player.thirst;
                 localPlayerMesh.position.set(player.position_x, player.position_y, player.position_z);
                 updateHUD();
-                document.getElementById('loginModal').classList.add('hidden');
+                document.getElementById('authModal').classList.add('hidden');
+                document.getElementById('username-display').innerHTML = `👤 ${player.username}`;
+                document.getElementById('welcomeUsername').innerText = player.username;
                 document.getElementById('serverModal').classList.remove('hidden');
-            } catch(e) { alert("Auth error"); }
+            }
         };
+        
+        document.getElementById('registerBtn').onclick = async () => {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const player = await registerUser(username, password);
+            if (player) {
+                currentUser = player;
+                localPlayerData.money = player.money;
+                localPlayerData.health = player.health;
+                localPlayerData.hunger = player.hunger;
+                localPlayerData.thirst = player.thirst;
+                localPlayerMesh.position.set(player.position_x, player.position_y, player.position_z);
+                updateHUD();
+                document.getElementById('authModal').classList.add('hidden');
+                document.getElementById('username-display').innerHTML = `👤 ${player.username}`;
+                document.getElementById('welcomeUsername').innerText = player.username;
+                document.getElementById('serverModal').classList.remove('hidden');
+            }
+        };
+        
         document.getElementById('createServerBtn').onclick = () => {
             const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-            alert(`Server Created! Code: ${code}`);
+            alert(`Server Created! Code: ${code}\nShare this code with friends to join!`);
             joinServer(code);
             document.getElementById('serverModal').classList.add('hidden');
         };
+        
         document.getElementById('joinServerBtn').onclick = () => {
             const code = document.getElementById('joinCode').value;
-            if (code) joinServer(code);
-            document.getElementById('serverModal').classList.add('hidden');
+            if (code) {
+                joinServer(code);
+                document.getElementById('serverModal').classList.add('hidden');
+            } else {
+                alert("Please enter a server code");
+            }
         };
+        
         document.getElementById('closeServerBtn').onclick = () => document.getElementById('serverModal').classList.add('hidden');
         document.getElementById('phoneBtn').onclick = () => document.getElementById('phoneModal').classList.remove('hidden');
         document.getElementById('closePhoneBtn').onclick = () => document.getElementById('phoneModal').classList.add('hidden');
         document.querySelectorAll('.app-btn').forEach(btn => {
             btn.addEventListener('click', () => openPhoneApp(btn.dataset.app));
         });
-        document.getElementById('respawnBtn').onclick = () => { respawnPlayer(); localPlayerMesh.visible = true; };
+        document.getElementById('respawnBtn').onclick = () => { respawnPlayer(); };
         
-        // Animate
+        // Animation loop
         let lastTime = performance.now();
         function animate() {
             const now = performance.now();
@@ -686,9 +830,6 @@
             requestAnimationFrame(animate);
         }
         animate();
-        initTablesIfNeeded();
-        
-        // Also keep updating remote players from presence (handled in subscription)
     </script>
 </body>
 </html>
