@@ -305,7 +305,7 @@
     <div id="npc-interaction"></div>
     
     <div id="controls-note">
-        WASD Move | Mouse Click to Lock/Shoot | E Interact | TAB Phone | F Enter/Exit Vehicle
+        WASD Move | Hold Right Click + Drag to Rotate Camera | E Interact | TAB Phone | F Enter/Exit Vehicle
     </div>
     
     <script type="importmap">
@@ -348,13 +348,20 @@
         // Player stats
         let playerStats = { health: 100, hunger: 100, thirst: 100, money: 500 };
         
+        // Camera control variables
+        let cameraAngleX = 0; // Horizontal rotation
+        let cameraAngleY = 0.5; // Vertical rotation (slightly above)
+        const cameraDistance = 5;
+        let isMouseDown = false;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
+        
         // Three.js setup
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x87CEEB);
         scene.fog = new THREE.Fog(0x87CEEB, 80, 150);
         
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 2, 5);
         
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -368,9 +375,6 @@
         labelRenderer.domElement.style.left = '0px';
         labelRenderer.domElement.style.pointerEvents = 'none';
         document.body.appendChild(labelRenderer.domElement);
-        
-        // Third-person camera that follows the player
-        let cameraOffset = new THREE.Vector3(-5, 4, 5);
         
         // Create flat terrain
         const terrainSize = 150;
@@ -389,18 +393,17 @@
         scene.add(terrain);
         
         // City buildings (flat area)
-        const buildingMat = new THREE.MeshStandardMaterial({ color: 0xccccaa });
-        const buildingColors = [0xccaa88, 0xaa8866, 0x88aacc, 0x88ccaa];
+        const buildingColors = [0xccaa88, 0xaa8866, 0x88aacc, 0x88ccaa, 0xcc88aa];
         
         for (let i = -6; i <= 6; i++) {
             for (let j = -6; j <= 6; j++) {
                 if (Math.abs(i) < 3 && Math.abs(j) < 3) continue; // Center plaza
-                const height = Math.random() * 4 + 2;
+                const height = Math.random() * 5 + 2;
                 const building = new THREE.Mesh(
-                    new THREE.BoxGeometry(2.5, height, 2.5),
+                    new THREE.BoxGeometry(2.8, height, 2.8),
                     new THREE.MeshStandardMaterial({ color: buildingColors[Math.floor(Math.random() * buildingColors.length)] })
                 );
-                building.position.set(i * 5, height/2, j * 5);
+                building.position.set(i * 5.5, height/2, j * 5.5);
                 building.castShadow = true;
                 building.receiveShadow = true;
                 scene.add(building);
@@ -410,12 +413,12 @@
         // Roads
         const roadMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
         for (let i = -35; i <= 35; i += 7) {
-            const roadX = new THREE.Mesh(new THREE.BoxGeometry(5, 0.1, terrainSize), roadMat);
+            const roadX = new THREE.Mesh(new THREE.BoxGeometry(5.5, 0.1, terrainSize), roadMat);
             roadX.position.set(i, 0.05, 0);
             roadX.receiveShadow = true;
             scene.add(roadX);
             
-            const roadZ = new THREE.Mesh(new THREE.BoxGeometry(terrainSize, 0.1, 5), roadMat);
+            const roadZ = new THREE.Mesh(new THREE.BoxGeometry(terrainSize, 0.1, 5.5), roadMat);
             roadZ.position.set(0, 0.05, i);
             roadZ.receiveShadow = true;
             scene.add(roadZ);
@@ -431,22 +434,22 @@
         
         // NPCs
         const npcPositions = [
-            { x: 18, z: 12, type: 'food', name: '🍔 Convenience Store' },
-            { x: -15, z: 18, type: 'weapons', name: '🔫 Gun Dealer' },
-            { x: 12, z: -15, type: 'drug_dealer', name: '🌿 Weed Dealer' }
+            { x: 20, z: 14, type: 'food', name: '🏪 Convenience Store', color: 0xffaa88 },
+            { x: -18, z: 20, type: 'weapons', name: '🔫 Gun Dealer', color: 0xcc8866 },
+            { x: 14, z: -18, type: 'drug_dealer', name: '🌿 Weed Dealer', color: 0x88aa66 }
         ];
         
         npcPositions.forEach(pos => {
-            const npcMat = new THREE.MeshStandardMaterial({ color: 0xffaa88 });
-            const npc = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.8, 0.8), npcMat);
-            npc.position.set(pos.x, 0.9, pos.z);
+            const npcMat = new THREE.MeshStandardMaterial({ color: pos.color });
+            const npc = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.9, 0.9), npcMat);
+            npc.position.set(pos.x, 0.95, pos.z);
             npc.userData = { type: pos.type, name: pos.name };
             npc.castShadow = true;
             scene.add(npc);
             npcs.push(npc);
             
             const npcLabel = makeLabel(pos.name, '#ffaa88');
-            npcLabel.position.set(pos.x, 1.8, pos.z);
+            npcLabel.position.set(pos.x, 1.9, pos.z);
             scene.add(npcLabel);
         });
         
@@ -517,8 +520,8 @@
             group.add(rightPupil);
             
             if (isLocal) {
-                const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.6, 0.2, 8), new THREE.MeshStandardMaterial({ color: 0xff4444 }));
-                hat.position.y = 1.55;
+                const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.65, 0.25, 8), new THREE.MeshStandardMaterial({ color: 0xff4444 }));
+                hat.position.y = 1.6;
                 group.add(hat);
             }
             
@@ -550,6 +553,46 @@
             return group;
         }
         
+        // Camera control with right mouse button
+        function handleMouseDown(event) {
+            if (event.button === 2) { // Right mouse button
+                isMouseDown = true;
+                lastMouseX = event.clientX;
+                lastMouseY = event.clientY;
+                event.preventDefault();
+                renderer.domElement.style.cursor = 'grabbing';
+            }
+        }
+        
+        function handleMouseUp(event) {
+            if (event.button === 2) {
+                isMouseDown = false;
+                renderer.domElement.style.cursor = 'default';
+            }
+        }
+        
+        function handleMouseMove(event) {
+            if (isMouseDown) {
+                const deltaX = event.clientX - lastMouseX;
+                const deltaY = event.clientY - lastMouseY;
+                
+                cameraAngleX += deltaX * 0.01;
+                cameraAngleY += deltaY * 0.01;
+                
+                // Limit vertical angle to avoid flipping
+                cameraAngleY = Math.max(0.2, Math.min(1.2, cameraAngleY));
+                
+                lastMouseX = event.clientX;
+                lastMouseY = event.clientY;
+            }
+        }
+        
+        // Prevent context menu on right click
+        renderer.domElement.addEventListener('contextmenu', (e) => e.preventDefault());
+        renderer.domElement.addEventListener('mousedown', handleMouseDown);
+        window.addEventListener('mouseup', handleMouseUp);
+        window.addEventListener('mousemove', handleMouseMove);
+        
         // UI Updates
         function updateUI() {
             document.getElementById('money').innerText = playerStats.money;
@@ -573,8 +616,7 @@
             const target = otherPlayers.get(targetId);
             if (target) {
                 addLog(`Hit ${target.data.username} for ${damage} damage!`, 'info');
-                // In a real implementation, you'd update health in database
-                // For now, we'll simulate by removing the player
+                // Simulate damage - in real implementation, update database
                 if (Math.random() > 0.7) {
                     removeRemotePlayer(targetId);
                     addLog(`💀 ${target.data.username} was killed!`, 'info');
@@ -585,6 +627,7 @@
         function shoot() {
             if (!localPlayerMesh) return;
             
+            // Get camera direction for shooting
             const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
             const raycaster = new THREE.Raycaster(camera.position, direction, 0, 15);
             
@@ -604,8 +647,8 @@
             setTimeout(() => scene.remove(flash), 50);
             
             // Recoil effect
-            camera.position.y += 0.05;
-            setTimeout(() => { camera.position.y -= 0.05; }, 50);
+            cameraAngleY += 0.05;
+            setTimeout(() => { cameraAngleY -= 0.05; }, 50);
         }
         
         // Remote player management
@@ -636,7 +679,6 @@
         
         function updatePlayerCountUI() {
             const count = otherPlayers.size + (localPlayerMesh ? 1 : 0);
-            // You could display this somewhere
         }
         
         // Database sync functions
@@ -731,7 +773,7 @@
             await leaveServer();
             currentServerId = serverId.trim();
             
-            const spawnPos = { x: (Math.random() - 0.5) * 10, y: 0.8, z: (Math.random() - 0.5) * 10 };
+            const spawnPos = { x: (Math.random() - 0.5) * 12, y: 0.8, z: (Math.random() - 0.5) * 12 };
             const playerColor = `hsl(${Math.random() * 360}, 70%, 55%)`;
             
             const { data, error } = await supabase
@@ -770,9 +812,9 @@
             updateInterval = setInterval(() => updatePlayerPosition(), 50);
         }
         
-        // Movement
+        // Movement with camera-relative controls
         const keys = { w: false, s: false, a: false, d: false };
-        let moveSpeed = 5;
+        let moveSpeed = 6;
         
         document.addEventListener('keydown', (e) => {
             const key = e.key.toLowerCase();
@@ -781,7 +823,10 @@
             if (key === 'a') keys.a = true;
             if (key === 'd') keys.d = true;
             if (key === 'e') interactWithNPC();
-            if (key === 'tab') togglePhone();
+            if (key === 'tab') {
+                e.preventDefault();
+                togglePhone();
+            }
         });
         
         document.addEventListener('keyup', (e) => {
@@ -795,18 +840,22 @@
         function updateMovement() {
             if (!localPlayerMesh) return;
             
-            const move = new THREE.Vector3();
-            const forward = new THREE.Vector3();
-            const right = new THREE.Vector3();
-            camera.getWorldDirection(forward);
-            forward.y = 0;
-            forward.normalize();
-            right.crossVectors(new THREE.Vector3(0, 1, 0), forward);
+            // Calculate camera direction for movement (horizontal only)
+            const cameraDirection = new THREE.Vector3();
+            camera.getWorldDirection(cameraDirection);
+            cameraDirection.y = 0;
+            cameraDirection.normalize();
             
-            if (keys.w) move.add(forward);
-            if (keys.s) move.sub(forward);
-            if (keys.d) move.add(right);
-            if (keys.a) move.sub(right);
+            const cameraRight = new THREE.Vector3();
+            cameraRight.crossVectors(new THREE.Vector3(0, 1, 0), cameraDirection);
+            cameraRight.normalize();
+            
+            const move = new THREE.Vector3();
+            
+            if (keys.w) move.add(cameraDirection);
+            if (keys.s) move.sub(cameraDirection);
+            if (keys.d) move.add(cameraRight);
+            if (keys.a) move.sub(cameraRight);
             
             move.normalize();
             move.multiplyScalar(moveSpeed * 0.016);
@@ -819,10 +868,20 @@
             localPlayerMesh.position.copy(newPos);
             localLabel.position.copy(newPos);
             localLabel.position.y += 1.6;
+        }
+        
+        // Update camera position based on player and rotation angles
+        function updateCamera() {
+            if (!localPlayerMesh) return;
             
-            // Update camera to follow player
-            const targetPosition = localPlayerMesh.position.clone().add(cameraOffset);
-            camera.position.lerp(targetPosition, 0.1);
+            // Calculate camera position in spherical coordinates
+            const x = Math.sin(cameraAngleX) * Math.cos(cameraAngleY) * cameraDistance;
+            const z = Math.cos(cameraAngleX) * Math.cos(cameraAngleY) * cameraDistance;
+            const y = Math.sin(cameraAngleY) * cameraDistance + 1.5;
+            
+            camera.position.x = localPlayerMesh.position.x + x;
+            camera.position.z = localPlayerMesh.position.z + z;
+            camera.position.y = localPlayerMesh.position.y + y;
             camera.lookAt(localPlayerMesh.position);
         }
         
@@ -982,11 +1041,9 @@
             scene.background.setHSL(0.55, 0.5, 0.2 + intensity * 0.3);
         }
         
-        // Shooting with mouse click
-        renderer.domElement.addEventListener('click', () => {
-            if (document.pointerLockElement !== renderer.domElement) {
-                renderer.domElement.requestPointerLock();
-            } else {
+        // Shooting with left mouse click
+        renderer.domElement.addEventListener('click', (e) => {
+            if (e.button === 0 && !isMouseDown) { // Left click only when not rotating camera
                 shoot();
             }
         });
@@ -1007,6 +1064,7 @@
         // Animation loop
         function animate() {
             updateMovement();
+            updateCamera();
             updateDayNight();
             renderer.render(scene, camera);
             labelRenderer.render(scene, camera);
@@ -1015,7 +1073,7 @@
         
         animate();
         addLog('✨ Welcome to RP World! Join a server to start playing.', 'info');
-        addLog('💡 Click on the game to lock cursor, then click to shoot!', 'info');
+        addLog('💡 Hold RIGHT CLICK + Drag to rotate camera 360 degrees!', 'info');
         
         // Add decorative elements
         const starGeometry = new THREE.BufferGeometry();
