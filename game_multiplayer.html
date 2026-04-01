@@ -63,14 +63,8 @@
         #vehicle-hud { position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.85); border: 2px solid #4ec9e0; border-radius: 20px; padding: 12px 25px; display: none; min-width: 380px; text-align: center; z-index: 100; }
         .speedometer { font-size: 2.5rem; font-weight: bold; color: #ffaa00; }
         #camera-mode-indicator { position: absolute; bottom: 100px; right: 20px; background: rgba(0,0,0,0.6); padding: 5px 12px; border-radius: 20px; font-size: 11px; z-index: 100; }
-        #weed-inventory { position: absolute; bottom: 100px; left: 20px; background: rgba(0,0,0,0.6); padding: 8px 15px; border-radius: 20px; font-size: 0.9rem; z-index: 100; }
-        .controls-panel { position: absolute; bottom: 20px; left: 20px; background: rgba(0,0,0,0.5); padding: 8px 12px; border-radius: 12px; font-size: 10px; z-index: 100; }
-        .controls-panel span { color: #ffaa00; }
+        #controls-note { position: absolute; bottom: 15px; left: 15px; background: rgba(0,0,0,0.6); padding: 4px 10px; border-radius: 15px; color: white; font-size: 10px; pointer-events: none; z-index: 99; }
         #notification { position: absolute; bottom: 40%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); border: 2px solid #4ae04a; border-radius: 30px; padding: 12px 25px; color: #4ae04a; font-weight: bold; z-index: 2000; display: none; white-space: nowrap; }
-        #job-status { position: absolute; top: 80px; right: 20px; background: rgba(0,0,0,0.7); backdrop-filter: blur(10px); padding: 8px 15px; border-radius: 20px; font-size: 0.8rem; z-index: 100; text-align: right; border-left: 3px solid; }
-        .dealership-menu { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.95); border-radius: 30px; padding: 25px; border: 3px solid #ffaa00; z-index: 5000; min-width: 350px; max-width: 90vw; max-height: 80vh; overflow-y: auto; color: white; }
-        .vehicle-card { background: rgba(50,70,90,0.8); border-radius: 15px; padding: 15px; margin: 10px 0; display: flex; justify-content: space-between; align-items: center; }
-        @media (max-width: 768px) { #phone-ui { width: 320px; height: 600px; } #inventory-panel { width: 90vw; } #vehicle-hud { min-width: 280px; } }
         #auth-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(135deg, #0a0f1e, #1a2a3a); z-index: 10000; display: flex; justify-content: center; align-items: center; }
         .auth-container { background: rgba(10,20,30,0.95); backdrop-filter: blur(20px); border-radius: 30px; padding: 40px; border: 2px solid #4ec9e0; width: 400px; max-width: 90vw; }
         .auth-container h2 { text-align: center; color: #4ec9e0; margin-bottom: 25px; }
@@ -89,7 +83,7 @@
     <!-- Auth Modal -->
     <div id="auth-modal">
         <div class="auth-container">
-            <h2>🔐 GANG TURF WARS</h2>
+            <h2>🔐 RP WORLD</h2>
             <div class="auth-tabs">
                 <button class="auth-tab active" id="login-tab">LOGIN</button>
                 <button class="auth-tab" id="signup-tab">SIGN UP</button>
@@ -157,7 +151,7 @@
         import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
         import { createClient } from '@supabase/supabase-js';
 
-        // ==================== SUPABASE CONFIG ====================
+        // Supabase
         const SUPABASE_URL = 'https://hcvewiwhtxqpbogcrukk.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjdmV3aXdodHhxcGJvZ2NydWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTQ4MzMsImV4cCI6MjA5MDQ3MDgzM30.UsdvDyrGl4OhmbDjonyOagknHf--Zhe-fhCi0LFVoQw';
         const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -173,26 +167,22 @@
         let isDead = false;
         let updateInterval = null;
         let syncInterval = null;
-        let vehicles = new Map(); // vehicleId -> { mesh, driverId, passengerIds, seats }
+        let vehicles = new Map();
         let myVehicleId = null;
-        let mySeat = null; // 'driver' or 0,1,2
+        let mySeat = null;
         let playerStats = { health: 100, hunger: 100, thirst: 100, money: 100000, kills: 0 };
         let gameData = { money: 100000, bank: 2500, ownedVehicles: [], ownedHouses: [], friends: [] };
         let inventory = { slots: [], selectedSlot: 0 };
-        // Camera
         let cameraAngle = 0, cameraPitch = 0;
         let cameraMode = 'tpv';
         let isPointerLocked = false;
-        // Input
         let keys = {};
-        // World objects
         let scene, camera, renderer, labelRenderer, sunLight, ambientLight;
-        let player; // local character (will be replaced by localPlayerMesh in multiplayer)
         let worldClock = 12.0;
-        let buildings = []; // store interactive buildings
-        let gasStation, policeStation, hospital, houses = [];
+        let buildings = [];
+        let gasStation = null, policeStation = null, hospital = null, houses = [];
 
-        // ==================== HELPER FUNCTIONS ====================
+        // ==================== HELPERS ====================
         function showNotification(msg, color) {
             const n = document.getElementById('notification');
             if (!n) return;
@@ -206,12 +196,11 @@
         function distanceXZ(a, b) { return Math.hypot(a.x - b.x, a.z - b.z); }
         function lerpAngle(current, target, alpha) { let diff = target - current; while (diff > Math.PI) diff -= Math.PI*2; while (diff < -Math.PI) diff += Math.PI*2; return current + diff * alpha; }
 
-        // ==================== AUTH & SERVER JOIN ====================
+        // ==================== AUTH & SERVER ====================
         async function login(email, password) {
             const { data, error } = await supabase.auth.signInWithPassword({ email, password });
             if (error) { document.getElementById('auth-message').textContent = error.message; return false; }
             currentUser = data.user;
-            // Load or create profile
             const { data: profile, error: profileError } = await supabase.from('user_profiles').select('*').eq('user_id', currentUser.id).maybeSingle();
             if (profileError && profileError.code !== 'PGRST116') {
                 console.error(profileError);
@@ -230,7 +219,6 @@
                     document.getElementById('auth-message').textContent = 'Error creating profile';
                     return false;
                 }
-                // Reload profile
                 const { data: newProfile } = await supabase.from('user_profiles').select('*').eq('user_id', currentUser.id).single();
                 if (newProfile) {
                     const loaded = JSON.parse(newProfile.game_data || '{}');
@@ -260,7 +248,6 @@
             if (password !== confirm) { document.getElementById('auth-message').textContent = 'Passwords do not match'; return false; }
             const { data, error } = await supabase.auth.signUp({ email, password });
             if (error) { document.getElementById('auth-message').textContent = error.message; return false; }
-            // After signup, log in (which will create profile)
             return login(email, password);
         }
         async function createServer(serverId) {
@@ -388,7 +375,7 @@
             return group;
         }
 
-        // ==================== VEHICLE SYSTEM ====================
+        // ==================== VEHICLES ====================
         function createVehicleModel(color) {
             const group = new THREE.Group();
             const body = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.4, 2.2), new THREE.MeshStandardMaterial({ color }));
@@ -536,26 +523,49 @@
                 scene.add(roadVer);
             }
             const buildingColors = [0xaa8866, 0xccaa88, 0x88aacc];
+            let gasStationFound = false, hospitalFound = false, policeStationFound = false;
             for (let i = -160; i <= 160; i += 40) {
                 for (let j = -160; j <= 160; j += 40) {
                     if (Math.abs(i) < 20 && Math.abs(j) < 20) continue;
                     const type = (Math.abs(i)+Math.abs(j)) % 5;
                     let height = 6;
                     let color = buildingColors[(Math.abs(i)+Math.abs(j)) % buildingColors.length];
-                    if (type === 0) { color = 0x3366cc; height = 8; policeStation = { position: new THREE.Vector3(i, height/2, j), mesh: null }; }
-                    else if (type === 1) { color = 0xcc3333; height = 8; hospital = { position: new THREE.Vector3(i, height/2, j), mesh: null }; }
-                    else if (type === 2) { color = 0xffaa44; height = 4; gasStation = { position: new THREE.Vector3(i, height/2, j), mesh: null }; }
+                    if (type === 0) { color = 0x3366cc; height = 8; policeStationFound = true; policeStation = { position: new THREE.Vector3(i, height/2, j), mesh: null }; }
+                    else if (type === 1) { color = 0xcc3333; height = 8; hospitalFound = true; hospital = { position: new THREE.Vector3(i, height/2, j), mesh: null }; }
+                    else if (type === 2) { color = 0xffaa44; height = 4; gasStationFound = true; gasStation = { position: new THREE.Vector3(i, height/2, j), mesh: null }; }
                     else if (type === 3) { color = 0xccaa88; height = 4; houses.push({ position: new THREE.Vector3(i, height/2, j), mesh: null }); }
                     const building = new THREE.Mesh(new THREE.BoxGeometry(12, height, 12), new THREE.MeshStandardMaterial({ color }));
                     building.position.set(i, height/2, j);
                     building.castShadow = true;
                     scene.add(building);
                     buildings.push(building);
-                    if (type === 0) policeStation.mesh = building;
-                    if (type === 1) hospital.mesh = building;
-                    if (type === 2) gasStation.mesh = building;
+                    if (type === 0 && policeStation) policeStation.mesh = building;
+                    if (type === 1 && hospital) hospital.mesh = building;
+                    if (type === 2 && gasStation) gasStation.mesh = building;
                     if (type === 3) houses[houses.length-1].mesh = building;
                 }
+            }
+            // Fallback positions
+            if (!gasStationFound) {
+                const building = new THREE.Mesh(new THREE.BoxGeometry(12, 4, 12), new THREE.MeshStandardMaterial({ color: 0xffaa44 }));
+                building.position.set(0, 2, 0);
+                scene.add(building);
+                gasStation = { position: new THREE.Vector3(0, 2, 0), mesh: building };
+                buildings.push(building);
+            }
+            if (!hospitalFound) {
+                const building = new THREE.Mesh(new THREE.BoxGeometry(12, 8, 12), new THREE.MeshStandardMaterial({ color: 0xcc3333 }));
+                building.position.set(40, 4, 40);
+                scene.add(building);
+                hospital = { position: new THREE.Vector3(40, 4, 40), mesh: building };
+                buildings.push(building);
+            }
+            if (!policeStationFound) {
+                const building = new THREE.Mesh(new THREE.BoxGeometry(12, 8, 12), new THREE.MeshStandardMaterial({ color: 0x3366cc }));
+                building.position.set(-40, 4, -40);
+                scene.add(building);
+                policeStation = { position: new THREE.Vector3(-40, 4, -40), mesh: building };
+                buildings.push(building);
             }
             const treeMat = new THREE.MeshStandardMaterial({ color: 0x3c9e3c });
             for (let i = -180; i <= 180; i += 20) {
@@ -571,13 +581,13 @@
 
         // ==================== INTERACTIONS ====================
         async function interact() {
+            if (!localPlayerMesh) return;
             for (let [id, entry] of vehicles) {
-                if (distanceXZ(localPlayerMesh.position, entry.mesh.position) < 2) {
+                if (entry.mesh && distanceXZ(localPlayerMesh.position, entry.mesh.position) < 2) {
                     enterVehicle(id);
                     return;
                 }
             }
-            // Only check buildings if they exist
             if (gasStation && gasStation.mesh && distanceXZ(localPlayerMesh.position, gasStation.mesh.position) < 8) {
                 showNotification('Gas station: Refuel here', '#88ff88');
                 if (myVehicleId && mySeat === 'driver') {
