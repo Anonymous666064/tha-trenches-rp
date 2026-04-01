@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Working Multiplayer 3D</title>
+<title>Multiplayer 3D Working</title>
 
 <style>
 body { margin:0; overflow:hidden; background:black; font-family:Arial; }
@@ -32,7 +32,7 @@ button { background:#4ec9e0; cursor:pointer; }
 <body>
 
 <div id="menu">
-  <h1>🌍 Multiplayer Test</h1>
+  <h1>🌍 Multiplayer</h1>
   <input id="username" placeholder="Username">
   <input id="server" placeholder="Server Code">
   <button onclick="start()">Play</button>
@@ -46,11 +46,12 @@ import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js
 
 const supabase = createClient(
   "https://hcvewiwhtxqpbogcrukk.supabase.co",
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjdmV3aXdodHhxcGJvZ2NydWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTQ4MzMsImV4cCI6MjA5MDQ3MDgzM30.UsdvDyrGl4OhmbDjonyOagknHf--Zhe-fhCi0LFVoQw"
+  "YOUR_API_KEY_HERE"
 );
 
 let id = crypto.randomUUID();
 let server = "";
+let username = "";
 
 let players = {};
 let meshes = {};
@@ -71,20 +72,15 @@ document.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
 /* ================= START ================= */
 
 window.start = async () => {
-  const username = document.getElementById('username').value;
+  username = document.getElementById('username').value;
   server = document.getElementById('server').value;
 
-  if (!username || !server) return alert("Enter info");
+  if (!username || !server) return alert("Enter username + server");
 
   document.getElementById('menu').style.display = "none";
 
-  await supabase.from('players').upsert({
-    id,
-    username,
-    server
-  });
-
   init();
+  startSync();
   realtime();
   animate();
 };
@@ -101,12 +97,14 @@ function init() {
   renderer.setSize(innerWidth, innerHeight);
   document.body.appendChild(renderer.domElement);
 
+  // LIGHT
   const light = new THREE.DirectionalLight(0xffffff,1);
   light.position.set(10,10,10);
   scene.add(light);
 
   scene.add(new THREE.AmbientLight(0xffffff,0.5));
 
+  // GROUND
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(500,500),
     new THREE.MeshStandardMaterial({ color:0x228B22 })
@@ -114,6 +112,7 @@ function init() {
   ground.rotation.x = -Math.PI/2;
   scene.add(ground);
 
+  // PLAYER
   player = new THREE.Mesh(
     new THREE.BoxGeometry(1,2,1),
     new THREE.MeshStandardMaterial({ color:0x00ffcc })
@@ -121,7 +120,7 @@ function init() {
   player.position.y = 1;
   scene.add(player);
 
-  /* MOUSE LOCK */
+  // MOUSE LOCK
   document.body.addEventListener('click', () => {
     document.body.requestPointerLock();
   });
@@ -150,20 +149,31 @@ function realtime() {
 
 /* ================= SYNC ================= */
 
+function startSync() {
+  setInterval(sync, 100);
+}
+
 async function sync() {
-  await supabase.from('players').update({
+  if (!player) return;
+
+  const { error } = await supabase.from('players').upsert({
+    id,
+    username,
+    server,
     x: player.position.x,
     y: player.position.y,
     z: player.position.z,
     rot: yaw
-  }).eq('id', id);
-}
+  });
 
-setInterval(sync, 100);
+  if (error) console.error(error);
+}
 
 /* ================= MOVEMENT ================= */
 
 function move() {
+  if (!player) return;
+
   let speed = 0.15;
 
   let forward = new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw));
