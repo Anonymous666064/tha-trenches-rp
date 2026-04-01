@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>CityRP - Multiplayer Roleplay Game</title>
+    <title>Neon Metropolis - Multiplayer 3D Open World</title>
     <style>
         body {
             margin: 0;
             overflow: hidden;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Segoe UI', 'Poppins', sans-serif;
         }
-        /* UI Overlays */
+        /* UI Overlay */
         #ui-container {
             position: absolute;
             top: 0;
@@ -20,629 +20,675 @@
             pointer-events: none;
             z-index: 10;
         }
-        /* HUD */
         .hud {
             position: absolute;
-            background: rgba(0,0,0,0.7);
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(8px);
+            border-radius: 12px;
+            padding: 12px 20px;
             color: white;
-            padding: 8px 15px;
-            border-radius: 8px;
-            font-size: 14px;
             font-weight: bold;
-            backdrop-filter: blur(5px);
+            font-size: 18px;
+            border-left: 4px solid #00ffcc;
             pointer-events: none;
             font-family: monospace;
         }
-        #health-bar {
-            bottom: 20px;
-            left: 20px;
-            width: 200px;
-            height: 20px;
-            background: #330000;
-            border-radius: 10px;
-            overflow: hidden;
+        .hud span {
+            color: #00ffcc;
         }
-        #health-fill {
-            width: 100%;
-            height: 100%;
-            background: #ff3333;
-            transition: width 0.2s;
-        }
-        #stats {
-            bottom: 20px;
-            right: 20px;
-            text-align: right;
-            line-height: 1.4;
-        }
-        #money {
-            top: 20px;
-            right: 20px;
-            background: gold;
-            color: black;
-        }
-        #interaction {
-            bottom: 80px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0,0,0,0.8);
-            text-align: center;
-            white-space: nowrap;
-        }
-        #phone {
-            position: absolute;
-            bottom: 100px;
-            right: 20px;
-            width: 280px;
-            background: #111;
-            border-radius: 20px;
-            padding: 15px;
-            color: white;
-            font-family: monospace;
-            border: 2px solid #00ffcc;
-            box-shadow: 0 0 15px rgba(0,255,200,0.3);
-            pointer-events: auto;
-            transition: 0.3s;
-            backdrop-filter: blur(10px);
-            background: rgba(0,0,0,0.85);
-        }
-        .phone-header {
-            font-weight: bold;
-            text-align: center;
-            border-bottom: 1px solid #00ffcc;
-            margin-bottom: 10px;
-            padding-bottom: 5px;
-        }
-        .phone-app {
-            margin: 8px 0;
-            padding: 5px;
-            background: #222;
-            border-radius: 8px;
-            cursor: pointer;
-            text-align: center;
-            transition: 0.1s;
-        }
-        .phone-app:hover { background: #00aa88; }
-        #login-screen {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.9);
+        .stats {
             display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-            backdrop-filter: blur(8px);
-            font-family: Arial, Helvetica, sans-serif;
+            gap: 24px;
         }
-        .login-box {
+        .phone-icon {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
             background: #1e1e2f;
-            padding: 30px;
-            border-radius: 20px;
-            width: 300px;
-            text-align: center;
+            width: 55px;
+            height: 55px;
+            border-radius: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            pointer-events: auto;
+            box-shadow: 0 0 15px rgba(0,255,200,0.3);
             border: 1px solid #00ffcc;
-            box-shadow: 0 0 30px rgba(0,255,200,0.2);
+            transition: 0.2s;
+            font-size: 28px;
         }
-        .login-box input {
-            width: 90%;
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 8px;
-            border: none;
+        .phone-icon:hover {
+            transform: scale(1.05);
             background: #2a2a3a;
-            color: white;
         }
-        .login-box button {
+        /* Modal Screens */
+        .modal {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(15,15,25,0.95);
+            backdrop-filter: blur(16px);
+            border-radius: 24px;
+            padding: 20px;
+            width: 320px;
+            color: white;
+            border: 1px solid #00ffcc88;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            pointer-events: auto;
+            z-index: 100;
+            font-family: monospace;
+        }
+        .modal input, .modal select {
+            width: 90%;
+            padding: 8px;
+            margin: 8px 0;
+            background: #222;
+            border: 1px solid #00ffcc;
+            color: white;
+            border-radius: 8px;
+        }
+        .modal button {
             background: #00ccaa;
             border: none;
-            padding: 10px 20px;
-            margin: 5px;
-            border-radius: 8px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            margin-top: 12px;
             cursor: pointer;
             font-weight: bold;
+            width: 100%;
         }
-        #error-msg {
-            color: #ff6666;
+        .close-btn {
+            background: #aa3355;
+        }
+        .hidden {
+            display: none;
+        }
+        .phone-app {
+            width: 280px;
+            background: #0a0a1ad9;
+            border-radius: 32px;
+            padding: 12px;
+        }
+        .app-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 12px;
+        }
+        .app-btn {
+            background: #1f1f2f;
+            padding: 10px;
+            text-align: center;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .chat-box {
+            max-height: 200px;
+            overflow-y: auto;
             font-size: 12px;
+            background: #000000aa;
+            border-radius: 12px;
+            padding: 8px;
         }
-        .job-indicator {
-            top: 80px;
-            left: 20px;
-            background: #222;
-            border-left: 4px solid #ffaa44;
+        .blackmarket-item {
+            background: #2a2a2a;
+            margin: 5px 0;
+            padding: 5px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
         }
-        @media (max-width: 600px) {
-            .hud { font-size: 10px; padding: 4px 8px; }
-            #phone { width: 240px; padding: 10px; bottom: 80px; }
-            #health-bar { width: 150px; }
+        #respawn-screen {
+            position: absolute;
+            bottom: 30%;
+            left: 50%;
+            transform: translateX(-50%);
+            background: black;
+            padding: 20px;
+            border-radius: 20px;
+            text-align: center;
+            pointer-events: auto;
+            z-index: 200;
+        }
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            100% { opacity: 1; }
         }
     </style>
 </head>
 <body>
     <div id="ui-container">
-        <div id="money" class="hud">💰 $0</div>
-        <div id="health-bar" class="hud"><div id="health-fill"></div></div>
-        <div id="stats" class="hud">
-            ❤️ Health: <span id="health-val">100</span><br>
-            🍔 Hunger: <span id="hunger-val">100</span><br>
-            💧 Thirst: <span id="thirst-val">100</span>
+        <div class="hud">
+            <div class="stats">
+                <div>❤️ <span id="health-val">100</span></div>
+                <div>🍔 <span id="hunger-val">100</span></div>
+                <div>💧 <span id="thirst-val">100</span></div>
+                <div>💰 $<span id="money-val">0</span></div>
+            </div>
         </div>
-        <div id="interaction" class="hud">Press E to interact</div>
-        <div id="job-indicator" class="hud job-indicator">🚔 Job: None</div>
-        <div id="phone">
-            <div class="phone-header">📱 iFruit</div>
-            <div class="phone-app" id="job-app">💼 Jobs (Police/Drug/Taxi)</div>
-            <div class="phone-app" id="weapon-app">🔫 Weapon Dealer ($500)</div>
-            <div class="phone-app" id="food-app">🍔 Buy Food ($20)</div>
-            <div class="phone-app" id="water-app">💧 Buy Water ($10)</div>
-            <div class="phone-app" id="respawn-app">🏥 Respawn at Hospital</div>
-        </div>
-    </div>
-    <div id="login-screen">
-        <div class="login-box">
-            <h2>CityRP</h2>
-            <input type="text" id="username" placeholder="Username">
+        <div class="phone-icon" id="phoneBtn">📱</div>
+
+        <!-- Login Modal -->
+        <div id="loginModal" class="modal">
+            <h3>🔐 LOGIN / REGISTER</h3>
+            <input type="text" id="username" placeholder="Username" autocomplete="off">
             <input type="password" id="password" placeholder="Password">
-            <button id="login-btn">Login</button>
-            <button id="register-btn">Register</button>
-            <p id="error-msg"></p>
+            <button id="loginBtn">Login / Register</button>
+        </div>
+
+        <!-- Server Modal -->
+        <div id="serverModal" class="modal hidden">
+            <h3>🌐 MULTIPLAYER</h3>
+            <button id="createServerBtn">✨ Create New Server</button>
+            <input type="text" id="joinCode" placeholder="Enter Server Code">
+            <button id="joinServerBtn">Join Server</button>
+            <button id="closeServerBtn" class="close-btn">Close</button>
+        </div>
+
+        <!-- Phone Interface -->
+        <div id="phoneModal" class="modal hidden" style="width: 320px;">
+            <div class="phone-app">
+                <h3>📱 PHONE</h3>
+                <div class="app-grid">
+                    <div class="app-btn" data-app="jobs">💼 Jobs</div>
+                    <div class="app-btn" data-app="vehicles">🚗 Vehicles</div>
+                    <div class="app-btn" data-app="chat">💬 Chat</div>
+                    <div class="app-btn" data-app="blackmarket">🖤 Black Market</div>
+                </div>
+                <div id="appContent" style="margin-top:12px; max-height:300px; overflow-y:auto;">
+                    <p>Select an app</p>
+                </div>
+                <button id="closePhoneBtn" class="close-btn">Close</button>
+            </div>
+        </div>
+
+        <!-- Respawn Screen -->
+        <div id="respawn-screen" class="hidden">
+            <h2>💀 YOU DIED</h2>
+            <button id="respawnBtn">🏥 Respawn at Hospital</button>
+        </div>
+        
+        <!-- Chat Input (floating) -->
+        <div id="chatInputArea" style="position: absolute; bottom: 100px; left: 20px; pointer-events: auto; background: #000000aa; border-radius: 20px; padding: 5px; display: none;">
+            <input type="text" id="chatMsgInput" placeholder="Chat..." style="width: 200px; background: black; color:white; border:1px solid cyan;">
+            <button id="sendChatBtn">Send</button>
         </div>
     </div>
 
-    <!-- Import Three.js core and add-ons -->
+    <!-- Import Three.js and dependencies -->
     <script type="importmap">
         {
             "imports": {
                 "three": "https://unpkg.com/three@0.128.0/build/three.module.js",
-                "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/"
+                "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.0"
             }
         }
     </script>
+
     <script type="module">
         import * as THREE from 'three';
-        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
-        
+        import { createClient } from '@supabase/supabase-js';
+
         // ---------- SUPABASE CONFIG ----------
         const SUPABASE_URL = "https://hcvewiwhtxqpbogcrukk.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjdmV3aXdodHhxcGJvZ2NydWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTQ4MzMsImV4cCI6MjA5MDQ3MDgzM30.UsdvDyrGl4OhmbDjonyOagknHf--Zhe-fhCi0LFVoQw";
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
         
-        // Simple Supabase REST wrapper
-        const supabase = {
-            url: SUPABASE_URL,
-            headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': `Bearer ${SUPABASE_ANON_KEY}`, 'Content-Type': 'application/json' },
-            async query(endpoint, options = {}) {
-                const res = await fetch(`${this.url}/rest/v1/${endpoint}`, {
-                    headers: this.headers,
-                    ...options
-                });
-                return res.json();
-            }
-        };
-        
-        // Game State
+        // Global state
         let currentUser = null;
-        let playerData = { money: 1000, health: 100, hunger: 100, thirst: 100, job: 'none', pos: { x: 0, y: 2, z: 0 } };
-        let localPlayer = { mesh: null, vehicle: null, isDriver: false, passenger: null, seatOffset: new THREE.Vector3(0,0,0) };
-        let otherPlayers = new Map(); // id -> { mesh, username }
-        let currentVehicle = null; // the vehicle entity player is driving
-        let activeVehicleGLTF = null;
-        let keys = { w: false, s: false, a: false, d: false, space: false, shift: false };
-        let camera, scene, renderer, clock = new THREE.Clock();
-        let playerBodyGroup; // Group for custom ragdoll-like body
-        let vehicleSpeed = 0;
-        let isInVehicle = false;
-        let nearbyInteractable = null;
-        let weatherLight, sunLight;
+        let currentServerId = null;
+        let playersMap = new Map(); // id -> { mesh, data }
+        let localPlayerMesh = null;
+        let localPlayerData = { id: null, username: "", money: 1000, health: 100, hunger: 100, thirst: 100, position: { x: 0, y: 2, z: 0 } };
+        let keys = { w: false, s: false, a: false, d: false, shift: false };
+        let camera, scene, renderer;
+        let moveSpeed = 5;
         
-        // ---------- BUILD WORLD: City with geometric buildings, park, trees, lamps ----------
-        function buildCity() {
-            const cityGroup = new THREE.Group();
-            // Ground grid
-            const groundMat = new THREE.MeshStandardMaterial({ color: 0x2c2c2c, roughness: 0.8 });
-            const groundPlane = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), groundMat);
-            groundPlane.rotation.x = -Math.PI / 2;
-            groundPlane.receiveShadow = true;
-            cityGroup.add(groundPlane);
-            
-            // Roads (simple stripes)
-            const roadMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
-            for (let i = -150; i <= 150; i+=20) {
-                const roadX = new THREE.Mesh(new THREE.BoxGeometry(400, 0.1, 4), roadMat);
-                roadX.position.set(0, 0.05, i);
-                roadX.receiveShadow = true;
-                cityGroup.add(roadX);
-                const roadZ = new THREE.Mesh(new THREE.BoxGeometry(4, 0.1, 400), roadMat);
-                roadZ.position.set(i, 0.05, 0);
-                roadZ.receiveShadow = true;
-                cityGroup.add(roadZ);
-            }
-            
-            // Buildings - hand placed grid style with colors
-            const buildingColors = [0x88aaff, 0x88ccaa, 0xccaa88, 0xaa88cc];
-            for (let x = -60; x <= 60; x+=15) {
-                for (let z = -60; z <= 60; z+=15) {
-                    if (Math.abs(x) < 20 && Math.abs(z) < 20) continue; // park area
-                    const height = 3 + Math.random() * 8;
-                    const building = new THREE.Mesh(new THREE.BoxGeometry(6, height, 6), new THREE.MeshStandardMaterial({ color: buildingColors[Math.floor(Math.random()*buildingColors.length)], emissive: 0x111111 }));
-                    building.position.set(x, height/2, z);
-                    building.castShadow = true;
-                    building.receiveShadow = true;
-                    cityGroup.add(building);
-                    // windows
-                    const winMat = new THREE.MeshStandardMaterial({ color: 0xffaa66, emissive: 0x442200 });
-                    for (let i = 1; i <= Math.floor(height); i++) {
-                        const win = new THREE.Mesh(new THREE.BoxGeometry(1.5, 1, 0.1), winMat);
-                        win.position.set(x + 1.5, i, z + 2.5);
-                        cityGroup.add(win);
-                    }
+        // Simple world objects
+        let worldGroup;
+        
+        // Ragdoll flag / respawn
+        let isDead = false;
+        
+        // Realtime subscriptions
+        let playersChannel = null;
+        
+        // Chat messages
+        let chatMessages = [];
+        
+        // ---------- THREE.JS Setup ----------
+        scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050b1a);
+        scene.fog = new THREE.FogExp2(0x050b1a, 0.008);
+        camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 3, 8);
+        renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+        
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0x404060);
+        scene.add(ambientLight);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
+        dirLight.position.set(10, 20, 5);
+        dirLight.castShadow = true;
+        scene.add(dirLight);
+        const backLight = new THREE.PointLight(0x4466cc, 0.3);
+        backLight.position.set(0, 5, -5);
+        scene.add(backLight);
+        
+        // Ground & City
+        const gridHelper = new THREE.GridHelper(200, 40, 0x88aaff, 0x335588);
+        gridHelper.position.y = -0.5;
+        scene.add(gridHelper);
+        
+        // Simple buildings
+        worldGroup = new THREE.Group();
+        const buildingMat = new THREE.MeshStandardMaterial({ color: 0x4a6c8f });
+        const glassMat = new THREE.MeshStandardMaterial({ color: 0x88aaff, emissive: 0x224466 });
+        for (let i = -6; i <= 6; i++) {
+            for (let j = -6; j <= 6; j++) {
+                if (Math.random() > 0.7 && (i !== 0 || j !== 0)) {
+                    const height = 1 + Math.random() * 3;
+                    const box = new THREE.Mesh(new THREE.BoxGeometry(1.5, height, 1.5), buildingMat);
+                    box.position.set(i * 4, height/2 - 0.5, j * 4);
+                    box.castShadow = true;
+                    box.receiveShadow = true;
+                    worldGroup.add(box);
+                    
+                    const roof = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.3, 4), glassMat);
+                    roof.position.set(i * 4, height - 0.2, j * 4);
+                    worldGroup.add(roof);
                 }
             }
-            
-            // Park (spawn area)
-            const parkGrass = new THREE.Mesh(new THREE.PlaneGeometry(40, 40), new THREE.MeshStandardMaterial({ color: 0x5a9e4e }));
-            parkGrass.rotation.x = -Math.PI/2;
-            parkGrass.position.set(0, 0.02, 0);
-            parkGrass.receiveShadow = true;
-            cityGroup.add(parkGrass);
-            // Trees
-            const treeTrunk = new THREE.Mesh(new THREE.CylinderGeometry(0.8,1,2), new THREE.MeshStandardMaterial({ color: 0x8B5A2B }));
-            const treeTop = new THREE.Mesh(new THREE.ConeGeometry(1.2, 2, 8), new THREE.MeshStandardMaterial({ color: 0x3c9e3c }));
-            for (let i = -15; i <= 15; i+=5) {
-                for (let j = -15; j <= 15; j+=5) {
-                    if (Math.abs(i)<5 && Math.abs(j)<5) continue;
-                    const trunk = treeTrunk.clone(); trunk.position.set(i, 1, j);
-                    const top = treeTop.clone(); top.position.set(i, 2.5, j);
-                    cityGroup.add(trunk); cityGroup.add(top);
-                }
-            }
-            // Lamp posts
-            const lampMat = new THREE.MeshStandardMaterial({ color: 0xccccaa });
-            for (let ang = 0; ang < 360; ang+=45) {
-                const rad = 35;
-                const x = Math.cos(ang * Math.PI/180)*rad;
-                const z = Math.sin(ang * Math.PI/180)*rad;
-                const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.4,0.6,5), lampMat);
-                pole.position.set(x, 2.5, z);
-                cityGroup.add(pole);
-            }
-            
-            // Gang turfs - colored zones: Crips (blue), Bloods(red), blzr(yellow/black), gso(grey)
-            const turfZones = [
-                { name: "Crips", color: 0x3366ff, pos: [-45, -45], radius: 12 },
-                { name: "Bloods", color: 0xcc3333, pos: [45, -45], radius: 12 },
-                { name: "BLZR", color: 0xccaa33, pos: [-45, 45], radius: 12 },
-                { name: "GSO", color: 0x886666, pos: [45, 45], radius: 12 }
-            ];
-            turfZones.forEach(t => {
-                const zoneRing = new THREE.Mesh(new THREE.RingGeometry(t.radius-0.5, t.radius, 32), new THREE.MeshStandardMaterial({ color: t.color, side: THREE.DoubleSide, transparent: true, opacity: 0.4 }));
-                zoneRing.rotation.x = -Math.PI/2;
-                zoneRing.position.set(t.pos[0], 0.1, t.pos[1]);
-                cityGroup.add(zoneRing);
-            });
-            
-            scene.add(cityGroup);
+        }
+        // Hospital & Park marker
+        const hospitalSign = new THREE.Mesh(new THREE.BoxGeometry(3, 2, 0.5), new THREE.MeshStandardMaterial({ color: 0xff6666 }));
+        hospitalSign.position.set(15, 1, 15);
+        worldGroup.add(hospitalSign);
+        const parkTree = new THREE.Mesh(new THREE.ConeGeometry(1, 2, 6), new THREE.MeshStandardMaterial({ color: 0x44aa44 }));
+        parkTree.position.set(-12, 0, -12);
+        worldGroup.add(parkTree);
+        scene.add(worldGroup);
+        
+        // Local player representation (cube for now, but could be model)
+        const geometry = new THREE.BoxGeometry(0.8, 1.6, 0.8);
+        const material = new THREE.MeshStandardMaterial({ color: 0x44aaff, emissive: 0x2266aa });
+        localPlayerMesh = new THREE.Mesh(geometry, material);
+        localPlayerMesh.castShadow = true;
+        scene.add(localPlayerMesh);
+        
+        // other players will be simple spheres/boxes
+        function createRemotePlayer(color = 0xffaa44) {
+            const box = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.6, 0.8), new THREE.MeshStandardMaterial({ color }));
+            box.castShadow = true;
+            return box;
         }
         
-        // Create player body with cylindrical limbs, sphere head
-        function createPlayerModel(color=0x44aa88) {
-            const group = new THREE.Group();
-            // Torso
-            const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 1.2, 8), new THREE.MeshStandardMaterial({ color: color, roughness: 0.3 }));
-            torso.position.y = 0.6;
-            torso.castShadow = true;
-            group.add(torso);
-            // Head
-            const head = new THREE.Mesh(new THREE.SphereGeometry(0.45, 24, 24), new THREE.MeshStandardMaterial({ color: 0xffccaa }));
-            head.position.y = 1.25;
-            head.castShadow = true;
-            group.add(head);
-            // Arms (cylinders)
-            const armL = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.9, 6), new THREE.MeshStandardMaterial({ color: color }));
-            armL.position.set(-0.65, 1.0, 0);
-            armL.castShadow = true;
-            const armR = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 0.9, 6), new THREE.MeshStandardMaterial({ color: color }));
-            armR.position.set(0.65, 1.0, 0);
-            armR.castShadow = true;
-            group.add(armL); group.add(armR);
-            // Legs
-            const legL = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 1.0, 6), new THREE.MeshStandardMaterial({ color: color }));
-            legL.position.set(-0.35, 0.2, 0);
-            legL.castShadow = true;
-            const legR = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 1.0, 6), new THREE.MeshStandardMaterial({ color: color }));
-            legR.position.set(0.35, 0.2, 0);
-            legR.castShadow = true;
-            group.add(legL); group.add(legR);
-            return group;
+        // ---------- Helper Functions ----------
+        async function initTablesIfNeeded() {
+            // In a real scenario tables must exist; but we'll just use supabase client to check presence - assume tables exist.
+            // For demo we just ensure we can fetch player
+            console.log("Supabase ready");
         }
         
-        // Load vehicle GLTF
-        async function loadVehicle(path, position) {
-            const loader = new GLTFLoader();
-            return new Promise((resolve) => {
-                loader.load(path, (gltf) => {
-                    const vehicle = gltf.scene;
-                    vehicle.position.copy(position);
-                    vehicle.scale.set(1.2,1.2,1.2);
-                    vehicle.castShadow = true;
-                    scene.add(vehicle);
-                    resolve(vehicle);
-                }, undefined, (err) => { console.warn("Fallback vehicle", err); resolve(null); });
-            });
-        }
-        
-        // Update HUD and stats
-        function updateUI() {
-            document.getElementById('health-fill').style.width = `${playerData.health}%`;
-            document.getElementById('health-val').innerText = Math.floor(playerData.health);
-            document.getElementById('hunger-val').innerText = Math.floor(playerData.hunger);
-            document.getElementById('thirst-val').innerText = Math.floor(playerData.thirst);
-            document.getElementById('money').innerHTML = `💰 $${playerData.money}`;
-            document.getElementById('job-indicator').innerHTML = playerData.job === 'none' ? '🚔 Job: None' : `💼 Job: ${playerData.job}`;
-        }
-        
-        // Death system
-        function handleDeath() {
-            if (playerData.health <= 0 && !playerData.dead) {
-                playerData.dead = true;
-                alert("You died! Respawn at hospital.");
-                // ragdoll effect: just reposition to hospital
-                playerData.health = 100;
-                playerData.hunger = 80;
-                playerData.thirst = 80;
-                playerData.dead = false;
-                if (localPlayer.mesh) localPlayer.mesh.position.set(0, 1, 0);
-                if (currentVehicle) { /* exit vehicle */ exitVehicle(); }
-                // Money penalty
-                playerData.money = Math.max(0, playerData.money - 200);
-                savePlayerData();
-                updateUI();
-            }
-        }
-        
-        function exitVehicle() {
-            if (currentVehicle) {
-                scene.remove(currentVehicle);
-                currentVehicle = null;
-                isInVehicle = false;
-                if (localPlayer.mesh) scene.add(localPlayer.mesh);
-                localPlayer.mesh.position.set(camera.position.x, 1, camera.position.z);
-            }
-        }
-        
-        // Simple driving & sync
-        function updateDriving(delta) {
-            if (!currentVehicle) return;
-            let speed = 0;
-            if (keys.w) speed = 15 * delta;
-            if (keys.s) speed = -8 * delta;
-            let turn = 0;
-            if (keys.a) turn = 2.5 * delta;
-            if (keys.d) turn = -2.5 * delta;
-            currentVehicle.position.x += Math.sin(currentVehicle.rotation.y) * speed;
-            currentVehicle.position.z += Math.cos(currentVehicle.rotation.y) * speed;
-            currentVehicle.rotation.y += turn;
-            // update camera relative to vehicle
-            const offset = new THREE.Vector3(-5, 3, 8);
-            const targetPos = currentVehicle.position.clone().add(offset);
-            camera.position.lerp(targetPos, 0.1);
-            camera.lookAt(currentVehicle.position);
-            if (localPlayer.mesh) {
-                localPlayer.mesh.position.copy(currentVehicle.position);
-                localPlayer.mesh.position.y += 0.5;
-            }
-        }
-        
-        // Interaction system (jobs, dealers)
-        function checkInteractions() {
-            const playerPos = localPlayer.mesh ? localPlayer.mesh.position : new THREE.Vector3(0,0,0);
-            // Drug dealer NPC area (simulate at park)
-            if (playerPos.distanceTo(new THREE.Vector3(0,0,0)) < 8) {
-                nearbyInteractable = { type: "drugdealer", action: "Buy Weed ($100) / Sell Weed" };
-                document.getElementById('interaction').style.display = "block";
-            } 
-            else if (playerPos.distanceTo(new THREE.Vector3(30,0,30)) < 8) {
-                nearbyInteractable = { type: "weapons", action: "Weapon Dealer" };
-                document.getElementById('interaction').style.display = "block";
-            }
-            else {
-                nearbyInteractable = null;
-                document.getElementById('interaction').style.display = "none";
-            }
-        }
-        
-        // Phone events
-        document.getElementById('job-app').onclick = () => {
-            if (playerData.money >= 100) {
-                playerData.job = prompt("Choose job: Police, Drug, Taxi", "Police");
-                if (playerData.job) { playerData.money -= 100; savePlayerData(); updateUI(); }
-            } else alert("Need $100");
-        };
-        document.getElementById('weapon-app').onclick = () => {
-            if (playerData.money >= 500) {
-                playerData.money -= 500;
-                alert("You bought a pistol!");
-                savePlayerData(); updateUI();
-            } else alert("Need $500");
-        };
-        document.getElementById('food-app').onclick = () => { if(playerData.money>=20){playerData.money-=20; playerData.hunger=Math.min(100,playerData.hunger+20); savePlayerData(); updateUI();}};
-        document.getElementById('water-app').onclick = () => { if(playerData.money>=10){playerData.money-=10; playerData.thirst=Math.min(100,playerData.thirst+20); savePlayerData(); updateUI();}};
-        document.getElementById('respawn-app').onclick = () => {
-            playerData.health=100; playerData.hunger=80; playerData.thirst=80;
-            if(localPlayer.mesh) localPlayer.mesh.position.set(0,1,0);
-            exitVehicle();
-            savePlayerData(); updateUI();
-        };
-        
-        // Hunger/thirst decay
-        function updateStats(delta) {
-            playerData.hunger -= 2 * delta;
-            playerData.thirst -= 3 * delta;
-            if(playerData.hunger<0) playerData.health -= 10*delta;
-            if(playerData.thirst<0) playerData.health -= 12*delta;
-            playerData.hunger = Math.max(0, playerData.hunger);
-            playerData.thirst = Math.max(0, playerData.thirst);
-            if(playerData.health>0) playerData.health = Math.min(100, playerData.health);
-            else handleDeath();
-            updateUI();
-        }
-        
-        // Save to supabase (mock: we store locally since actual SQL will be separate, but integrate)
-        async function savePlayerData() {
-            if(!currentUser) return;
-            // In real scenario, call supabase upsert. For demo we simulate localstorage sync.
-            localStorage.setItem(`rp_${currentUser.username}`, JSON.stringify(playerData));
-        }
-        async function loadPlayerData(username) {
-            const stored = localStorage.getItem(`rp_${username}`);
-            if(stored) {
-                playerData = JSON.parse(stored);
+        async function registerOrLogin(username, password) {
+            // Simple auth using custom table "players" (We'll treat password as plaintext for demo but ideally hash)
+            // We'll use supabase to select player with username & password.
+            const { data, error } = await supabase
+                .from('players')
+                .select('*')
+                .eq('username', username)
+                .eq('password', password);
+            if (error) console.error(error);
+            if (data && data.length > 0) {
+                return data[0];
             } else {
-                playerData = { money: 1000, health: 100, hunger: 100, thirst: 100, job: 'none', pos: { x:0,y:2,z:0 }, dead: false };
-            }
-            updateUI();
-        }
-        
-        // Auth mock + supabase user table (we simulate because full SQL setup requires migrations, but we use localstorage + auth simulation)
-        async function loginUser(username, password) {
-            // Fake check; create account if not exists
-            const users = JSON.parse(localStorage.getItem('rp_users') || '{}');
-            if(users[username] && users[username].pwd === password) {
-                currentUser = { username };
-                await loadPlayerData(username);
-                document.getElementById('login-screen').style.display = 'none';
-                startGameSession();
-            } else if(!users[username]) {
-                alert("Register first");
-            } else { alert("Wrong password"); }
-        }
-        async function registerUser(username, password) {
-            const users = JSON.parse(localStorage.getItem('rp_users') || '{}');
-            if(users[username]) alert("User exists");
-            else {
-                users[username] = { pwd: password };
-                localStorage.setItem('rp_users', JSON.stringify(users));
-                playerData = { money: 1000, health: 100, hunger: 100, thirst: 100, job: 'none', pos:{x:0,y:2,z:0}, dead:false };
-                currentUser = { username };
-                await savePlayerData();
-                document.getElementById('login-screen').style.display = 'none';
-                startGameSession();
+                // Register new
+                const newPlayer = {
+                    username,
+                    password,
+                    money: 1000,
+                    health: 100,
+                    hunger: 100,
+                    thirst: 100,
+                    position_x: 0,
+                    position_y: 2,
+                    position_z: 0
+                };
+                const { data: inserted, error: insErr } = await supabase.from('players').insert([newPlayer]).select();
+                if (insErr) throw insErr;
+                return inserted[0];
             }
         }
-        document.getElementById('login-btn').onclick = () => loginUser(document.getElementById('username').value, document.getElementById('password').value);
-        document.getElementById('register-btn').onclick = () => registerUser(document.getElementById('username').value, document.getElementById('password').value);
         
-        function startGameSession() {
-            scene.background = new THREE.Color(0x87CEEB);
-            // Add vehicle near park
-            loadVehicle('models/vehicles/test1/scene.gltf', new THREE.Vector3(5, 0.5, 5)).then(v => {
-                if(v) { currentVehicle = v; isInVehicle = false; }
+        async function updateLocalPlayerDB() {
+            if (!currentUser) return;
+            await supabase.from('players').update({
+                money: localPlayerData.money,
+                health: localPlayerData.health,
+                hunger: localPlayerData.hunger,
+                thirst: localPlayerData.thirst,
+                position_x: localPlayerMesh.position.x,
+                position_y: localPlayerMesh.position.y,
+                position_z: localPlayerMesh.position.z
+            }).eq('id', currentUser.id);
+        }
+        
+        function respawnPlayer() {
+            isDead = false;
+            localPlayerData.health = 100;
+            localPlayerData.hunger = 80;
+            localPlayerData.thirst = 80;
+            localPlayerMesh.position.set(15, 2, 15); // hospital
+            updateLocalPlayerDB();
+            document.getElementById('respawn-screen').classList.add('hidden');
+        }
+        
+        function applyDamage(amount) {
+            if (isDead) return;
+            localPlayerData.health = Math.max(0, localPlayerData.health - amount);
+            if (localPlayerData.health <= 0) {
+                isDead = true;
+                localPlayerData.health = 0;
+                document.getElementById('respawn-screen').classList.remove('hidden');
+                // ragdoll effect: hide mesh? we just show screen.
+                localPlayerMesh.visible = false;
+            } else {
+                localPlayerMesh.visible = true;
+            }
+            updateLocalPlayerDB();
+        }
+        
+        // ----- Real-time Multiplayer Sync -----
+        async function joinServer(serverCode) {
+            if (playersChannel) await supabase.removeChannel(playersChannel);
+            currentServerId = serverCode;
+            // For simplicity we use a channel based on server code: "server:code"
+            playersChannel = supabase.channel(`server:${serverCode}`, {
+                config: { broadcast: { ack: true }, presence: { key: currentUser.id } }
             });
-            // add police car as extra
-            loadVehicle('models/vehicles/police/police_charger1/scene.gltf', new THREE.Vector3(-5,0.5,8));
             
-            // Weather system (simple cycle)
+            playersChannel.on('broadcast', { event: 'player-move' }, (payload) => {
+                const { userId, x, y, z } = payload;
+                if (userId === currentUser.id) return;
+                const remote = playersMap.get(userId);
+                if (remote) {
+                    remote.data.position = { x, y, z };
+                    remote.mesh.position.set(x, y, z);
+                }
+            });
+            
+            playersChannel.on('broadcast', { event: 'player-damage' }, (payload) => {
+                if (payload.targetId === currentUser.id) {
+                    applyDamage(payload.damage);
+                }
+            });
+            
+            playersChannel.on('broadcast', { event: 'chat' }, (payload) => {
+                chatMessages.unshift(payload);
+                updateChatUI();
+            });
+            
+            await playersChannel.subscribe(async (status) => {
+                if (status === 'SUBSCRIBED') {
+                    // Track presence
+                    const presenceTrack = await playersChannel.track({
+                        user_id: currentUser.id,
+                        username: currentUser.username,
+                        x: localPlayerMesh.position.x,
+                        y: localPlayerMesh.position.y,
+                        z: localPlayerMesh.position.z
+                    });
+                    playersChannel.on('presence', { event: 'sync' }, () => {
+                        const state = playersChannel.presenceState();
+                        for (let [id, presences] of Object.entries(state)) {
+                            if (id === currentUser.id) continue;
+                            if (!playersMap.has(id)) {
+                                const remoteMesh = createRemotePlayer(0xccaa55);
+                                scene.add(remoteMesh);
+                                playersMap.set(id, { mesh: remoteMesh, data: { id } });
+                            }
+                            const pdata = presences[0];
+                            if (pdata && playersMap.has(id)) {
+                                const p = playersMap.get(id);
+                                p.mesh.position.set(pdata.x, pdata.y, pdata.z);
+                            }
+                        }
+                        // Clean up
+                        for (let [id] of playersMap) {
+                            if (!state[id] && id !== currentUser.id) {
+                                scene.remove(playersMap.get(id).mesh);
+                                playersMap.delete(id);
+                            }
+                        }
+                    });
+                }
+            });
+            
+            // periodic broadcast position
             setInterval(() => {
-                const intensity = 0.5 + Math.random() * 0.5;
-                sunLight.intensity = intensity;
-            }, 10000);
+                if (currentServerId && playersChannel && !isDead) {
+                    playersChannel.send({
+                        type: 'broadcast',
+                        event: 'player-move',
+                        payload: { userId: currentUser.id, x: localPlayerMesh.position.x, y: localPlayerMesh.position.y, z: localPlayerMesh.position.z }
+                    });
+                    playersChannel.track({
+                        user_id: currentUser.id, username: currentUser.username,
+                        x: localPlayerMesh.position.x, y: localPlayerMesh.position.y, z: localPlayerMesh.position.z
+                    });
+                }
+            }, 100);
         }
         
-        // Keyboard handler
-        window.addEventListener('keydown', (e) => {
-            if(e.code === 'KeyW') keys.w=true;
-            if(e.code === 'KeyS') keys.s=true;
-            if(e.code === 'KeyA') keys.a=true;
-            if(e.code === 'KeyD') keys.d=true;
-            if(e.code === 'Space') keys.space=true;
-            if(e.code === 'ShiftLeft') keys.shift=true;
-            if(e.code === 'KeyE' && nearbyInteractable) {
-                if(nearbyInteractable.type === 'drugdealer') {
-                    if(confirm("Buy weed for $50?")) { playerData.money -= 50; playerData.hunger += 10; savePlayerData(); updateUI(); }
-                } else if(nearbyInteractable.type === 'weapons') {
-                    if(playerData.money >= 300) { playerData.money -= 300; alert("Bought Glock"); savePlayerData(); updateUI(); }
+        // ---------- UI & Phone Apps ----------
+        function updateHUD() {
+            document.getElementById('health-val').innerText = localPlayerData.health;
+            document.getElementById('hunger-val').innerText = localPlayerData.hunger;
+            document.getElementById('thirst-val').innerText = localPlayerData.thirst;
+            document.getElementById('money-val').innerText = localPlayerData.money;
+        }
+        
+        function updateChatUI() {
+            const chatDiv = document.getElementById('appContent');
+            if (chatDiv && document.getElementById('phoneModal').classList.contains('hidden') === false) {
+                // only if phone open with chat active? we handle separately.
+            }
+            const globalChatBox = document.querySelector('#appContent .chat-box');
+            if (globalChatBox) {
+                globalChatBox.innerHTML = chatMessages.slice(0, 15).map(m => `<div><b>${m.username}:</b> ${m.message}</div>`).join('');
+            }
+        }
+        
+        function openPhoneApp(appName) {
+            const contentDiv = document.getElementById('appContent');
+            if (appName === 'jobs') {
+                contentDiv.innerHTML = `<h4>Jobs</h4><p>🚔 Police | 🚕 Taxi | 🌿 Weed Seller</p><button id="weedJob">Sell Weed (+$50)</button>`;
+                document.getElementById('weedJob')?.addEventListener('click', () => {
+                    localPlayerData.money += 50;
+                    updateLocalPlayerDB();
+                    updateHUD();
+                });
+            } else if (appName === 'vehicles') {
+                contentDiv.innerHTML = `<h4>My Vehicles</h4><p>🚗 Sedan (Spawn)</p><button id="spawnCarBtn">Spawn Car</button>`;
+                document.getElementById('spawnCarBtn')?.addEventListener('click', () => {
+                    // simple vehicle entity locally for fun
+                    const carGeo = new THREE.BoxGeometry(1, 0.5, 1.8);
+                    const carMat = new THREE.MeshStandardMaterial({ color: 0xff3300 });
+                    const car = new THREE.Mesh(carGeo, carMat);
+                    car.position.copy(localPlayerMesh.position);
+                    car.position.y -= 0.6;
+                    scene.add(car);
+                    setTimeout(() => scene.remove(car), 5000);
+                });
+            } else if (appName === 'chat') {
+                contentDiv.innerHTML = `<div class="chat-box" id="chatMsgList"></div><input id="chatInputField" placeholder="Say something"><button id="sendMsgBtn">Send</button>`;
+                updateChatUI();
+                document.getElementById('sendMsgBtn')?.addEventListener('click', () => {
+                    const input = document.getElementById('chatInputField');
+                    if (input.value && playersChannel) {
+                        playersChannel.send({ type: 'broadcast', event: 'chat', payload: { username: currentUser.username, message: input.value, timestamp: Date.now() } });
+                        input.value = '';
+                    }
+                });
+            } else if (appName === 'blackmarket') {
+                contentDiv.innerHTML = `<h4>🖤 Black Market</h4><div id="bmItems"><div class="blackmarket-item">🔫 Pistol - $300 <button class="buyGun">Buy</button></div><div class="blackmarket-item">🌿 Weed - $50 <button class="buyWeed">Buy</button></div></div>`;
+                document.querySelector('.buyGun')?.addEventListener('click', () => {
+                    if (localPlayerData.money >= 300) {
+                        localPlayerData.money -= 300;
+                        updateHUD();
+                        alert("Bought Pistol! (damage +)");
+                        localPlayerData.hasGun = true;
+                    }
+                });
+                document.querySelector('.buyWeed')?.addEventListener('click', () => {
+                    if (localPlayerData.money >= 50) {
+                        localPlayerData.money -= 50;
+                        updateHUD();
+                        localPlayerData.hunger = Math.min(100, localPlayerData.hunger + 15);
+                        updateHUD();
+                    }
+                });
+            }
+        }
+        
+        // ---------- Combat: click to shoot at player in front ----------
+        function shootRay() {
+            if (isDead) return;
+            const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+            const raycaster = new THREE.Raycaster(localPlayerMesh.position, direction, 0, 8);
+            let hitPlayerId = null;
+            for (let [id, p] of playersMap.entries()) {
+                const box = new THREE.Box3().setFromObject(p.mesh);
+                if (raycaster.ray.intersectBox(box, new THREE.Vector3())) {
+                    hitPlayerId = id;
+                    break;
                 }
             }
-            if(e.code === 'KeyF' && currentVehicle && !isInVehicle) {
-                // enter vehicle
-                isInVehicle = true;
-                scene.remove(localPlayer.mesh);
-                localPlayer.mesh.position.copy(currentVehicle.position);
-                camera.position.copy(currentVehicle.position.clone().add(new THREE.Vector3(-3,2,5)));
+            if (hitPlayerId && playersChannel) {
+                playersChannel.send({ type: 'broadcast', event: 'player-damage', payload: { targetId: hitPlayerId, damage: 34, attacker: currentUser.id } });
+            } else {
+                // just visual feedback
+                console.log("miss");
+            }
+        }
+        
+        // ---------- Movement & Input ----------
+        function handleMovement(deltaTime) {
+            if (isDead) return;
+            const speed = moveSpeed * deltaTime * (keys.shift ? 2 : 1);
+            let move = new THREE.Vector3(0, 0, 0);
+            if (keys.w) move.z -= 1;
+            if (keys.s) move.z += 1;
+            if (keys.a) move.x -= 1;
+            if (keys.d) move.x += 1;
+            move.normalize();
+            move.applyQuaternion(camera.quaternion);
+            move.y = 0;
+            localPlayerMesh.position.x += move.x * speed;
+            localPlayerMesh.position.z += move.z * speed;
+            // Simple bounds
+            localPlayerMesh.position.x = Math.max(-45, Math.min(45, localPlayerMesh.position.x));
+            localPlayerMesh.position.z = Math.max(-45, Math.min(45, localPlayerMesh.position.z));
+            camera.position.copy(localPlayerMesh.position);
+            camera.position.y += 1.2;
+            // update hunger/thirst over time
+            if (Date.now() % 60 === 0) {
+                localPlayerData.hunger = Math.max(0, localPlayerData.hunger - 0.005);
+                localPlayerData.thirst = Math.max(0, localPlayerData.thirst - 0.006);
+                if (localPlayerData.hunger <= 0 || localPlayerData.thirst <= 0) applyDamage(0.5);
+                updateHUD();
+            }
+        }
+        
+        // ---------- Event Listeners ----------
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'w') keys.w = true;
+            if (e.key === 's') keys.s = true;
+            if (e.key === 'a') keys.a = true;
+            if (e.key === 'd') keys.d = true;
+            if (e.key === 'Shift') keys.shift = true;
+            if (e.key === ' ' && !isDead) { /* jump placeholder */ }
+            if (e.key === 'f') shootRay();
+            if (e.key === 't') {
+                document.getElementById('chatInputArea').style.display = 'block';
+                document.getElementById('chatMsgInput').focus();
             }
         });
         window.addEventListener('keyup', (e) => {
-            if(e.code === 'KeyW') keys.w=false;
-            if(e.code === 'KeyS') keys.s=false;
-            if(e.code === 'KeyA') keys.a=false;
-            if(e.code === 'KeyD') keys.d=false;
-            if(e.code === 'Space') keys.space=false;
-            if(e.code === 'ShiftLeft') keys.shift=false;
+            if (e.key === 'w') keys.w = false;
+            if (e.key === 's') keys.s = false;
+            if (e.key === 'a') keys.a = false;
+            if (e.key === 'd') keys.d = false;
+            if (e.key === 'Shift') keys.shift = false;
+        });
+        document.getElementById('sendChatBtn')?.addEventListener('click', () => {
+            const input = document.getElementById('chatMsgInput');
+            if (input.value && playersChannel) {
+                playersChannel.send({ type: 'broadcast', event: 'chat', payload: { username: currentUser.username, message: input.value } });
+                input.value = '';
+                document.getElementById('chatInputArea').style.display = 'none';
+            }
         });
         
-        // Animation and movement
-        function updateMovement(delta) {
-            if(!localPlayer.mesh) return;
-            if(!isInVehicle) {
-                let move = new THREE.Vector3();
-                if(keys.w) move.z -= 1;
-                if(keys.s) move.z += 1;
-                if(keys.a) move.x -= 1;
-                if(keys.d) move.x += 1;
-                move.normalize();
-                let speed = 5 * delta;
-                if(keys.shift) speed *= 1.8;
-                localPlayer.mesh.position.x += move.x * speed;
-                localPlayer.mesh.position.z += move.z * speed;
-                // simple boundary
-                localPlayer.mesh.position.x = Math.min(80, Math.max(-80, localPlayer.mesh.position.x));
-                localPlayer.mesh.position.z = Math.min(80, Math.max(-80, localPlayer.mesh.position.z));
-                camera.position.lerp(localPlayer.mesh.position.clone().add(new THREE.Vector3(0, 1.5, 5)), 0.1);
-                camera.lookAt(localPlayer.mesh.position);
-                // animate arms
-                if(keys.w||keys.s) localPlayer.mesh.children.forEach(c => { if(c.geometry.type==='CylinderGeometry' && (c.position.x=== -0.65||c.position.x===0.65)) c.rotation.z = Math.sin(Date.now()*0.015)*0.5;});
-            }
+        // UI buttons
+        document.getElementById('loginBtn').onclick = async () => {
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            if (!user || !pass) return;
+            try {
+                const player = await registerOrLogin(user, pass);
+                currentUser = player;
+                localPlayerData.money = player.money;
+                localPlayerData.health = player.health;
+                localPlayerData.hunger = player.hunger;
+                localPlayerData.thirst = player.thirst;
+                localPlayerMesh.position.set(player.position_x, player.position_y, player.position_z);
+                updateHUD();
+                document.getElementById('loginModal').classList.add('hidden');
+                document.getElementById('serverModal').classList.remove('hidden');
+            } catch(e) { alert("Auth error"); }
+        };
+        document.getElementById('createServerBtn').onclick = () => {
+            const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+            alert(`Server Created! Code: ${code}`);
+            joinServer(code);
+            document.getElementById('serverModal').classList.add('hidden');
+        };
+        document.getElementById('joinServerBtn').onclick = () => {
+            const code = document.getElementById('joinCode').value;
+            if (code) joinServer(code);
+            document.getElementById('serverModal').classList.add('hidden');
+        };
+        document.getElementById('closeServerBtn').onclick = () => document.getElementById('serverModal').classList.add('hidden');
+        document.getElementById('phoneBtn').onclick = () => document.getElementById('phoneModal').classList.remove('hidden');
+        document.getElementById('closePhoneBtn').onclick = () => document.getElementById('phoneModal').classList.add('hidden');
+        document.querySelectorAll('.app-btn').forEach(btn => {
+            btn.addEventListener('click', () => openPhoneApp(btn.dataset.app));
+        });
+        document.getElementById('respawnBtn').onclick = () => { respawnPlayer(); localPlayerMesh.visible = true; };
+        
+        // Animate
+        let lastTime = performance.now();
+        function animate() {
+            const now = performance.now();
+            let delta = Math.min(0.033, (now - lastTime) / 1000);
+            lastTime = now;
+            handleMovement(delta);
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
         }
+        animate();
+        initTablesIfNeeded();
         
-        // Main init
-        async function init() {
-            scene = new THREE.Scene();
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 500);
-            camera.position.set(0, 5, 10);
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.shadowMap.enabled = true;
-            document.body.appendChild(renderer.domElement);
-            sunLight = new THREE.DirectionalLight(0xfff5e6, 1);
-            sunLight.position.set(20, 30, 10);
-            sunLight.castShadow = true;
-            scene.add(sunLight);
-            scene.add(new THREE.AmbientLight(0x404060));
-            buildCity();
-            
-            localPlayer.mesh = createPlayerModel(0x55aa99);
-            localPlayer.mesh.position.set(0, 1, 0);
-            scene.add(localPlayer.mesh);
-            
-            function animate() {
-                const delta = Math.min(clock.getDelta(), 0.033);
-                updateMovement(delta);
-                updateDriving(delta);
-                updateStats(delta);
-                checkInteractions();
-                renderer.render(scene, camera);
-                requestAnimationFrame(animate);
-            }
-            animate();
-        }
-        
-        init();
-        
-        // SQL Note: For production supabase SQL:
-        // CREATE TABLE players (id uuid PRIMARY KEY DEFAULT uuid_generate_v4(), username TEXT UNIQUE, password TEXT, money INT, health INT, hunger INT, thirst INT, job TEXT, pos JSONB);
-        // We simulate but code ready for integration.
+        // Also keep updating remote players from presence (handled in subscription)
     </script>
 </body>
 </html>
