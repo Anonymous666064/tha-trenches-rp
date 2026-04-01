@@ -89,6 +89,9 @@
             text-align: center;
             margin-top: 10px;
             font-size: 12px;
+            padding: 5px;
+            background: rgba(0,0,0,0.5);
+            border-radius: 5px;
         }
         
         .success {
@@ -195,9 +198,14 @@
             white-space: nowrap;
         }
         
-        .loading {
-            opacity: 0.7;
-            pointer-events: none;
+        .warning {
+            background: rgba(255, 100, 0, 0.3);
+            border-left: 3px solid #ffaa66;
+            padding: 10px;
+            margin-bottom: 15px;
+            border-radius: 5px;
+            font-size: 12px;
+            color: #ffaa66;
         }
     </style>
 </head>
@@ -205,8 +213,9 @@
     <div id="login-modal" class="modal">
         <div class="modal-content">
             <div class="modal-title">⚔️ PVP ARENA ⚔️</div>
-            <input type="text" id="login-username" placeholder="Username (min 3 characters)">
-            <input type="password" id="login-password" placeholder="Password (min 4 characters)">
+            <div class="warning">⚠️ Use a NEW username (not "test")</div>
+            <input type="text" id="login-username" placeholder="Username" autocomplete="off">
+            <input type="password" id="login-password" placeholder="Password">
             <button id="login-btn">LOGIN</button>
             <div id="login-error" class="error"></div>
             <div class="link">Don't have an account? <a id="show-signup">Sign Up</a></div>
@@ -216,7 +225,8 @@
     <div id="signup-modal" class="modal hidden">
         <div class="modal-content">
             <div class="modal-title">📝 CREATE ACCOUNT</div>
-            <input type="text" id="signup-username" placeholder="Username (min 3 characters)">
+            <div class="warning">⚠️ Choose a unique username (not "test")</div>
+            <input type="text" id="signup-username" placeholder="Username (min 3 characters)" autocomplete="off">
             <input type="password" id="signup-password" placeholder="Password (min 4 characters)">
             <input type="password" id="signup-confirm" placeholder="Confirm Password">
             <button id="signup-btn">SIGN UP</button>
@@ -263,7 +273,6 @@
         import * as THREE from 'three';
         
         // ==================== SUPABASE CONFIG ====================
-        // REPLACE WITH YOUR SUPABASE URL AND ANON KEY
         const SUPABASE_URL = 'https://hcvewiwhtxqpbogcrukk.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjdmV3aXdodHhxcGJvZ2NydWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTQ4MzMsImV4cCI6MjA5MDQ3MDgzM30.UsdvDyrGl4OhmbDjonyOagknHf--Zhe-fhCi0LFVoQw';
         
@@ -290,7 +299,7 @@
         let yaw = 0;
         let pitch = 0;
         
-        // Three.js
+        // Three.js setup
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x111122);
         scene.fog = new THREE.FogExp2(0x111122, 0.008);
@@ -353,7 +362,10 @@
         async function callFunction(funcName, params) {
             try {
                 const { data, error } = await supabase.rpc(funcName, params);
-                if (error) throw error;
+                if (error) {
+                    console.error(`RPC Error:`, error);
+                    throw error;
+                }
                 return data;
             } catch (err) {
                 console.error(`Error calling ${funcName}:`, err);
@@ -364,6 +376,12 @@
         async function signup(username, password) {
             if (username.length < 3) throw new Error('Username must be at least 3 characters');
             if (password.length < 4) throw new Error('Password must be at least 4 characters');
+            
+            // Check if trying to use "test" username
+            if (username.toLowerCase() === 'test') {
+                throw new Error('Username "test" is reserved. Please choose a different username like: warrior, mage, yourname, etc.');
+            }
+            
             return await callFunction('create_user', { p_username: username, p_password: password });
         }
         
@@ -550,7 +568,7 @@
                     document.getElementById('login-error').innerText = result.error;
                 }
             } catch (err) {
-                document.getElementById('login-error').innerText = 'Connection error. Please try again.';
+                document.getElementById('login-error').innerText = err.message || 'Connection error. Please try again.';
             }
         };
         
@@ -585,6 +603,7 @@
                     document.getElementById('signup-username').value = '';
                     document.getElementById('signup-password').value = '';
                     document.getElementById('signup-confirm').value = '';
+                    alert(`Account created successfully! Please login with ${username}`);
                 } else {
                     document.getElementById('signup-error').innerText = result.error;
                 }
