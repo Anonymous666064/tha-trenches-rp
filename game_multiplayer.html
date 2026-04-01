@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>RP World - Open World Multiplayer RPG</title>
+    <title>RP World - Real-time Multiplayer RPG</title>
     <style>
         * {
             margin: 0;
@@ -232,6 +232,7 @@
             background: #222;
             color: white;
             border: 1px solid #555;
+            width: 100%;
         }
         
         button {
@@ -239,6 +240,7 @@
             color: white;
             cursor: pointer;
             transition: 0.2s;
+            width: 100%;
         }
         
         button:hover {
@@ -315,6 +317,7 @@
         .debug-entry.death { color: #ffaa66; }
         .debug-entry.respawn { color: #66ff66; }
         .debug-entry.hit { color: #ffff66; }
+        .debug-entry.move { color: #88aaff; }
     </style>
 </head>
 <body>
@@ -344,7 +347,7 @@
     </div>
     
     <div id="debug-console">
-        <h4>🔍 DEBUG CONSOLE</h4>
+        <h4>🔍 REAL-TIME DEBUG</h4>
         <div id="debug-log"></div>
     </div>
     
@@ -392,6 +395,7 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjdmV3aXdodHhxcGJvZ2NydWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTQ4MzMsImV4cCI6MjA5MDQ3MDgzM30.UsdvDyrGl4OhmbDjonyOagknHf--Zhe-fhCi0LFVoQw';
         const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
         
+        // Game state
         let currentServerId = null;
         let myPlayerId = null;
         let myUsername = '';
@@ -400,10 +404,9 @@
         let otherPlayers = new Map();
         let deadBodies = [];
         let npcs = [];
-        let updateInterval = null;
-        let syncInterval = null;
         let isDead = false;
-        let lastKiller = null;
+        let positionUpdateInterval = null;
+        let lastPositionSent = { x: 0, y: 0, z: 0 };
         
         let playerStats = { health: 100, hunger: 100, thirst: 100, money: 100000, kills: 0 };
         let currentWeapon = 'pistol';
@@ -433,7 +436,7 @@
         labelRenderer.domElement.style.pointerEvents = 'none';
         document.body.appendChild(labelRenderer.domElement);
         
-        // Create terrain and world
+        // Create world
         const terrainSize = 150;
         const terrainGeometry = new THREE.PlaneGeometry(terrainSize, terrainSize, 50, 50);
         terrainGeometry.rotateX(-Math.PI / 2);
@@ -553,7 +556,6 @@
             group.position.copy(position);
             scene.add(group);
             
-            // Blood particles
             for (let i = 0; i < 20; i++) {
                 const blood = new THREE.Mesh(new THREE.SphereGeometry(0.08, 4, 4), new THREE.MeshStandardMaterial({ color: 0xcc0000 }));
                 blood.position.set(position.x + (Math.random() - 0.5) * 1.2, position.y + 0.1, position.z + (Math.random() - 0.5) * 1.2);
@@ -589,21 +591,15 @@
             document.getElementById('thirst-bar').style.width = `${playerStats.thirst}%`;
         }
         
-        // Kill player function - updates database and notifies all clients
+        // Kill player function
         async function killPlayer(targetId, targetName, targetPosition, targetColor, killerName) {
             addDebugLog(`🔫 ${killerName} KILLED ${targetName}!`, 'kill');
             addLog(`💀 ${killerName} KILLED ${targetName}! +$5000 reward!`, 'kill');
             
-            // Update killer's money in database
-            const { data: killerData } = await supabase
-                .from('players')
-                .select('money, kills')
-                .eq('id', myPlayerId)
-                .single();
-            
-            if (killerData && killerName === myUsername) {
-                playerStats.money = killerData.money + 5000;
-                playerStats.kills = (killerData.kills || 0) + 1;
+            // Update killer's money if it's the local player
+            if (killerName === myUsername) {
+                playerStats.money += 5000;
+                playerStats.kills++;
                 await supabase.from('players').update({ 
                     money: playerStats.money,
                     kills: playerStats.kills
@@ -626,6 +622,7 @@
                 scene.remove(playerEntry.mesh);
                 scene.remove(playerEntry.label);
                 otherPlayers.delete(targetId);
+                addDebugLog(`🗑️ Removed ${targetName} from scene`, 'info');
             }
         }
         
@@ -633,7 +630,6 @@
         async function die(killerName = null) {
             if (isDead) return;
             isDead = true;
-            lastKiller = killerName;
             
             addDebugLog(`💀 YOU DIED! Killed by: ${killerName || 'Unknown'}`, 'death');
             addLog(`💀 You were killed by ${killerName || 'someone'}!`, 'death');
@@ -641,7 +637,8 @@
             
             // Create ragdoll for local player
             if (localPlayerMesh) {
-                createRagdoll(localPlayerMesh.position, localPlayerMesh.children[0].material.color.getHexString());
+                const color = localPlayerMesh.children[0].material.color.getHexString();
+                createRagdoll(localPlayerMesh.position, color);
                 scene.remove(localPlayerMesh);
                 scene.remove(localLabel);
                 localPlayerMesh = null;
@@ -694,7 +691,6 @@
             
             let hitDetected = false;
             
-            // Check for other players
             for (let [id, player] of otherPlayers) {
                 const intersects = raycaster.intersectObject(player.mesh, true);
                 if (intersects.length > 0) {
@@ -734,73 +730,118 @@
             }, 16);
         }
         
-        // Sync players from database
-        async function syncPlayers() {
-            if (!currentServerId) return;
+        // Update player position in database (called every frame)
+        async function sendPositionUpdate() {
+            if (!currentServerId || !myPlayerId || !localPlayerMesh || isDead) return;
             
-            const { data, error } = await supabase
-                .from('players')
-                .select('*')
-                .eq('server_id', currentServerId)
-                .eq('is_alive', true)
-                .gte('last_seen', new Date(Date.now() - 30000).toISOString());
+            const pos = localPlayerMesh.position;
             
-            if (error) {
-                console.error('Error syncing players:', error);
-                return;
+            // Only update if position changed significantly
+            if (Math.abs(pos.x - lastPositionSent.x) > 0.1 || 
+                Math.abs(pos.z - lastPositionSent.z) > 0.1) {
+                
+                lastPositionSent = { x: pos.x, y: pos.y, z: pos.z };
+                
+                await supabase
+                    .from('players')
+                    .update({
+                        x: pos.x,
+                        y: pos.y,
+                        z: pos.z,
+                        last_seen: new Date().toISOString()
+                    })
+                    .eq('id', myPlayerId);
             }
+        }
+        
+        // Set up real-time subscription for player updates
+        function setupRealtimeSubscription() {
+            const subscription = supabase
+                .channel('players-channel')
+                .on('postgres_changes', {
+                    event: '*',
+                    schema: 'public',
+                    table: 'players',
+                    filter: `server_id=eq.${currentServerId}`
+                }, (payload) => {
+                    handleDatabaseChange(payload);
+                })
+                .subscribe();
             
-            // Update existing players and add new ones
-            for (const player of data) {
-                if (player.id === myPlayerId) continue;
-                
-                const pos = new THREE.Vector3(player.x, player.y, player.z);
-                
-                if (otherPlayers.has(player.id)) {
-                    const existing = otherPlayers.get(player.id);
-                    existing.mesh.position.lerp(pos, 0.3);
-                    existing.label.position.copy(existing.mesh.position);
-                    existing.label.position.y += 1.6;
-                } else {
-                    const mesh = createPlayerModel(player.color, false);
-                    mesh.position.copy(pos);
-                    scene.add(mesh);
-                    
-                    const label = makeLabel(player.username, '#aaffdd');
-                    label.position.copy(pos);
-                    label.position.y += 1.6;
-                    scene.add(label);
-                    
-                    otherPlayers.set(player.id, { mesh, label, name: player.username, color: player.color });
-                    addDebugLog(`👥 ${player.username} joined the server`, 'join');
+            return subscription;
+        }
+        
+        function handleDatabaseChange(payload) {
+            const { event, new: newData, old: oldData } = payload;
+            
+            if (event === 'INSERT') {
+                // New player joined
+                if (newData.id !== myPlayerId && newData.is_alive) {
+                    addRemotePlayer(newData);
+                }
+            } 
+            else if (event === 'UPDATE') {
+                // Player position or status updated
+                if (newData.id !== myPlayerId) {
+                    if (newData.is_alive === false) {
+                        // Player died
+                        removeRemotePlayer(newData.id);
+                        createRagdoll(new THREE.Vector3(newData.x, newData.y, newData.z), newData.color);
+                        addDebugLog(`💀 ${newData.username} died!`, 'death');
+                    } else if (newData.is_alive && otherPlayers.has(newData.id)) {
+                        // Update position
+                        const player = otherPlayers.get(newData.id);
+                        const newPos = new THREE.Vector3(newData.x, newData.y, newData.z);
+                        player.mesh.position.lerp(newPos, 0.5);
+                        player.label.position.copy(player.mesh.position);
+                        player.label.position.y += 1.6;
+                    } else if (newData.is_alive && !otherPlayers.has(newData.id)) {
+                        // Player respawned
+                        addRemotePlayer(newData);
+                    }
+                } else if (newData.id === myPlayerId && newData.is_alive === false && !isDead) {
+                    // Local player died from database update
+                    die(newData.killed_by || null);
                 }
             }
-            
-            // Remove players that are no longer in the database
-            for (let [id, player] of otherPlayers) {
-                const stillExists = data.some(p => p.id === id);
-                if (!stillExists) {
-                    scene.remove(player.mesh);
-                    scene.remove(player.label);
-                    otherPlayers.delete(id);
-                    addDebugLog(`👋 ${player.name} left/disconnected`, 'info');
+            else if (event === 'DELETE') {
+                // Player left
+                if (oldData.id !== myPlayerId) {
+                    removeRemotePlayer(oldData.id);
                 }
             }
         }
         
-        // Update player position in database
-        async function updatePlayerPosition() {
-            if (!currentServerId || !myPlayerId || !localPlayerMesh || isDead) return;
+        function addRemotePlayer(playerData) {
+            if (otherPlayers.has(playerData.id)) return;
             
-            await supabase
-                .from('players')
-                .update({
-                    x: localPlayerMesh.position.x,
-                    y: localPlayerMesh.position.y,
-                    z: localPlayerMesh.position.z,
-                    last_seen: new Date().toISOString()
-                })
-                .eq('id', myPlayerId);
+            const mesh = createPlayerModel(playerData.color, false);
+            mesh.position.set(playerData.x, playerData.y, playerData.z);
+            scene.add(mesh);
+            
+            const label = makeLabel(playerData.username, '#aaffdd');
+            label.position.set(playerData.x, playerData.y + 1.6, playerData.z);
+            scene.add(label);
+            
+            otherPlayers.set(playerData.id, { 
+                mesh, 
+                label, 
+                name: playerData.username, 
+                color: playerData.color 
+            });
+            
+            addDebugLog(`👥 ${playerData.username} joined the server at (${playerData.x.toFixed(1)}, ${playerData.z.toFixed(1)})`, 'join');
+            addLog(`🟢 ${playerData.username} joined the server`, 'join');
+        }
+        
+        function removeRemotePlayer(id) {
+            const player = otherPlayers.get(id);
+            if (player) {
+                scene.remove(player.mesh);
+                scene.remove(player.label);
+                otherPlayers.delete(id);
+                addDebugLog(`👋 ${player.name} left/disconnected`, 'info');
+            }
         }
         
         async function joinServer(serverId, isCreate = false) {
@@ -815,21 +856,24 @@
                 return;
             }
             
-            // Leave current server first
+            // Clean up existing
             if (myPlayerId) {
                 await supabase.from('players').delete().eq('id', myPlayerId);
-                if (updateInterval) clearInterval(updateInterval);
-                if (syncInterval) clearInterval(syncInterval);
-                otherPlayers.forEach(p => { scene.remove(p.mesh); scene.remove(p.label); });
-                otherPlayers.clear();
-                if (localPlayerMesh) scene.remove(localPlayerMesh);
-                if (localLabel) scene.remove(localLabel);
             }
+            
+            if (positionUpdateInterval) clearInterval(positionUpdateInterval);
+            
+            otherPlayers.forEach(p => { scene.remove(p.mesh); scene.remove(p.label); });
+            otherPlayers.clear();
+            
+            if (localPlayerMesh) scene.remove(localPlayerMesh);
+            if (localLabel) scene.remove(localLabel);
             
             currentServerId = serverId.trim();
             const spawnPos = { x: (Math.random() - 0.5) * 15, y: 0.8, z: (Math.random() - 0.5) * 15 };
             const playerColor = `hsl(${Math.random() * 360}, 70%, 55%)`;
             
+            // Insert player
             const { data, error } = await supabase
                 .from('players')
                 .insert({
@@ -853,6 +897,7 @@
             
             myPlayerId = data.id;
             
+            // Create local player
             localPlayerMesh = createPlayerModel(playerColor, true);
             localPlayerMesh.position.set(spawnPos.x, spawnPos.y, spawnPos.z);
             scene.add(localPlayerMesh);
@@ -864,12 +909,28 @@
             camera.position.copy(localPlayerMesh.position);
             camera.position.y += 1.6;
             
-            addDebugLog(`🎮 ${myUsername} joined server "${currentServerId}"`, 'respawn');
+            lastPositionSent = { x: spawnPos.x, y: spawnPos.y, z: spawnPos.z };
+            
+            addDebugLog(`🎮 ${myUsername} joined server "${currentServerId}" at (${spawnPos.x.toFixed(1)}, ${spawnPos.z.toFixed(1)})`, 'respawn');
             addLog(`Joined server "${currentServerId}" as ${myUsername}`, 'success');
             
-            await syncPlayers();
-            syncInterval = setInterval(() => syncPlayers(), 500);
-            updateInterval = setInterval(() => updatePlayerPosition(), 50);
+            // Load existing players
+            const { data: players } = await supabase
+                .from('players')
+                .select('*')
+                .eq('server_id', currentServerId)
+                .eq('is_alive', true)
+                .neq('id', myPlayerId);
+            
+            if (players) {
+                players.forEach(player => addRemotePlayer(player));
+            }
+            
+            // Set up real-time subscription
+            setupRealtimeSubscription();
+            
+            // Start position update interval (every 50ms for smooth movement)
+            positionUpdateInterval = setInterval(() => sendPositionUpdate(), 50);
         }
         
         async function leaveServer() {
@@ -877,8 +938,7 @@
                 await supabase.from('players').delete().eq('id', myPlayerId);
             }
             
-            if (updateInterval) clearInterval(updateInterval);
-            if (syncInterval) clearInterval(syncInterval);
+            if (positionUpdateInterval) clearInterval(positionUpdateInterval);
             
             otherPlayers.forEach(p => { scene.remove(p.mesh); scene.remove(p.label); });
             otherPlayers.clear();
@@ -890,6 +950,8 @@
             localLabel = null;
             currentServerId = null;
             myPlayerId = null;
+            isDead = false;
+            document.getElementById('wasted').style.display = 'none';
             addLog('Disconnected from server', 'info');
         }
         
@@ -907,7 +969,7 @@
                 for (let npc of npcs) {
                     if (localPlayerMesh && localPlayerMesh.position.distanceTo(npc.position) < 3) {
                         const ui = document.getElementById('npc-interaction');
-                        ui.innerHTML = `<h3>${npc.userData.name}</h3><div class="shop-item">Coming soon!</div>`;
+                        ui.innerHTML = `<h3>${npc.userData.name}</h3><div class="shop-item">Click to interact</div>`;
                         ui.style.display = 'block';
                         setTimeout(() => ui.style.display = 'none', 3000);
                     }
@@ -1051,6 +1113,7 @@
         
         addDebugLog('🎮 GAME READY! Join a server to start playing!', 'respawn');
         addLog('✨ Welcome! Click on game to lock mouse and start playing!', 'info');
+        addLog('🔫 REAL-TIME MULTIPLAYER ACTIVE! Kill other players for rewards!', 'info');
     </script>
 </body>
 </html>
