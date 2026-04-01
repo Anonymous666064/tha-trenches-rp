@@ -2,155 +2,246 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Simple 3D World</title>
+<title>Multiplayer 3D World</title>
+
 <style>
-    body { margin: 0; overflow: hidden; }
-    canvas { display: block; }
-    #info {
-        position: absolute;
-        top: 10px;
-        left: 10px;
-        color: white;
-        font-family: Arial;
-        z-index: 10;
-    }
+body { margin:0; overflow:hidden; font-family:Arial; }
+
+#ui {
+    position:absolute;
+    top:10px;
+    left:10px;
+    color:white;
+    z-index:10;
+}
+
+#menu {
+    position:absolute;
+    top:50%;
+    left:50%;
+    transform:translate(-50%,-50%);
+    background:#111;
+    padding:20px;
+    color:white;
+}
+
+button, input {
+    margin:5px;
+    padding:5px;
+}
 </style>
 </head>
+
 <body>
 
-<div id="info">Click to lock mouse | WASD to move</div>
+<div id="menu">
+    <h3>Multiplayer</h3>
+    <button onclick="createServer()">Create Server</button><br>
+    <input id="serverInput" placeholder="Enter Server ID">
+    <button onclick="joinServer()">Join Server</button>
+</div>
+
+<div id="ui" style="display:none;">
+    Server ID: <span id="serverId"></span><br>
+    Players: <span id="playerCount">0</span>
+    <div id="playerList"></div>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
+const SUPABASE_URL = "https://hcvewiwhtxqpbogcrukk.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjdmV3aXdodHhxcGJvZ2NydWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTQ4MzMsImV4cCI6MjA5MDQ3MDgzM30.UsdvDyrGl4OhmbDjonyOagknHf--Zhe-fhCi0LFVoQw";
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
 let scene, camera, renderer;
-let moveForward = false, moveBackward = false, moveLeft = false, moveRight = false;
-let velocity = new THREE.Vector3();
-let direction = new THREE.Vector3();
+let serverId = null;
+let playerId = null;
+let players = {};
 
-let yaw = 0;
-let pitch = 0;
+let move = {w:false,s:false,a:false,d:false};
+let yaw=0, pitch=0;
 
-init();
-animate();
+// --- SERVER FUNCTIONS ---
+function createServer() {
+    serverId = Math.random().toString(36).substring(2,8);
+    startGame();
+}
 
-function init() {
+function joinServer() {
+    serverId = document.getElementById("serverInput").value.trim();
+    if(serverId.length === 0) return alert("Enter a valid server ID");
+    startGame();
+}
+
+// --- GAME START ---
+async function startGame() {
+    document.getElementById("menu").style.display="none";
+    document.getElementById("ui").style.display="block";
+    document.getElementById("serverId").innerText = serverId;
+
+    init3D();
+
+    // Create player
+    const { data } = await supabase
+        .from('players')
+        .insert([{ server_id: serverId, x:0, y:2, z:0 }])
+        .select()
+        .single();
+
+    playerId = data.id;
+
+    subscribeRealtime();
+    gameLoop();
+
+    // Delete player on leave
+    window.addEventListener('beforeunload', async ()=>{
+        if(playerId){
+            await supabase.from('players').delete().eq('id',playerId);
+        }
+    });
+}
+
+// --- 3D SETUP ---
+function init3D() {
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb);
 
-    camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+    camera = new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,1000);
     camera.position.y = 2;
 
     renderer = new THREE.WebGLRenderer();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setSize(innerWidth,innerHeight);
     document.body.appendChild(renderer.domElement);
 
-    // LIGHT
-    const light = new THREE.DirectionalLight(0xffffff, 1);
-    light.position.set(50, 100, 50);
+    const light = new THREE.DirectionalLight(0xffffff,1);
+    light.position.set(10,20,10);
     scene.add(light);
 
-    const ambient = new THREE.AmbientLight(0xaaaaaa);
-    scene.add(ambient);
-
-    // GROUND
-    const groundGeo = new THREE.PlaneGeometry(200, 200);
-    const groundMat = new THREE.MeshStandardMaterial({ color: 0x228B22 });
-    const ground = new THREE.Mesh(groundGeo, groundMat);
-    ground.rotation.x = -Math.PI / 2;
+    const ground = new THREE.Mesh(
+        new THREE.PlaneGeometry(200,200),
+        new THREE.MeshStandardMaterial({color:0x228B22})
+    );
+    ground.rotation.x = -Math.PI/2;
     scene.add(ground);
 
-    // BUILDINGS
-    for (let i = 0; i < 30; i++) {
-        const height = Math.random() * 10 + 5;
+    document.body.onclick = () => document.body.requestPointerLock();
 
-        const building = new THREE.Mesh(
-            new THREE.BoxGeometry(4, height, 4),
-            new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff })
-        );
+    document.addEventListener("mousemove", e=>{
+        if(document.pointerLockElement){
+            yaw -= e.movementX*0.002;
+            pitch -= e.movementY*0.002;
+            pitch=Math.max(-Math.PI/2,Math.min(Math.PI/2,pitch));
+        }
+    });
 
-        building.position.set(
-            (Math.random() - 0.5) * 100,
-            height / 2,
-            (Math.random() - 0.5) * 100
-        );
+    document.addEventListener("keydown", e=>{
+        if(e.code==="KeyW") move.w=true;
+        if(e.code==="KeyS") move.s=true;
+        if(e.code==="KeyA") move.a=true;
+        if(e.code==="KeyD") move.d=true;
+    });
 
-        scene.add(building);
+    document.addEventListener("keyup", e=>{
+        if(e.code==="KeyW") move.w=false;
+        if(e.code==="KeyS") move.s=false;
+        if(e.code==="KeyA") move.a=false;
+        if(e.code==="KeyD") move.d=false;
+    });
+}
+
+// --- PLAYER HANDLING ---
+function createPlayerMesh(id) {
+    const mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(1,2,1),
+        new THREE.MeshStandardMaterial({color: id===playerId ? 0x00ff00 : 0xff0000})
+    );
+    scene.add(mesh);
+    players[id] = mesh;
+}
+
+function removePlayerMesh(id){
+    if(players[id]){
+        scene.remove(players[id]);
+        delete players[id];
     }
-
-    // CONTROLS (mouse look)
-    document.body.addEventListener('click', () => {
-        document.body.requestPointerLock();
-    });
-
-    document.addEventListener('mousemove', (e) => {
-        if (document.pointerLockElement === document.body) {
-            yaw -= e.movementX * 0.002;
-            pitch -= e.movementY * 0.002;
-
-            pitch = Math.max(-Math.PI/2, Math.min(Math.PI/2, pitch));
-        }
-    });
-
-    // KEY INPUT
-    document.addEventListener('keydown', (e) => {
-        switch(e.code) {
-            case 'KeyW': moveForward = true; break;
-            case 'KeyS': moveBackward = true; break;
-            case 'KeyA': moveLeft = true; break;
-            case 'KeyD': moveRight = true; break;
-        }
-    });
-
-    document.addEventListener('keyup', (e) => {
-        switch(e.code) {
-            case 'KeyW': moveForward = false; break;
-            case 'KeyS': moveBackward = false; break;
-            case 'KeyA': moveLeft = false; break;
-            case 'KeyD': moveRight = false; break;
-        }
-    });
-
-    window.addEventListener('resize', onWindowResize);
 }
 
-function onWindowResize() {
-    camera.aspect = window.innerWidth/window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
+function updateUI() {
+    const ids = Object.keys(players);
+    document.getElementById("playerCount").innerText = ids.length;
+    document.getElementById("playerList").innerHTML = ids.join("<br>");
 }
 
-function animate() {
-    requestAnimationFrame(animate);
+// --- SUPABASE REALTIME ---
+function subscribeRealtime() {
+    supabase.channel('players')
+    .on('postgres_changes', {
+        event:'*',
+        schema:'public',
+        table:'players'
+    }, payload => {
+        const p = payload.new;
+        const old = payload.old;
 
-    direction.z = Number(moveForward) - Number(moveBackward);
-    direction.x = Number(moveRight) - Number(moveLeft);
-    direction.normalize();
+        if(p && p.server_id === serverId){
+            if(!players[p.id]) createPlayerMesh(p.id);
+            players[p.id].position.set(p.x,p.y,p.z);
+        }
+
+        // Remove players who left
+        if(payload.event === "DELETE" && old && old.server_id === serverId){
+            removePlayerMesh(old.id);
+        }
+
+        updateUI();
+    })
+    .subscribe();
+}
+
+// --- POSITION SYNC ---
+let lastUpdate = 0;
+async function sendPosition() {
+    const now = Date.now();
+    if(now - lastUpdate < 100) return; // limit update rate ~10fps
+    lastUpdate = now;
+
+    await supabase
+        .from('players')
+        .update({
+            x:camera.position.x,
+            y:camera.position.y,
+            z:camera.position.z
+        })
+        .eq('id',playerId);
+}
+
+// --- GAME LOOP ---
+function gameLoop() {
+    requestAnimationFrame(gameLoop);
 
     const speed = 0.2;
 
-    if (moveForward || moveBackward) velocity.z = direction.z * speed;
-    else velocity.z = 0;
+    camera.rotation.order="YXZ";
+    camera.rotation.y=yaw;
+    camera.rotation.x=pitch;
 
-    if (moveLeft || moveRight) velocity.x = direction.x * speed;
-    else velocity.x = 0;
-
-    // ROTATION
-    camera.rotation.order = "YXZ";
-    camera.rotation.y = yaw;
-    camera.rotation.x = pitch;
-
-    // MOVEMENT (relative to direction)
     const forward = new THREE.Vector3();
     camera.getWorldDirection(forward);
 
     const right = new THREE.Vector3();
-    right.crossVectors(forward, camera.up);
+    right.crossVectors(forward,camera.up);
 
-    camera.position.addScaledVector(forward, velocity.z);
-    camera.position.addScaledVector(right, velocity.x);
+    if(move.w) camera.position.addScaledVector(forward,speed);
+    if(move.s) camera.position.addScaledVector(forward,-speed);
+    if(move.a) camera.position.addScaledVector(right,-speed);
+    if(move.d) camera.position.addScaledVector(right,speed);
 
-    renderer.render(scene, camera);
+    if(playerId) sendPosition();
+
+    renderer.render(scene,camera);
 }
 </script>
 
