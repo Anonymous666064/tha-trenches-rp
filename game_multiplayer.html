@@ -2,32 +2,13 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>RP Game</title>
+<title>RP Game Multiplayer</title>
 <style>
 body { margin:0; overflow:hidden; font-family:Arial; background:black; }
-
-.screen {
-    position:absolute;
-    width:100%; height:100%;
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    align-items:center;
-    background:rgba(0,0,0,0.9);
-    color:white;
-}
-
+.screen { position:absolute; width:100%; height:100%; display:flex; flex-direction:column; justify-content:center; align-items:center; background:rgba(0,0,0,0.9); color:white; }
 .hidden { display:none; }
-
 button, input { padding:10px; margin:10px; }
-
-/* HUD */
-#hud {
-    position:absolute;
-    top:10px; left:10px;
-    color:white;
-    font-size:14px;
-}
+#hud { position:absolute; top:10px; left:10px; color:white; font-size:14px; }
 </style>
 </head>
 <body>
@@ -63,187 +44,155 @@ Players: <span id="playerCount">0</span>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js"></script>
 
 <script>
-const sb = window.supabase.createClient(
-"https://hcvewiwhtxqpbogcrukk.supabase.co",
-"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjdmV3aXdodHhxcGJvZ2NydWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTQ4MzMsImV4cCI6MjA5MDQ3MDgzM30.UsdvDyrGl4OhmbDjonyOagknHf--Zhe-fhCi0LFVoQw"
+const sb = supabase.createClient(
+  "https://hcvewiwhtxqpbogcrukk.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.UsdvDyrGl4OhmbDjonyOagknHf--Zhe-fhCi0LFVoQw"
 );
 
 let mode, user, serverId;
+window.selectMode = m => { mode = m; menu.classList.add("hidden"); auth.classList.remove("hidden"); };
 
-/* MENU */
-window.selectMode = m=>{
-    mode = m;
-    menu.classList.add("hidden");
-    auth.classList.remove("hidden");
+window.login = async () => {
+  let {data, error} = await sb.auth.signInWithPassword({email: email.value, password: password.value});
+  if(error) return alert(error.message);
+  user = data.user;
+  afterAuth();
 };
 
-window.login = async ()=>{
-    let {data,error}=await sb.auth.signInWithPassword({
-        email:email.value,password:password.value
-    });
-    if(error) return alert(error.message);
-    user=data.user;
-    afterAuth();
-};
-
-window.signup = async ()=>{
-    await sb.auth.signUp({
-        email:email.value,password:password.value
-    });
-    alert("Account created");
+window.signup = async () => {
+  await sb.auth.signUp({email: email.value, password: password.value});
+  alert("Account created, now login");
 };
 
 function afterAuth(){
-    auth.classList.add("hidden");
-    if(mode==="multi") serverMenu.classList.remove("hidden");
-    else startGame();
+  auth.classList.add("hidden");
+  if(mode==="multi") serverMenu.classList.remove("hidden");
+  else startGame();
 }
 
-/* SERVERS */
-window.createServer = async ()=>{
-    let code=serverCode.value;
-    let {data}=await sb.from("servers").insert([{code}]).select();
-    serverId=data[0].id;
-    startGame();
+window.createServer = async () => {
+  const code = serverCode.value;
+  const {data, error} = await sb.from("servers").insert([{code}]).select();
+  if(error) return alert(error.message);
+  serverId = data[0].id;       // Use UUID for DB
+  serverText.innerText = code; // Show code in UI
+  startGame();
 };
 
-window.joinServer = async ()=>{
-    let {data}=await sb.from("servers")
-    .select("*").eq("code",serverCode.value).single();
-    serverId=data.id;
-    startGame();
+window.joinServer = async () => {
+  const {data, error} = await sb.from("servers").select("*").eq("code", serverCode.value).single();
+  if(error) return alert("Server not found");
+  serverId = data.id;           // UUID for DB
+  serverText.innerText = data.code;
+  startGame();
 };
 
-/* GAME */
-let scene,camera,renderer,player,players={};
-let yaw=0,pitch=0;
+/* THREE.JS SETUP */
+let scene, camera, renderer, player, players = {}, yaw = 0, pitch = 0;
 
 function startGame(){
-    serverMenu.classList.add("hidden");
-    hud.classList.remove("hidden");
-    serverText.innerText = serverId;
+  serverMenu.classList.add("hidden");
+  hud.classList.remove("hidden");
 
-    scene=new THREE.Scene();
+  scene = new THREE.Scene();
+  camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
+  renderer = new THREE.WebGLRenderer({canvas: gameCanvas});
+  renderer.setSize(innerWidth, innerHeight);
 
-    camera=new THREE.PerspectiveCamera(75,innerWidth/innerHeight,0.1,1000);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(500,500), new THREE.MeshStandardMaterial({color:0x228822}));
+  ground.rotation.x = -Math.PI/2;
+  scene.add(ground);
 
-    renderer=new THREE.WebGLRenderer({canvas:gameCanvas});
-    renderer.setSize(innerWidth,innerHeight);
+  const light = new THREE.DirectionalLight(0xffffff,1);
+  light.position.set(10,20,10);
+  scene.add(light);
 
-    let ground=new THREE.Mesh(
-        new THREE.PlaneGeometry(500,500),
-        new THREE.MeshStandardMaterial({color:0x228822})
-    );
-    ground.rotation.x=-Math.PI/2;
-    scene.add(ground);
+  player = new THREE.Mesh(new THREE.BoxGeometry(1,2,1), new THREE.MeshStandardMaterial({color:0x00ffcc}));
+  player.position.y = 1;
+  scene.add(player);
 
-    let light=new THREE.DirectionalLight(0xffffff,1);
-    light.position.set(10,20,10);
-    scene.add(light);
+  document.body.requestPointerLock();
+  animate();
 
-    player=new THREE.Mesh(
-        new THREE.BoxGeometry(1,2,1),
-        new THREE.MeshStandardMaterial({color:0x00ffcc})
-    );
-    player.position.y=1;
-    scene.add(player);
-
-    document.body.requestPointerLock();
-
-    animate();
-    if(mode==="multi") setupMultiplayer();
+  if(mode==="multi") setupMultiplayer();
 }
 
 /* MOUSE LOOK */
-document.addEventListener("mousemove",e=>{
-    if(document.pointerLockElement){
-        yaw -= e.movementX * 0.002;
-        pitch -= e.movementY * 0.002;
-        pitch = Math.max(-1.5, Math.min(1.5, pitch));
-    }
+document.addEventListener("mousemove", e => {
+  if(document.pointerLockElement){
+    yaw -= e.movementX * 0.002;
+    pitch -= e.movementY * 0.002;
+    pitch = Math.max(-1.5, Math.min(1.5, pitch));
+  }
 });
 
 /* MOVEMENT */
-let keys={};
-document.addEventListener("keydown",e=>keys[e.key]=true);
-document.addEventListener("keyup",e=>keys[e.key]=false);
+let keys = {};
+document.addEventListener("keydown", e => keys[e.key] = true);
+document.addEventListener("keyup", e => keys[e.key] = false);
 
 function move(){
-    let speed=0.1;
-    let forward=new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw));
-
-    if(keys["w"]) player.position.add(forward.clone().multiplyScalar(-speed));
-    if(keys["s"]) player.position.add(forward.clone().multiplyScalar(speed));
+  let speed = 0.1;
+  let forward = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
+  if(keys["w"]) player.position.add(forward.clone().multiplyScalar(-speed));
+  if(keys["s"]) player.position.add(forward.clone().multiplyScalar(speed));
+  if(keys["a"]) player.position.add(new THREE.Vector3(Math.sin(yaw+Math.PI/2)*speed,0,Math.cos(yaw+Math.PI/2)*speed));
+  if(keys["d"]) player.position.add(new THREE.Vector3(Math.sin(yaw-Math.PI/2)*speed,0,Math.cos(yaw-Math.PI/2)*speed));
 }
 
 /* MULTIPLAYER */
 async function setupMultiplayer(){
-    setInterval(updateMyPosition,100);
-
-    sb.channel("room-"+serverId)
-    .on("postgres_changes",{
-        event:"*",
-        schema:"public",
-        table:"positions"
-    },payload=>{
-        updatePlayers();
-    }).subscribe();
+  setInterval(updateMyPosition, 100);
+  sb.channel("room-" + serverId)
+    .on("postgres_changes",{event:"*", schema:"public", table:"positions"}, payload => updatePlayers())
+    .subscribe();
 }
 
 async function updateMyPosition(){
-    await sb.from("positions").upsert({
-        user_id:user.id,
-        server_id:serverId,
-        x:player.position.x,
-        y:player.position.y,
-        z:player.position.z,
-        rot_y:yaw
-    });
+  await sb.from("positions").upsert({
+    user_id: user.id,
+    server_id: serverId,
+    x: player.position.x,
+    y: player.position.y,
+    z: player.position.z,
+    rot_y: yaw
+  }, { onConflict: ["user_id", "server_id"] });
 }
 
 async function updatePlayers(){
-    let {data}=await sb.from("positions")
-    .select("*").eq("server_id",serverId);
+  const {data} = await sb.from("positions").select("*").eq("server_id", serverId);
+  playerCount.innerText = data.length;
 
-    playerCount.innerText=data.length;
+  data.forEach(p => {
+    if(p.user_id === user.id) return;
 
-    data.forEach(p=>{
-        if(p.user_id===user.id) return;
+    if(!players[p.user_id]){
+      let mesh = new THREE.Mesh(new THREE.BoxGeometry(1,2,1), new THREE.MeshStandardMaterial({color:0xff4444}));
+      scene.add(mesh);
+      players[p.user_id] = mesh;
+    }
 
-        if(!players[p.user_id]){
-            let mesh=new THREE.Mesh(
-                new THREE.BoxGeometry(1,2,1),
-                new THREE.MeshStandardMaterial({color:0xff4444})
-            );
-            scene.add(mesh);
-            players[p.user_id]=mesh;
-        }
-
-        players[p.user_id].position.set(p.x,p.y,p.z);
-    });
+    players[p.user_id].position.set(p.x, p.y, p.z);
+  });
 }
 
 /* LOOP */
 function animate(){
-    requestAnimationFrame(animate);
-
-    move();
-
-    camera.position.copy(player.position);
-    camera.position.y += 2;
-
-    camera.rotation.order="YXZ";
-    camera.rotation.y=yaw;
-    camera.rotation.x=pitch;
-
-    renderer.render(scene,camera);
+  requestAnimationFrame(animate);
+  move();
+  camera.position.copy(player.position);
+  camera.position.y += 2;
+  camera.rotation.order = "YXZ";
+  camera.rotation.y = yaw;
+  camera.rotation.x = pitch;
+  renderer.render(scene, camera);
 }
 
 /* RESIZE */
-addEventListener("resize",()=>{
-    camera.aspect=innerWidth/innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(innerWidth,innerHeight);
+addEventListener("resize", () => {
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
 });
 </script>
 </body>
