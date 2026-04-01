@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>RP World - Multiplayer Roleplay</title>
     <style>
-        /* (styles remain exactly as before) */
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
         body { overflow: hidden; font-family: 'Segoe UI', monospace; background: #000; color: white; }
         #ui { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); border-radius: 12px; padding: 10px; border: 1px solid rgba(255,255,255,0.2); pointer-events: auto; font-size: 11px; min-width: 220px; z-index: 100; }
@@ -117,6 +116,7 @@
     <div id="inventory-panel"><div class="inventory-header"><span class="inventory-title">🎒 INVENTORY</span><span>Selected: <span id="selected-slot">1</span>/4</span></div><div class="inventory-slots" id="inventory-slots"><div class="inventory-slot" data-slot="0"><div class="slot-icon" id="slot-0-icon">🍃</div><div class="slot-name" id="slot-0-name">Empty</div><div class="slot-count" id="slot-0-count"></div></div><div class="inventory-slot" data-slot="1"><div class="slot-icon" id="slot-1-icon">🍃</div><div class="slot-name" id="slot-1-name">Empty</div><div class="slot-count" id="slot-1-count"></div></div><div class="inventory-slot" data-slot="2"><div class="slot-icon" id="slot-2-icon">🍃</div><div class="slot-name" id="slot-2-name">Empty</div><div class="slot-count" id="slot-2-count"></div></div><div class="inventory-slot" data-slot="3"><div class="slot-icon" id="slot-3-icon">🍃</div><div class="slot-name" id="slot-3-name">Empty</div><div class="slot-count" id="slot-3-count"></div></div></div><div class="item-description"><h4>📦 Item Info</h4><p id="item-desc-text">Select an item</p><button class="use-item-btn" id="use-item-btn">USE ITEM</button></div><button class="close-inventory" id="close-inventory">CLOSE</button></div>
     <div id="phone-ui"><div class="dynamic-island"></div><div class="phone-status-bar"><span id="phone-time">9:41</span><span>🔋</span></div><div class="app-grid"><div class="app-icon" data-app="police"><div class="app-icon-emoji">👮</div><div class="app-icon-name">Police Job</div></div><div class="app-icon" data-app="dealership"><div class="app-icon-emoji">🚗</div><div class="app-icon-name">Dealership</div></div><div class="app-icon" data-app="garage"><div class="app-icon-emoji">🏠</div><div class="app-icon-name">My Garage</div></div><div class="app-icon" data-app="houses"><div class="app-icon-emoji">🏘️</div><div class="app-icon-name">Properties</div></div><div class="app-icon" data-app="bank"><div class="app-icon-emoji">🏦</div><div class="app-icon-name">Bank</div></div><div class="app-icon" data-app="friends"><div class="app-icon-emoji">🤝</div><div class="app-icon-name">Friends</div></div><div class="app-icon" data-app="uber"><div class="app-icon-emoji">🚕</div><div class="app-icon-name">Uber</div></div><div class="app-icon" data-app="weed"><div class="app-icon-emoji">🌿</div><div class="app-icon-name">Weed Shop</div></div><div class="app-icon" data-app="save"><div class="app-icon-emoji">💾</div><div class="app-icon-name">Save Game</div></div><div class="app-icon" data-app="logout"><div class="app-icon-emoji">🚪</div><div class="app-icon-name">Logout</div></div></div><div class="phone-home-indicator"></div></div>
     <div id="controls-note">🎮 WASD | 🖱️ Click to Lock | 🔫 Click to Shoot | TAB Inventory | O Phone | F Smoke</div>
+    <div id="notification"></div>
     
     <script type="importmap">
         { "imports": { "three": "https://unpkg.com/three@0.128.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.128.0/examples/jsm/", "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@2.39.0" } }
@@ -132,7 +132,7 @@
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjdmV3aXdodHhxcGJvZ2NydWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTQ4MzMsImV4cCI6MjA5MDQ3MDgzM30.UsdvDyrGl4OhmbDjonyOagknHf--Zhe-fhCi0LFVoQw';
         const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
         
-        // ==================== GAME STATE ====================
+        // ==================== GLOBAL VARIABLES ====================
         let currentServerId = null, myPlayerId = null, myUsername = '';
         let localPlayerMesh = null, localLabel = null;
         let otherPlayers = new Map();
@@ -172,8 +172,8 @@
         let trafficSignalIntersections = [];
         let bloodPools = [];
         let collisionBoxes = [];
-        let stripClubs = [];          // <-- FIXED: missing array
-        let roadSegments = [];        // optional, used in some functions
+        let stripClubs = [];
+        let roadSegments = [];
         
         // Camera controls
         let cameraAngle = 0, cameraPitch = 0;
@@ -184,110 +184,1167 @@
         let scene, camera, renderer, labelRenderer, sunLight, ambientLight;
         let player; // 3D character group
         let worldClock = 12.0;
-        let dayNightCycleEnabled = true;
         
-        // Helper functions
-        function showNotification(msg, color) { const n = document.getElementById('notification'); n.style.borderColor = color; n.style.color = color; n.textContent = msg; n.style.display = 'block'; setTimeout(() => n.style.display = 'none', 1800); }
+        // Input keys (global)
+        let keys = {};
+        
+        // ==================== HELPER FUNCTIONS ====================
+        function showNotification(msg, color) { 
+            const n = document.getElementById('notification'); 
+            if (!n) return;
+            n.style.borderColor = color; 
+            n.style.color = color; 
+            n.textContent = msg; 
+            n.style.display = 'block'; 
+            setTimeout(() => n.style.display = 'none', 1800); 
+        }
         function clamp(value, min, max) { return Math.max(min, Math.min(max, value)); }
         function distanceXZ(a, b) { return Math.hypot(a.x - b.x, a.z - b.z); }
         function lerpAngle(current, target, alpha) { let diff = target - current; while (diff > Math.PI) diff -= Math.PI * 2; while (diff < -Math.PI) diff += Math.PI * 2; return current + diff * alpha; }
         
         // ==================== MULTIPLAYER FUNCTIONS ====================
-        async function syncPlayers() { if (!currentServerId) return; const { data } = await supabase.from('players').select('*').eq('server_id', currentServerId).eq('is_alive', true); if (!data) return; for (const player of data) { if (player.id === myPlayerId) continue; if (otherPlayers.has(player.id)) { const existing = otherPlayers.get(player.id); existing.mesh.position.set(player.x, player.y, player.z); existing.label.position.set(player.x, player.y + 1.6, player.z); } else { const mesh = createPlayerModel(player.color, false); mesh.position.set(player.x, player.y, player.z); scene.add(mesh); const label = makeLabel(player.username, '#aaffdd'); label.position.set(player.x, player.y + 1.6, player.z); scene.add(label); otherPlayers.set(player.id, { mesh, label, name: player.username, color: player.color }); addLog(`🟢 ${player.username} joined`, 'join'); } } const currentIds = new Set(data.map(p => p.id)); for (let [id, player] of otherPlayers) { if (!currentIds.has(id)) { scene.remove(player.mesh); scene.remove(player.label); otherPlayers.delete(id); } } updatePlayerList(); }
-        async function updatePosition() { if (!myPlayerId || !localPlayerMesh || isDead) return; await supabase.from('players').update({ x: localPlayerMesh.position.x, y: localPlayerMesh.position.y, z: localPlayerMesh.position.z, last_seen: new Date().toISOString() }).eq('id', myPlayerId); }
-        async function killPlayer(targetId, targetName, targetPos, targetColor) { addLog(`💀 YOU KILLED ${targetName}! +$5000!`, 'kill'); playerStats.money += 5000; playerStats.kills++; updateUI(); await supabase.from('players').update({ is_alive: false, health: 0 }).eq('id', targetId); createBloodEffect(targetPos); const player = otherPlayers.get(targetId); if (player) { scene.remove(player.mesh); scene.remove(player.label); otherPlayers.delete(targetId); updatePlayerList(); } }
-        async function die(killerName = null) { if (isDead) return; isDead = true; const message = killerName ? `You were killed by ${killerName}!` : 'You died!'; addLog(message, 'death'); document.getElementById('death-message').innerHTML = message; if (localPlayerMesh) { createBloodEffect(localPlayerMesh.position); scene.remove(localPlayerMesh); scene.remove(localLabel); localPlayerMesh = null; localLabel = null; } if (myPlayerId) { await supabase.from('players').update({ is_alive: false, health: 0 }).eq('id', myPlayerId); } document.getElementById('wasted').style.display = 'flex'; }
-        async function respawn() { if (playerStats.money >= 1000) { playerStats.money -= 1000; playerStats.health = 100; isDead = false; updateUI(); document.getElementById('wasted').style.display = 'none'; addLog('You respawned!', 'info'); const spawnPos = { x: (Math.random() - 0.5) * 40, y: 0.8, z: (Math.random() - 0.5) * 40 }; const playerColor = `hsl(${Math.random() * 360}, 70%, 55%)`; await supabase.from('players').update({ is_alive: true, health: 100, x: spawnPos.x, y: spawnPos.y, z: spawnPos.z, color: playerColor }).eq('id', myPlayerId); localPlayerMesh = createPlayerModel(playerColor, true); localPlayerMesh.position.set(spawnPos.x, spawnPos.y, spawnPos.z); scene.add(localPlayerMesh); localLabel = makeLabel(myUsername, '#ffff88'); localLabel.position.set(spawnPos.x, spawnPos.y + 1.6, spawnPos.z); scene.add(localLabel); } else { addLog('Need $1000 to respawn!', 'info'); } }
-        async function shoot() { if (!localPlayerMesh || isDead || !isPointerLocked) return; const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion); const raycaster = new THREE.Raycaster(camera.position, direction, 0, 30); for (let [id, player] of otherPlayers) { const intersects = raycaster.intersectObject(player.mesh, true); if (intersects.length > 0) { await killPlayer(id, player.name, player.mesh.position, player.color); break; } } const flash = new THREE.PointLight(0xff6600, 1.5, 8); flash.position.copy(camera.position); scene.add(flash); setTimeout(() => scene.remove(flash), 50); }
+        async function syncPlayers() { 
+            if (!currentServerId) return; 
+            const { data } = await supabase.from('players').select('*').eq('server_id', currentServerId).eq('is_alive', true); 
+            if (!data) return; 
+            for (const player of data) { 
+                if (player.id === myPlayerId) continue; 
+                if (otherPlayers.has(player.id)) { 
+                    const existing = otherPlayers.get(player.id); 
+                    existing.mesh.position.set(player.x, player.y, player.z); 
+                    existing.label.position.set(player.x, player.y + 1.6, player.z); 
+                } else { 
+                    const mesh = createPlayerModel(player.color, false); 
+                    mesh.position.set(player.x, player.y, player.z); 
+                    scene.add(mesh); 
+                    const label = makeLabel(player.username, '#aaffdd'); 
+                    label.position.set(player.x, player.y + 1.6, player.z); 
+                    scene.add(label); 
+                    otherPlayers.set(player.id, { mesh, label, name: player.username, color: player.color }); 
+                    addLog(`🟢 ${player.username} joined`, 'join'); 
+                } 
+            } 
+            const currentIds = new Set(data.map(p => p.id)); 
+            for (let [id, player] of otherPlayers) { 
+                if (!currentIds.has(id)) { 
+                    scene.remove(player.mesh); 
+                    scene.remove(player.label); 
+                    otherPlayers.delete(id); 
+                } 
+            } 
+            updatePlayerList(); 
+        }
+        async function updatePosition() { 
+            if (!myPlayerId || !localPlayerMesh || isDead) return; 
+            await supabase.from('players').update({ x: localPlayerMesh.position.x, y: localPlayerMesh.position.y, z: localPlayerMesh.position.z, last_seen: new Date().toISOString() }).eq('id', myPlayerId); 
+        }
+        async function killPlayer(targetId, targetName, targetPos, targetColor) { 
+            addLog(`💀 YOU KILLED ${targetName}! +$5000!`, 'kill'); 
+            playerStats.money += 5000; 
+            playerStats.kills++; 
+            updateUI(); 
+            await supabase.from('players').update({ is_alive: false, health: 0 }).eq('id', targetId); 
+            createBloodEffect(targetPos); 
+            const player = otherPlayers.get(targetId); 
+            if (player) { 
+                scene.remove(player.mesh); 
+                scene.remove(player.label); 
+                otherPlayers.delete(targetId); 
+                updatePlayerList(); 
+            } 
+        }
+        async function die(killerName = null) { 
+            if (isDead) return; 
+            isDead = true; 
+            const message = killerName ? `You were killed by ${killerName}!` : 'You died!'; 
+            addLog(message, 'death'); 
+            document.getElementById('death-message').innerHTML = message; 
+            
+            // Create blood effect at player position
+            if (localPlayerMesh) { 
+                createBloodEffect(localPlayerMesh.position); 
+                scene.remove(localPlayerMesh); 
+                scene.remove(localLabel); 
+                localPlayerMesh = null; 
+                localLabel = null; 
+            } 
+            
+            // Mark as dead in database (do NOT delete the player)
+            if (myPlayerId) { 
+                await supabase.from('players').update({ is_alive: false, health: 0 }).eq('id', myPlayerId); 
+            } 
+            
+            // Show wasted screen
+            document.getElementById('wasted').style.display = 'flex'; 
+        }
+        async function respawn() { 
+            if (playerStats.money >= 1000) { 
+                playerStats.money -= 1000; 
+                playerStats.health = 100; 
+                isDead = false; 
+                updateUI(); 
+                document.getElementById('wasted').style.display = 'none'; 
+                addLog('You respawned!', 'info'); 
+                
+                // Respawn at city center
+                const spawnPos = { x: 0, y: 0.8, z: 0 }; 
+                const playerColor = `hsl(${Math.random() * 360}, 70%, 55%)`; 
+                
+                // Update existing player record
+                await supabase.from('players').update({ 
+                    is_alive: true, 
+                    health: 100, 
+                    x: spawnPos.x, 
+                    y: spawnPos.y, 
+                    z: spawnPos.z, 
+                    color: playerColor 
+                }).eq('id', myPlayerId); 
+                
+                // Recreate local player mesh
+                localPlayerMesh = createPlayerModel(playerColor, true); 
+                localPlayerMesh.position.set(spawnPos.x, spawnPos.y, spawnPos.z); 
+                scene.add(localPlayerMesh); 
+                
+                localLabel = makeLabel(myUsername, '#ffff88'); 
+                localLabel.position.set(spawnPos.x, spawnPos.y + 1.6, spawnPos.z); 
+                scene.add(localLabel); 
+                
+                // Reset camera
+                cameraAngle = 0;
+                cameraPitch = 0;
+            } else { 
+                addLog('Need $1000 to respawn!', 'info'); 
+            } 
+        }
+        async function shoot() { 
+            if (!localPlayerMesh || isDead || !isPointerLocked) return; 
+            const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion); 
+            const raycaster = new THREE.Raycaster(camera.position, direction, 0, 30); 
+            for (let [id, player] of otherPlayers) { 
+                const intersects = raycaster.intersectObject(player.mesh, true); 
+                if (intersects.length > 0) { 
+                    await killPlayer(id, player.name, player.mesh.position, player.color); 
+                    break; 
+                } 
+            } 
+            const flash = new THREE.PointLight(0xff6600, 1.5, 8); 
+            flash.position.copy(camera.position); 
+            scene.add(flash); 
+            setTimeout(() => scene.remove(flash), 50); 
+        }
         
         // ==================== VISUAL HELPER FUNCTIONS ====================
-        function makeLabel(text, color) { const div = document.createElement('div'); div.textContent = text; div.style.color = color; div.style.fontSize = '11px'; div.style.fontWeight = 'bold'; div.style.textShadow = '1px 1px black'; div.style.background = 'rgba(0,0,0,0.7)'; div.style.padding = '2px 6px'; div.style.borderRadius = '15px'; div.style.whiteSpace = 'nowrap'; div.style.border = `1px solid ${color}`; return new CSS2DObject(div); }
-        function createPlayerModel(color, isLocal = false) { const group = new THREE.Group(); const bodyMat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.3 }); const body = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.2, 0.7), bodyMat); body.position.y = 0.6; body.castShadow = true; group.add(body); const headMat = new THREE.MeshStandardMaterial({ color: 0xffccaa }); const head = new THREE.Mesh(new THREE.SphereGeometry(0.45, 24, 24), headMat); head.position.y = 1.25; head.castShadow = true; group.add(head); if (isLocal) { const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.65, 0.2, 8), new THREE.MeshStandardMaterial({ color: 0xff4444 })); hat.position.y = 1.55; group.add(hat); } return group; }
-        function createBloodEffect(position) { for (let i = 0; i < 20; i++) { const blood = new THREE.Mesh(new THREE.SphereGeometry(0.08, 4, 4), new THREE.MeshStandardMaterial({ color: 0xcc0000 })); blood.position.set(position.x + (Math.random() - 0.5) * 1, position.y + 0.1, position.z + (Math.random() - 0.5) * 1); scene.add(blood); setTimeout(() => scene.remove(blood), 3000); } }
-        function addLog(msg, type = 'info') { const logDiv = document.getElementById('log'); const entry = document.createElement('div'); entry.className = `log-entry ${type}`; entry.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}`; logDiv.appendChild(entry); if (logDiv.children.length > 15) logDiv.removeChild(logDiv.children[0]); console.log(msg); }
+        function makeLabel(text, color) { 
+            const div = document.createElement('div'); 
+            div.textContent = text; 
+            div.style.color = color; 
+            div.style.fontSize = '11px'; 
+            div.style.fontWeight = 'bold'; 
+            div.style.textShadow = '1px 1px black'; 
+            div.style.background = 'rgba(0,0,0,0.7)'; 
+            div.style.padding = '2px 6px'; 
+            div.style.borderRadius = '15px'; 
+            div.style.whiteSpace = 'nowrap'; 
+            div.style.border = `1px solid ${color}`; 
+            return new CSS2DObject(div); 
+        }
+        function createPlayerModel(color, isLocal = false) { 
+            const group = new THREE.Group(); 
+            const bodyMat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.3 }); 
+            const body = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.2, 0.7), bodyMat); 
+            body.position.y = 0.6; 
+            body.castShadow = true; 
+            group.add(body); 
+            const headMat = new THREE.MeshStandardMaterial({ color: 0xffccaa }); 
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.45, 24, 24), headMat); 
+            head.position.y = 1.25; 
+            head.castShadow = true; 
+            group.add(head); 
+            if (isLocal) { 
+                const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.65, 0.2, 8), new THREE.MeshStandardMaterial({ color: 0xff4444 })); 
+                hat.position.y = 1.55; 
+                group.add(hat); 
+            } 
+            return group; 
+        }
+        function createBloodEffect(position) { 
+            for (let i = 0; i < 20; i++) { 
+                const blood = new THREE.Mesh(new THREE.SphereGeometry(0.08, 4, 4), new THREE.MeshStandardMaterial({ color: 0xcc0000 })); 
+                blood.position.set(position.x + (Math.random() - 0.5) * 1, position.y + 0.1, position.z + (Math.random() - 0.5) * 1); 
+                scene.add(blood); 
+                setTimeout(() => scene.remove(blood), 3000); 
+            } 
+        }
+        function addLog(msg, type = 'info') { 
+            const logDiv = document.getElementById('log'); 
+            const entry = document.createElement('div'); 
+            entry.className = `log-entry ${type}`; 
+            entry.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}`; 
+            logDiv.appendChild(entry); 
+            if (logDiv.children.length > 15) logDiv.removeChild(logDiv.children[0]); 
+            console.log(msg); 
+        }
         function updateUI() { 
             document.getElementById('money').innerText = playerStats.money; 
             document.getElementById('health-bar').style.width = `${playerStats.health}%`; 
             document.getElementById('hunger-bar').style.width = `${playerStats.hunger}%`; 
             document.getElementById('thirst-bar').style.width = `${playerStats.thirst}%`; 
-            // Also update gameData.money to keep it in sync
             gameData.money = playerStats.money;
         }
-        function updatePlayerList() { const container = document.getElementById('player-list-content'); container.innerHTML = ''; container.innerHTML += `<div class="player-name" style="color:#ffaa44">👤 ${myUsername} (You)</div>`; for (let [id, player] of otherPlayers) { container.innerHTML += `<div class="player-name" style="color:#aaffdd">👥 ${player.name}</div>`; } }
-        
-        // ==================== ADVANCED GAME SYSTEMS ====================
-        function createHumanoid(colors = {}) { const group = new THREE.Group(); const skin = colors.skin || 0xffccaa; const shirt = colors.shirt || 0x3f7cbf; const pants = colors.pants || 0x222b44; const hairColor = colors.hair || 0x20140f; const shoeColor = colors.shoes || 0x181818; const isFemale = !!colors.female; const body = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.2, 0.7), new THREE.MeshStandardMaterial({ color: shirt })); body.position.y = 0.6; group.add(body); const head = new THREE.Mesh(new THREE.SphereGeometry(0.45, 24, 24), new THREE.MeshStandardMaterial({ color: skin })); head.position.y = 1.25; group.add(head); const legs = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.8, 0.7), new THREE.MeshStandardMaterial({ color: pants })); legs.position.y = 0.2; group.add(legs); const shoes = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.2, 0.7), new THREE.MeshStandardMaterial({ color: shoeColor })); shoes.position.y = 0; group.add(shoes); const hair = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.55, 0.2, 8), new THREE.MeshStandardMaterial({ color: hairColor })); hair.position.y = 1.5; group.add(hair); return group; }
-        
-        function createVehicleModel(color) { const group = new THREE.Group(); const body = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.4, 2.2), new THREE.MeshStandardMaterial({ color })); body.position.y = 0.2; body.castShadow = true; group.add(body); const roof = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.3, 1.4), new THREE.MeshStandardMaterial({ color: 0x888888 })); roof.position.y = 0.55; group.add(roof); const wheelMat = new THREE.MeshStandardMaterial({ color: 0x333333 }); [[-0.6,0.1,-0.9],[0.6,0.1,-0.9],[-0.6,0.1,0.9],[0.6,0.1,0.9]].forEach(pos => { const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.1, 16), wheelMat); wheel.rotation.z = Math.PI / 2; wheel.position.set(pos[0], pos[1], pos[2]); group.add(wheel); }); return group; }
-        
-        function addVehicleLights(vehicle) { const leftHead = new THREE.SpotLight(0xfff2c2, 0, 34, Math.PI / 7, 0.7, 1); leftHead.position.set(-0.45, 0.35, 1.95); leftHead.target.position.set(-0.45, 0.15, 11); vehicle.add(leftHead); vehicle.add(leftHead.target); const rightHead = new THREE.SpotLight(0xfff2c2, 0, 34, Math.PI / 7, 0.7, 1); rightHead.position.set(0.45, 0.35, 1.95); rightHead.target.position.set(0.45, 0.15, 11); vehicle.add(rightHead); vehicle.add(rightHead.target); vehicle.userData.headlights = [leftHead, rightHead]; }
-        function createEnhancedPoliceLights(vehicle) { const redLight = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 16), new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 0 })); redLight.position.set(-0.4, 0.55, 0); vehicle.add(redLight); const blueLight = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 16), new THREE.MeshStandardMaterial({ color: 0x0000ff, emissive: 0x0000ff, emissiveIntensity: 0 })); blueLight.position.set(0.4, 0.55, 0); vehicle.add(blueLight); const redPoint = new THREE.PointLight(0xff0000, 0, 10); redPoint.position.set(-0.4, 0.55, 0); vehicle.add(redPoint); const bluePoint = new THREE.PointLight(0x0000ff, 0, 10); bluePoint.position.set(0.4, 0.55, 0); vehicle.add(bluePoint); policeLightMeshes.push({ red: redLight, blue: blueLight, redLight: redPoint, blueLight: bluePoint }); vehicle.userData.emergencyLightEntry = { red: redLight, blue: blueLight, redLight: redPoint, blueLight: bluePoint }; }
-        
-        function updateVehiclePhysics(vehicle, delta) { if (!vehicle.userData.velocity) vehicle.userData.velocity = new THREE.Vector3(0,0,0); const speed = vehicle.userData.velocity.length(); const throttle = (keys['KeyW'] && vehicle.userData.fuel > 0) ? 1 : (keys['KeyS'] ? -0.7 : 0); const braking = keys['Space']; const steer = keys['KeyA'] ? 1 : (keys['KeyD'] ? -1 : 0); const steeringAngle = steer * 0.95 * Math.max(0.3, 1 - speed / 70); vehicle.userData.steeringAngle = steeringAngle; const forward = new THREE.Vector3(0,0,1).applyQuaternion(vehicle.quaternion); const right = new THREE.Vector3(1,0,0).applyQuaternion(vehicle.quaternion); const localVelocity = { x: vehicle.userData.velocity.dot(right), z: vehicle.userData.velocity.dot(forward) }; const turnRadius = 2.5 / Math.tan(steeringAngle); const angularVelocity = steeringAngle === 0 ? 0 : localVelocity.z / turnRadius; vehicle.rotation.y += angularVelocity * delta; const driveForce = throttle * 5900; vehicle.userData.velocity.x += forward.x * driveForce * delta / 800; vehicle.userData.velocity.z += forward.z * driveForce * delta / 800; if (braking) { const brakeForce = 1800 * delta / 800; const brakeDir = vehicle.userData.velocity.clone().normalize(); vehicle.userData.velocity.x -= brakeDir.x * Math.min(brakeForce, Math.abs(vehicle.userData.velocity.x)); vehicle.userData.velocity.z -= brakeDir.z * Math.min(brakeForce, Math.abs(vehicle.userData.velocity.z)); } const lateralFriction = 8.0; const lateralForce = -localVelocity.x * lateralFriction * delta; vehicle.userData.velocity.x += right.x * lateralForce; vehicle.userData.velocity.z += right.z * lateralForce; const drag = 0.985; vehicle.userData.velocity.x *= drag; vehicle.userData.velocity.z *= drag; vehicle.position.x += vehicle.userData.velocity.x * delta; vehicle.position.z += vehicle.userData.velocity.z * delta; vehicle.position.y = getGroundHeight(vehicle.position.x, vehicle.position.z) + 0.35; if (throttle > 0 && speed > 1) vehicle.userData.fuel = Math.max(0, vehicle.userData.fuel - 0.045 * delta * 30); vehicleStats.speed = speed * 4.5; vehicleStats.fuel = (vehicle.userData.fuel / 100) * 100; updateVehicleLights(vehicle, braking || throttle < 0); }
-        
-        function updateVehicleLights(vehicle, braking) { if (!vehicle.userData.headlights) return; const daylight = Math.max(0, Math.sin((worldClock / 24) * Math.PI * 2 - Math.PI / 2) * 1.2 + 0.15); const on = daylight < 0.38; vehicle.userData.headlights.forEach(light => light.intensity = on ? 0.85 : 0); }
-        function updatePoliceLights(delta) { if (!policeLightsActive || policeLightMeshes.length === 0) return; policeLightTimer += delta; if (policeLightTimer >= 0.12) { policeLightTimer = 0; lightState = (lightState + 1) % 4; const isRedPhase = (lightState === 0 || lightState === 2); const intensity = 1.2; policeLightMeshes.forEach(l => { l.red.material.emissiveIntensity = isRedPhase ? intensity : 0.15; l.blue.material.emissiveIntensity = !isRedPhase ? intensity : 0.15; l.redLight.intensity = isRedPhase ? 0.8 : 0; l.blueLight.intensity = !isRedPhase ? 0.8 : 0; }); } }
-        function togglePoliceLights() { if (!isInVehicle || !currentVehicle?.userData.isPolice) return showNotification('❌ Must be in police vehicle!', '#ff5555'); if (!policeJob.active || !policeJob.onDuty) return showNotification('❌ Must be on duty!', '#ff5555'); policeLightsActive = !policeLightsActive; if (!policeLightsActive) { policeLightMeshes.forEach(l => { l.red.material.emissiveIntensity = 0; l.blue.material.emissiveIntensity = 0; l.redLight.intensity = 0; l.blueLight.intensity = 0; }); document.getElementById('police-light-indicator').style.display = 'none'; } else { document.getElementById('police-light-indicator').style.display = 'block'; } }
-        
-        function updateSmokeParticles(delta) { if (!isSmoking || !activeBlunt) return; if (smokeParticles.length < 30) { for (let i = 0; i < 3; i++) { const geo = new THREE.SphereGeometry(0.15 + Math.random() * 0.1, 4, 4); const mat = new THREE.MeshStandardMaterial({ color: new THREE.Color().setHSL(0, 0, 0.6 + Math.random() * 0.2), transparent: true, opacity: 0.5 }); const particle = new THREE.Mesh(geo, mat); particle.position.copy(activeBlunt.position.clone().add(new THREE.Vector3(0.4, 0, 0))); particle.velocity = new THREE.Vector3((Math.random() - 0.5) * 2, Math.random() * 3, (Math.random() - 0.5) * 2); particle.life = 2; scene.add(particle); smokeParticles.push(particle); } } for (let i = smokeParticles.length - 1; i >= 0; i--) { const p = smokeParticles[i]; p.life -= delta; p.position.add(p.velocity.clone().multiplyScalar(delta)); p.velocity.y += 2 * delta; p.velocity.multiplyScalar(0.98); p.material.opacity = (p.life / 2) * 0.5; p.scale.multiplyScalar(1.05); if (p.life <= 0) { scene.remove(p); smokeParticles.splice(i, 1); } } }
-        function updateHighEffect(delta) { if (highEffectActive) { highEffectTimer -= delta; if (highEffectTimer <= 0) { highEffectActive = false; document.getElementById('high-overlay').style.display = 'none'; } } }
-        function startSmoking() { const bluntSlot = inventory.slots.find(s => s && s.type === "blunt" && s.count > 0); if (!bluntSlot) { showNotification("❌ No blunt!", "#ff5555"); return; } if (isSmoking) return; isSmoking = true; bluntSlot.count--; if (bluntSlot.count === 0) { const idx = inventory.slots.findIndex(s => s === bluntSlot); inventory.slots[idx] = null; } updateInventoryUI(); highEffectActive = true; highEffectTimer = 12; document.getElementById('high-overlay').style.display = 'block'; showNotification("😤 Smoking blunt...", "#88ff88"); activeBlunt = createBluntModel(); scene.add(activeBlunt); setTimeout(() => { isSmoking = false; document.getElementById('blunt-indicator').style.display = 'none'; if (activeBlunt) { scene.remove(activeBlunt); activeBlunt = null; } }, 2500); }
-        function createBluntModel() { const group = new THREE.Group(); const wrapperGeo = new THREE.ConeGeometry(0.15, 0.6, 8); const wrapperMat = new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.8 }); const wrapper = new THREE.Mesh(wrapperGeo, wrapperMat); wrapper.rotation.z = Math.PI / 2; group.add(wrapper); const tipGeo = new THREE.ConeGeometry(0.18, 0.15, 8); const tipMat = new THREE.MeshStandardMaterial({ color: 0xFF6600, emissive: 0xFF3300, emissiveIntensity: 0.8 }); const tip = new THREE.Mesh(tipGeo, tipMat); tip.rotation.z = Math.PI / 2; tip.position.x = 0.35; group.add(tip); group.position.set(0, -0.2, -1.5); return group; }
-        
-        function updateInventoryUI() { for (let i = 0; i < inventory.slots.length; i++) { const slot = inventory.slots[i]; const iconEl = document.getElementById(`slot-${i}-icon`); const nameEl = document.getElementById(`slot-${i}-name`); const countEl = document.getElementById(`slot-${i}-count`); const slotEl = document.querySelector(`.inventory-slot[data-slot="${i}"]`); if (slot) { if (iconEl) iconEl.textContent = slot.icon; if (nameEl) nameEl.textContent = slot.name; if (countEl) countEl.textContent = slot.count > 1 ? `x${slot.count}` : ''; } else { if (iconEl) iconEl.textContent = '🍃'; if (nameEl) nameEl.textContent = 'Empty'; if (countEl) countEl.textContent = ''; } if (slotEl) slotEl.classList.toggle('selected', inventory.selectedSlot === i); } const weedSlot = inventory.slots.find(s => s && s.type === "weed"); const bluntSlot = inventory.slots.find(s => s && s.type === "blunt"); document.getElementById('weed-inventory').innerHTML = `🌿 Weed: ${weedSlot?.count || 0} | 🚬 Blunts: ${bluntSlot?.count || 0}`; const selected = inventory.slots[inventory.selectedSlot]; document.getElementById('selected-slot').textContent = inventory.selectedSlot + 1; document.getElementById('item-desc-text').textContent = selected ? `${selected.name}` : 'Select an item'; }
-        
-        function rollBlunt() { const weedSlot = inventory.slots.find(s => s && s.type === "weed" && s.count >= 3); if (weedSlot) { weedSlot.count -= 3; const bluntSlot = inventory.slots.find(s => s && s.type === "blunt"); if (bluntSlot) bluntSlot.count++; else { const empty = inventory.slots.findIndex(s => !s); if (empty !== -1) inventory.slots[empty] = { name: "Blunt", icon: "🚬", count: 1, type: "blunt" }; } updateInventoryUI(); showNotification("✅ Rolled a blunt!", "#4ae04a"); } else showNotification("❌ Need 3 weed!", "#ff5555"); }
-        
-        function startPoliceJob() { policeJob.active = true; policeJob.onDuty = true; policeJob.lastPayTime = Date.now(); showNotification('👮 Police officer on duty!', '#4ec9e0'); document.getElementById('job-status').innerHTML = '👮 POLICE ON DUTY'; document.getElementById('job-status').style.borderLeftColor = '#4ec9e0'; }
-        function takePoliceBreak() { if (policeJob.active && policeJob.onDuty) { policeJob.onDuty = false; showNotification('🚔 Break taken', '#ffaa00'); document.getElementById('job-status').innerHTML = '🚔 POLICE BREAK'; } }
-        function resumePoliceShift() { if (policeJob.active && !policeJob.onDuty) { policeJob.onDuty = true; policeJob.lastPayTime = Date.now(); showNotification('👮 Shift resumed', '#4ae04a'); document.getElementById('job-status').innerHTML = '👮 POLICE ON DUTY'; } }
-        function quitPoliceJob() { if (policeJob.active) { policeJob.active = false; policeJob.onDuty = false; showNotification('🚔 Resigned from police', '#ff5555'); document.getElementById('job-status').innerHTML = ''; } }
-        
-        function buyVehicle(vehicleDef) { if (gameData.ownedVehicles.includes(vehicleDef.name)) return false; if (gameData.money >= vehicleDef.price) { gameData.money -= vehicleDef.price; gameData.ownedVehicles.push(vehicleDef.name); updateMoneyDisplay(); showNotification(`✅ Purchased ${vehicleDef.name}!`, '#4ae04a'); return true; } showNotification(`❌ Need $${vehicleDef.price}!`, '#ff5555'); return false; }
-        function spawnVehicleNearPlayer(vehicleDef) { if (!player) return; const spawnX = player.position.x + Math.sin(cameraAngle) * 4; const spawnZ = player.position.z + Math.cos(cameraAngle) * 4; const vehicle = createVehicleModel(vehicleDef.color || 0x44aaff); vehicle.position.set(spawnX, 0, spawnZ); vehicle.rotation.y = cameraAngle; vehicle.userData = { name: vehicleDef.name, velocity: new THREE.Vector3(0,0,0), fuel: 100, maxFuel: 100, isPolice: vehicleDef.isPolice || false, scale: 1 }; scene.add(vehicle); vehicles.push(vehicle); spawnedPlayerVehicles.push(vehicle); addVehicleLights(vehicle); if (vehicleDef.isPolice) createEnhancedPoliceLights(vehicle); }
-        function despawnOwnedVehicleByName(name) { const matches = spawnedPlayerVehicles.filter(v => v.userData?.name === name); matches.forEach(vehicle => { scene.remove(vehicle); const worldIdx = vehicles.indexOf(vehicle); if (worldIdx !== -1) vehicles.splice(worldIdx, 1); const ownIdx = spawnedPlayerVehicles.indexOf(vehicle); if (ownIdx !== -1) spawnedPlayerVehicles.splice(ownIdx, 1); if (currentVehicle === vehicle) { isInVehicle = false; currentVehicle = null; player.visible = true; } }); }
-        
-        function updateMoneyDisplay() { 
-            // Update the UI money element
-            const moneySpan = document.getElementById('money');
-            if (moneySpan) moneySpan.innerText = gameData.money;
-            // Keep playerStats.money in sync with gameData.money
-            playerStats.money = gameData.money;
+        function updatePlayerList() { 
+            const container = document.getElementById('player-list-content'); 
+            container.innerHTML = ''; 
+            container.innerHTML += `<div class="player-name" style="color:#ffaa44">👤 ${myUsername} (You)</div>`; 
+            for (let [id, player] of otherPlayers) { 
+                container.innerHTML += `<div class="player-name" style="color:#aaffdd">👥 ${player.name}</div>`; 
+            } 
         }
         
-        function depositMoney(amount) { if (gameData.money < amount) return showNotification('Not enough cash', '#ff5555'); gameData.money -= amount; gameData.bank += amount; updateMoneyDisplay(); showNotification(`Deposited $${amount}`, '#88ffbb'); }
-        function withdrawMoney(amount) { if (gameData.bank < amount) return showNotification('Not enough bank funds', '#ff5555'); gameData.bank -= amount; gameData.money += amount; updateMoneyDisplay(); showNotification(`Withdrew $${amount}`, '#88ffbb'); }
-        function saveGameToLocal() { localStorage.setItem('rpWorldSave', JSON.stringify({ money: gameData.money, bank: gameData.bank, ownedVehicles: gameData.ownedVehicles, ownedHouses: gameData.ownedHouses, friends: gameData.friends, inventory: inventory, policeJob: policeJob, playerStats: playerStats })); showNotification('Game saved!', '#4ae04a'); }
-        function loadGameFromLocal() { const saved = localStorage.getItem('rpWorldSave'); if (saved) { const d = JSON.parse(saved); gameData.money = d.money || 100000; gameData.bank = d.bank || 2500; gameData.ownedVehicles = d.ownedVehicles || ["Test Vehicle"]; gameData.ownedHouses = d.ownedHouses || []; gameData.friends = d.friends || []; if (d.inventory) inventory = d.inventory; if (d.policeJob) policeJob = d.policeJob; if (d.playerStats) playerStats = { ...playerStats, ...d.playerStats }; updateMoneyDisplay(); updateInventoryUI(); } }
+        // ==================== ADVANCED GAME SYSTEMS ====================
+        function createHumanoid(colors = {}) { 
+            const group = new THREE.Group(); 
+            const skin = colors.skin || 0xffccaa; 
+            const shirt = colors.shirt || 0x3f7cbf; 
+            const pants = colors.pants || 0x222b44; 
+            const hairColor = colors.hair || 0x20140f; 
+            const shoeColor = colors.shoes || 0x181818; 
+            const body = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.2, 0.7), new THREE.MeshStandardMaterial({ color: shirt })); 
+            body.position.y = 0.6; 
+            group.add(body); 
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.45, 24, 24), new THREE.MeshStandardMaterial({ color: skin })); 
+            head.position.y = 1.25; 
+            group.add(head); 
+            const legs = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.8, 0.7), new THREE.MeshStandardMaterial({ color: pants })); 
+            legs.position.y = 0.2; 
+            group.add(legs); 
+            const shoes = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.2, 0.7), new THREE.MeshStandardMaterial({ color: shoeColor })); 
+            shoes.position.y = 0; 
+            group.add(shoes); 
+            const hair = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.55, 0.2, 8), new THREE.MeshStandardMaterial({ color: hairColor })); 
+            hair.position.y = 1.5; 
+            group.add(hair); 
+            return group; 
+        }
         
-        function toggleCamera() { cameraMode = cameraMode === 'tpv' ? 'fpv' : 'tpv'; document.getElementById('camera-mode-indicator').textContent = `VIEW: ${cameraMode.toUpperCase()}`; }
+        function createVehicleModel(color) { 
+            const group = new THREE.Group(); 
+            const body = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.4, 2.2), new THREE.MeshStandardMaterial({ color })); 
+            body.position.y = 0.2; 
+            body.castShadow = true; 
+            group.add(body); 
+            const roof = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.3, 1.4), new THREE.MeshStandardMaterial({ color: 0x888888 })); 
+            roof.position.y = 0.55; 
+            group.add(roof); 
+            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x333333 }); 
+            [[-0.6,0.1,-0.9],[0.6,0.1,-0.9],[-0.6,0.1,0.9],[0.6,0.1,0.9]].forEach(pos => { 
+                const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.1, 16), wheelMat); 
+                wheel.rotation.z = Math.PI / 2; 
+                wheel.position.set(pos[0], pos[1], pos[2]); 
+                group.add(wheel); 
+            }); 
+            return group; 
+        }
         
-        function createUberJob() { const start = player.position.clone().add(new THREE.Vector3((Math.random() - 0.5) * 90, 0, (Math.random() - 0.5) * 90)); const end = new THREE.Vector3((Math.random() - 0.5) * 260, 0, (Math.random() - 0.5) * 260); activeUberJob = { pickup: start, dropoff: end, fare: 40 + Math.floor(Math.random() * 45), state: 'waiting', accepted: false }; }
-        function updateUberJob() { if (!activeUberJob || !activeUberJob.accepted || !isInVehicle || !currentVehicle) return; if (activeUberJob.state === 'waiting' && distanceXZ(currentVehicle.position, activeUberJob.pickup) < 8 && vehicleStats.speed < 6) { activeUberJob.state = 'onboard'; showNotification('🚕 Passenger picked up', '#ffd66b'); } else if (activeUberJob.state === 'onboard' && distanceXZ(currentVehicle.position, activeUberJob.dropoff) < 8 && vehicleStats.speed < 6) { gameData.money += activeUberJob.fare; updateMoneyDisplay(); showNotification(`✅ Uber fare paid: $${activeUberJob.fare}`, '#4ae04a'); activeUberJob = null; } }
+        function addVehicleLights(vehicle) { 
+            const leftHead = new THREE.SpotLight(0xfff2c2, 0, 34, Math.PI / 7, 0.7, 1); 
+            leftHead.position.set(-0.45, 0.35, 1.95); 
+            leftHead.target.position.set(-0.45, 0.15, 11); 
+            vehicle.add(leftHead); 
+            vehicle.add(leftHead.target); 
+            const rightHead = new THREE.SpotLight(0xfff2c2, 0, 34, Math.PI / 7, 0.7, 1); 
+            rightHead.position.set(0.45, 0.35, 1.95); 
+            rightHead.target.position.set(0.45, 0.15, 11); 
+            vehicle.add(rightHead); 
+            vehicle.add(rightHead.target); 
+            vehicle.userData.headlights = [leftHead, rightHead]; 
+        }
+        function createEnhancedPoliceLights(vehicle) { 
+            const redLight = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 16), new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 0 })); 
+            redLight.position.set(-0.4, 0.55, 0); 
+            vehicle.add(redLight); 
+            const blueLight = new THREE.Mesh(new THREE.SphereGeometry(0.13, 16, 16), new THREE.MeshStandardMaterial({ color: 0x0000ff, emissive: 0x0000ff, emissiveIntensity: 0 })); 
+            blueLight.position.set(0.4, 0.55, 0); 
+            vehicle.add(blueLight); 
+            const redPoint = new THREE.PointLight(0xff0000, 0, 10); 
+            redPoint.position.set(-0.4, 0.55, 0); 
+            vehicle.add(redPoint); 
+            const bluePoint = new THREE.PointLight(0x0000ff, 0, 10); 
+            bluePoint.position.set(0.4, 0.55, 0); 
+            vehicle.add(bluePoint); 
+            policeLightMeshes.push({ red: redLight, blue: blueLight, redLight: redPoint, blueLight: bluePoint }); 
+            vehicle.userData.emergencyLightEntry = { red: redLight, blue: blueLight, redLight: redPoint, blueLight: bluePoint }; 
+        }
         
-        function openPhoneApp(app) { document.getElementById('phone-ui').style.display = 'none'; if (app === 'police') { const menu = document.createElement('div'); menu.className = 'dealership-menu'; menu.innerHTML = `<h2>👮 POLICE</h2><div>💰 $500/hour</div>${!policeJob.active ? '<button id="apply">APPLY</button>' : `<button id="break">${policeJob.onDuty ? 'BREAK' : 'RESUME'}</button><button id="quit">QUIT</button>`}<button id="close">CLOSE</button>`; document.body.appendChild(menu); document.getElementById('apply')?.addEventListener('click', () => { startPoliceJob(); menu.remove(); }); document.getElementById('break')?.addEventListener('click', () => { if (policeJob.onDuty) takePoliceBreak(); else resumePoliceShift(); menu.remove(); }); document.getElementById('quit')?.addEventListener('click', () => { quitPoliceJob(); menu.remove(); }); document.getElementById('close')?.addEventListener('click', () => menu.remove()); } else if (app === 'dealership') { const vehicleDefs = [{ name: "Test Vehicle", price: 0, color: 0x44aaff, isPolice: false }, { name: "Police Charger", price: 1000, color: 0x2a6f8f, isPolice: true }]; const menu = document.createElement('div'); menu.className = 'dealership-menu'; menu.innerHTML = '<h2>🚗 DEALERSHIP</h2>'; vehicleDefs.forEach(def => { const owned = gameData.ownedVehicles.includes(def.name); menu.innerHTML += `<div class="vehicle-card"><div>${def.name} - ${def.price === 0 ? 'FREE' : `$${def.price}`}</div>${!owned ? `<button class="buy" data-v="${def.name}">BUY</button>` : '<button disabled>OWNED</button>'}</div>`; }); menu.innerHTML += '<button id="close">CLOSE</button>'; document.body.appendChild(menu); document.querySelectorAll('.buy').forEach(btn => { btn.addEventListener('click', () => { const def = vehicleDefs.find(v => v.name === btn.dataset.v); if (def) buyVehicle(def); menu.remove(); }); }); document.getElementById('close')?.addEventListener('click', () => menu.remove()); } else if (app === 'garage') { const menu = document.createElement('div'); menu.className = 'dealership-menu'; menu.innerHTML = '<h2>🏠 GARAGE</h2>'; gameData.ownedVehicles.forEach(name => { const activeCount = spawnedPlayerVehicles.filter(v => v.userData?.name === name).length; menu.innerHTML += `<div class="vehicle-card"><div>🚗 ${name} ${activeCount ? `(Active: ${activeCount})` : ''}</div><div><button class="spawn" data-v="${name}">SPAWN</button> <button class="despawn" data-v="${name}">DESPAWN</button></div></div>`; }); menu.innerHTML += '<button id="close">CLOSE</button>'; document.body.appendChild(menu); const vehicleDefs = [{ name: "Test Vehicle", color: 0x44aaff, isPolice: false }, { name: "Police Charger", color: 0x2a6f8f, isPolice: true }]; document.querySelectorAll('.spawn').forEach(btn => { btn.addEventListener('click', () => { const def = vehicleDefs.find(v => v.name === btn.dataset.v); if (def) spawnVehicleNearPlayer(def); menu.remove(); }); }); document.querySelectorAll('.despawn').forEach(btn => { btn.addEventListener('click', () => { despawnOwnedVehicleByName(btn.dataset.v); menu.remove(); }); }); document.getElementById('close')?.addEventListener('click', () => menu.remove()); } else if (app === 'houses') { const menu = document.createElement('div'); menu.className = 'dealership-menu'; menu.innerHTML = '<h2>🏘️ PROPERTIES</h2>'; const owned = houses.filter(h => gameData.ownedHouses.includes(h.userData.houseId)); if (owned.length === 0) menu.innerHTML += '<div>No owned houses</div>'; else owned.forEach(h => menu.innerHTML += `<div>House #${h.userData.houseId} at (${Math.round(h.position.x)}, ${Math.round(h.position.z)})</div>`); menu.innerHTML += '<button id="close">CLOSE</button>'; document.body.appendChild(menu); document.getElementById('close')?.addEventListener('click', () => menu.remove()); } else if (app === 'bank') { const menu = document.createElement('div'); menu.className = 'dealership-menu'; menu.innerHTML = `<h2>🏦 BANK</h2><div>Cash: $${gameData.money}</div><div>Bank: $${gameData.bank}</div><div style="margin:10px 0">Quick transfer</div><button id="dep-100">Deposit $100</button><button id="wd-100">Withdraw $100</button><button id="dep-500">Deposit $500</button><button id="wd-500">Withdraw $500</button><button id="dep-all">Deposit All Cash</button><button id="close">CLOSE</button>`; document.body.appendChild(menu); document.getElementById('dep-100')?.addEventListener('click', () => { depositMoney(100); menu.remove(); }); document.getElementById('wd-100')?.addEventListener('click', () => { withdrawMoney(100); menu.remove(); }); document.getElementById('dep-500')?.addEventListener('click', () => { depositMoney(500); menu.remove(); }); document.getElementById('wd-500')?.addEventListener('click', () => { withdrawMoney(500); menu.remove(); }); document.getElementById('dep-all')?.addEventListener('click', () => { if (gameData.money > 0) depositMoney(gameData.money); menu.remove(); }); document.getElementById('close')?.addEventListener('click', () => menu.remove()); } else if (app === 'friends') { const menu = document.createElement('div'); menu.className = 'dealership-menu'; const friendCount = gameData.friends.length; menu.innerHTML = `<h2>🤝 FRIENDS</h2><div>${friendCount} friend${friendCount === 1 ? '' : 's'} saved</div>`; if (!friendCount) menu.innerHTML += '<div style="margin-top:10px">Talk to nearby NPCs with E to add them.</div>'; else gameData.friends.forEach((friendId, idx) => { menu.innerHTML += `<div class="vehicle-card"><div>Friend #${idx + 1}</div><button class="hang-friend" data-id="${friendId}">HANG OUT</button></div>`; }); menu.innerHTML += '<button id="close">CLOSE</button>'; document.body.appendChild(menu); document.querySelectorAll('.hang-friend').forEach(btn => { btn.addEventListener('click', () => { const npc = cityNPCs.find(n => n.userData?.id === btn.dataset.id); if (npc && npc.userData?.home && npc.userData?.wanderTarget) { npc.userData.home.copy(player.position); npc.userData.wanderTarget.copy(player.position); showNotification('🤝 Friend is heading your way', '#88ffbb'); } else showNotification('Friend is too far away right now', '#ffaa00'); menu.remove(); }); }); document.getElementById('close')?.addEventListener('click', () => menu.remove()); } else if (app === 'uber') { if (!activeUberJob) createUberJob(); const menu = document.createElement('div'); menu.className = 'dealership-menu'; menu.innerHTML = `<h2>🚕 UBER</h2><div>Pickup: ${Math.round(activeUberJob.pickup.x)}, ${Math.round(activeUberJob.pickup.z)}</div><div>Dropoff: ${Math.round(activeUberJob.dropoff.x)}, ${Math.round(activeUberJob.dropoff.z)}</div><div>Fare: $${activeUberJob.fare}</div><div>Status: ${activeUberJob.accepted ? activeUberJob.state.toUpperCase() : 'AVAILABLE'}</div><button id="accept-uber">ACCEPT</button><button id="decline-uber">DECLINE</button><button id="close">CLOSE</button>`; document.body.appendChild(menu); document.getElementById('accept-uber')?.addEventListener('click', () => { activeUberJob.accepted = true; showNotification('🚕 Uber ride accepted', '#ffd66b'); menu.remove(); }); document.getElementById('decline-uber')?.addEventListener('click', () => { activeUberJob = null; showNotification('Uber job declined', '#ffaa00'); menu.remove(); }); document.getElementById('close')?.addEventListener('click', () => menu.remove()); } else if (app === 'weed') { const menu = document.createElement('div'); menu.className = 'dealership-menu'; menu.innerHTML = `<h2>🌿 WEED SHOP</h2><button id="buy">BUY 5 WEED ($500)</button><button id="roll">ROLL BLUNT (3 Weed)</button><button id="close">CLOSE</button>`; document.body.appendChild(menu); document.getElementById('buy')?.addEventListener('click', () => { if (gameData.money >= 500) { gameData.money -= 500; const ws = inventory.slots.find(s => s && s.type === "weed"); if (ws) ws.count += 5; else { const empty = inventory.slots.findIndex(s => !s); if (empty !== -1) inventory.slots[empty] = { name: "Weed", icon: "🌿", count: 5, type: "weed" }; } updateMoneyDisplay(); updateInventoryUI(); showNotification('✅ Bought 5 weed!', '#4ae04a'); menu.remove(); } else showNotification('❌ Need $500!', '#ff5555'); }); document.getElementById('roll')?.addEventListener('click', () => { rollBlunt(); menu.remove(); }); document.getElementById('close')?.addEventListener('click', () => menu.remove()); } else if (app === 'save') { saveGameToLocal(); } else if (app === 'logout') { saveGameToLocal(); location.reload(); } }
+        function updateVehiclePhysics(vehicle, delta) { 
+            if (!vehicle.userData.velocity) vehicle.userData.velocity = new THREE.Vector3(0,0,0); 
+            const speed = vehicle.userData.velocity.length(); 
+            const throttle = (keys['KeyW'] && vehicle.userData.fuel > 0) ? 1 : (keys['KeyS'] ? -0.7 : 0); 
+            const braking = keys['Space']; 
+            const steer = keys['KeyA'] ? 1 : (keys['KeyD'] ? -1 : 0); 
+            const steeringAngle = steer * 0.95 * Math.max(0.3, 1 - speed / 70); 
+            vehicle.userData.steeringAngle = steeringAngle; 
+            const forward = new THREE.Vector3(0,0,1).applyQuaternion(vehicle.quaternion); 
+            const right = new THREE.Vector3(1,0,0).applyQuaternion(vehicle.quaternion); 
+            const localVelocity = { x: vehicle.userData.velocity.dot(right), z: vehicle.userData.velocity.dot(forward) }; 
+            const turnRadius = 2.5 / Math.tan(steeringAngle); 
+            const angularVelocity = steeringAngle === 0 ? 0 : localVelocity.z / turnRadius; 
+            vehicle.rotation.y += angularVelocity * delta; 
+            const driveForce = throttle * 5900; 
+            vehicle.userData.velocity.x += forward.x * driveForce * delta / 800; 
+            vehicle.userData.velocity.z += forward.z * driveForce * delta / 800; 
+            if (braking) { 
+                const brakeForce = 1800 * delta / 800; 
+                const brakeDir = vehicle.userData.velocity.clone().normalize(); 
+                vehicle.userData.velocity.x -= brakeDir.x * Math.min(brakeForce, Math.abs(vehicle.userData.velocity.x)); 
+                vehicle.userData.velocity.z -= brakeDir.z * Math.min(brakeForce, Math.abs(vehicle.userData.velocity.z)); 
+            } 
+            const lateralFriction = 8.0; 
+            const lateralForce = -localVelocity.x * lateralFriction * delta; 
+            vehicle.userData.velocity.x += right.x * lateralForce; 
+            vehicle.userData.velocity.z += right.z * lateralForce; 
+            const drag = 0.985; 
+            vehicle.userData.velocity.x *= drag; 
+            vehicle.userData.velocity.z *= drag; 
+            vehicle.position.x += vehicle.userData.velocity.x * delta; 
+            vehicle.position.z += vehicle.userData.velocity.z * delta; 
+            vehicle.position.y = getGroundHeight(vehicle.position.x, vehicle.position.z) + 0.35; 
+            if (throttle > 0 && speed > 1) vehicle.userData.fuel = Math.max(0, vehicle.userData.fuel - 0.045 * delta * 30); 
+            vehicleStats.speed = speed * 4.5; 
+            vehicleStats.fuel = (vehicle.userData.fuel / 100) * 100; 
+            updateVehicleLights(vehicle, braking || throttle < 0); 
+        }
+        
+        function updateVehicleLights(vehicle, braking) { 
+            if (!vehicle.userData.headlights) return; 
+            const daylight = Math.max(0, Math.sin((worldClock / 24) * Math.PI * 2 - Math.PI / 2) * 1.2 + 0.15); 
+            const on = daylight < 0.38; 
+            vehicle.userData.headlights.forEach(light => light.intensity = on ? 0.85 : 0); 
+        }
+        function updatePoliceLights(delta) { 
+            if (!policeLightsActive || policeLightMeshes.length === 0) return; 
+            policeLightTimer += delta; 
+            if (policeLightTimer >= 0.12) { 
+                policeLightTimer = 0; 
+                lightState = (lightState + 1) % 4; 
+                const isRedPhase = (lightState === 0 || lightState === 2); 
+                const intensity = 1.2; 
+                policeLightMeshes.forEach(l => { 
+                    l.red.material.emissiveIntensity = isRedPhase ? intensity : 0.15; 
+                    l.blue.material.emissiveIntensity = !isRedPhase ? intensity : 0.15; 
+                    l.redLight.intensity = isRedPhase ? 0.8 : 0; 
+                    l.blueLight.intensity = !isRedPhase ? 0.8 : 0; 
+                }); 
+            } 
+        }
+        function togglePoliceLights() { 
+            if (!isInVehicle || !currentVehicle?.userData.isPolice) return showNotification('❌ Must be in police vehicle!', '#ff5555'); 
+            if (!policeJob.active || !policeJob.onDuty) return showNotification('❌ Must be on duty!', '#ff5555'); 
+            policeLightsActive = !policeLightsActive; 
+            if (!policeLightsActive) { 
+                policeLightMeshes.forEach(l => { 
+                    l.red.material.emissiveIntensity = 0; 
+                    l.blue.material.emissiveIntensity = 0; 
+                    l.redLight.intensity = 0; 
+                    l.blueLight.intensity = 0; 
+                }); 
+                document.getElementById('police-light-indicator').style.display = 'none'; 
+            } else { 
+                document.getElementById('police-light-indicator').style.display = 'block'; 
+            } 
+        }
+        
+        function updateSmokeParticles(delta) { 
+            if (!isSmoking || !activeBlunt) return; 
+            if (smokeParticles.length < 30) { 
+                for (let i = 0; i < 3; i++) { 
+                    const geo = new THREE.SphereGeometry(0.15 + Math.random() * 0.1, 4, 4); 
+                    const mat = new THREE.MeshStandardMaterial({ color: new THREE.Color().setHSL(0, 0, 0.6 + Math.random() * 0.2), transparent: true, opacity: 0.5 }); 
+                    const particle = new THREE.Mesh(geo, mat); 
+                    particle.position.copy(activeBlunt.position.clone().add(new THREE.Vector3(0.4, 0, 0))); 
+                    particle.velocity = new THREE.Vector3((Math.random() - 0.5) * 2, Math.random() * 3, (Math.random() - 0.5) * 2); 
+                    particle.life = 2; 
+                    scene.add(particle); 
+                    smokeParticles.push(particle); 
+                } 
+            } 
+            for (let i = smokeParticles.length - 1; i >= 0; i--) { 
+                const p = smokeParticles[i]; 
+                p.life -= delta; 
+                p.position.add(p.velocity.clone().multiplyScalar(delta)); 
+                p.velocity.y += 2 * delta; 
+                p.velocity.multiplyScalar(0.98); 
+                p.material.opacity = (p.life / 2) * 0.5; 
+                p.scale.multiplyScalar(1.05); 
+                if (p.life <= 0) { 
+                    scene.remove(p); 
+                    smokeParticles.splice(i, 1); 
+                } 
+            } 
+        }
+        function updateHighEffect(delta) { 
+            if (highEffectActive) { 
+                highEffectTimer -= delta; 
+                if (highEffectTimer <= 0) { 
+                    highEffectActive = false; 
+                    document.getElementById('high-overlay').style.display = 'none'; 
+                } 
+            } 
+        }
+        function startSmoking() { 
+            const bluntSlot = inventory.slots.find(s => s && s.type === "blunt" && s.count > 0); 
+            if (!bluntSlot) { showNotification("❌ No blunt!", "#ff5555"); return; } 
+            if (isSmoking) return; 
+            isSmoking = true; 
+            bluntSlot.count--; 
+            if (bluntSlot.count === 0) { 
+                const idx = inventory.slots.findIndex(s => s === bluntSlot); 
+                inventory.slots[idx] = null; 
+            } 
+            updateInventoryUI(); 
+            highEffectActive = true; 
+            highEffectTimer = 12; 
+            document.getElementById('high-overlay').style.display = 'block'; 
+            showNotification("😤 Smoking blunt...", "#88ff88"); 
+            activeBlunt = createBluntModel(); 
+            scene.add(activeBlunt); 
+            setTimeout(() => { 
+                isSmoking = false; 
+                document.getElementById('blunt-indicator').style.display = 'none'; 
+                if (activeBlunt) { 
+                    scene.remove(activeBlunt); 
+                    activeBlunt = null; 
+                } 
+            }, 2500); 
+        }
+        function createBluntModel() { 
+            const group = new THREE.Group(); 
+            const wrapperGeo = new THREE.ConeGeometry(0.15, 0.6, 8); 
+            const wrapperMat = new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.8 }); 
+            const wrapper = new THREE.Mesh(wrapperGeo, wrapperMat); 
+            wrapper.rotation.z = Math.PI / 2; 
+            group.add(wrapper); 
+            const tipGeo = new THREE.ConeGeometry(0.18, 0.15, 8); 
+            const tipMat = new THREE.MeshStandardMaterial({ color: 0xFF6600, emissive: 0xFF3300, emissiveIntensity: 0.8 }); 
+            const tip = new THREE.Mesh(tipGeo, tipMat); 
+            tip.rotation.z = Math.PI / 2; 
+            tip.position.x = 0.35; 
+            group.add(tip); 
+            group.position.set(0, -0.2, -1.5); 
+            return group; 
+        }
+        
+        function updateInventoryUI() { 
+            for (let i = 0; i < inventory.slots.length; i++) { 
+                const slot = inventory.slots[i]; 
+                const iconEl = document.getElementById(`slot-${i}-icon`); 
+                const nameEl = document.getElementById(`slot-${i}-name`); 
+                const countEl = document.getElementById(`slot-${i}-count`); 
+                const slotEl = document.querySelector(`.inventory-slot[data-slot="${i}"]`); 
+                if (slot) { 
+                    if (iconEl) iconEl.textContent = slot.icon; 
+                    if (nameEl) nameEl.textContent = slot.name; 
+                    if (countEl) countEl.textContent = slot.count > 1 ? `x${slot.count}` : ''; 
+                } else { 
+                    if (iconEl) iconEl.textContent = '🍃'; 
+                    if (nameEl) nameEl.textContent = 'Empty'; 
+                    if (countEl) countEl.textContent = ''; 
+                } 
+                if (slotEl) slotEl.classList.toggle('selected', inventory.selectedSlot === i); 
+            } 
+            const weedSlot = inventory.slots.find(s => s && s.type === "weed"); 
+            const bluntSlot = inventory.slots.find(s => s && s.type === "blunt"); 
+            document.getElementById('weed-inventory').innerHTML = `🌿 Weed: ${weedSlot?.count || 0} | 🚬 Blunts: ${bluntSlot?.count || 0}`; 
+            const selected = inventory.slots[inventory.selectedSlot]; 
+            document.getElementById('selected-slot').textContent = inventory.selectedSlot + 1; 
+            document.getElementById('item-desc-text').textContent = selected ? `${selected.name}` : 'Select an item'; 
+        }
+        
+        function rollBlunt() { 
+            const weedSlot = inventory.slots.find(s => s && s.type === "weed" && s.count >= 3); 
+            if (weedSlot) { 
+                weedSlot.count -= 3; 
+                const bluntSlot = inventory.slots.find(s => s && s.type === "blunt"); 
+                if (bluntSlot) bluntSlot.count++; 
+                else { 
+                    const empty = inventory.slots.findIndex(s => !s); 
+                    if (empty !== -1) inventory.slots[empty] = { name: "Blunt", icon: "🚬", count: 1, type: "blunt" }; 
+                } 
+                updateInventoryUI(); 
+                showNotification("✅ Rolled a blunt!", "#4ae04a"); 
+            } else showNotification("❌ Need 3 weed!", "#ff5555"); 
+        }
+        
+        function startPoliceJob() { 
+            policeJob.active = true; 
+            policeJob.onDuty = true; 
+            policeJob.lastPayTime = Date.now(); 
+            showNotification('👮 Police officer on duty!', '#4ec9e0'); 
+            document.getElementById('job-status').innerHTML = '👮 POLICE ON DUTY'; 
+            document.getElementById('job-status').style.borderLeftColor = '#4ec9e0'; 
+        }
+        function takePoliceBreak() { 
+            if (policeJob.active && policeJob.onDuty) { 
+                policeJob.onDuty = false; 
+                showNotification('🚔 Break taken', '#ffaa00'); 
+                document.getElementById('job-status').innerHTML = '🚔 POLICE BREAK'; 
+            } 
+        }
+        function resumePoliceShift() { 
+            if (policeJob.active && !policeJob.onDuty) { 
+                policeJob.onDuty = true; 
+                policeJob.lastPayTime = Date.now(); 
+                showNotification('👮 Shift resumed', '#4ae04a'); 
+                document.getElementById('job-status').innerHTML = '👮 POLICE ON DUTY'; 
+            } 
+        }
+        function quitPoliceJob() { 
+            if (policeJob.active) { 
+                policeJob.active = false; 
+                policeJob.onDuty = false; 
+                showNotification('🚔 Resigned from police', '#ff5555'); 
+                document.getElementById('job-status').innerHTML = ''; 
+            } 
+        }
+        
+        function buyVehicle(vehicleDef) { 
+            if (gameData.ownedVehicles.includes(vehicleDef.name)) return false; 
+            if (gameData.money >= vehicleDef.price) { 
+                gameData.money -= vehicleDef.price; 
+                gameData.ownedVehicles.push(vehicleDef.name); 
+                updateMoneyDisplay(); 
+                showNotification(`✅ Purchased ${vehicleDef.name}!`, '#4ae04a'); 
+                return true; 
+            } 
+            showNotification(`❌ Need $${vehicleDef.price}!`, '#ff5555'); 
+            return false; 
+        }
+        function spawnVehicleNearPlayer(vehicleDef) { 
+            if (!player) return; 
+            const spawnX = player.position.x + Math.sin(cameraAngle) * 4; 
+            const spawnZ = player.position.z + Math.cos(cameraAngle) * 4; 
+            const vehicle = createVehicleModel(vehicleDef.color || 0x44aaff); 
+            vehicle.position.set(spawnX, 0, spawnZ); 
+            vehicle.rotation.y = cameraAngle; 
+            vehicle.userData = { name: vehicleDef.name, velocity: new THREE.Vector3(0,0,0), fuel: 100, maxFuel: 100, isPolice: vehicleDef.isPolice || false, scale: 1 }; 
+            scene.add(vehicle); 
+            vehicles.push(vehicle); 
+            spawnedPlayerVehicles.push(vehicle); 
+            addVehicleLights(vehicle); 
+            if (vehicleDef.isPolice) createEnhancedPoliceLights(vehicle); 
+        }
+        function despawnOwnedVehicleByName(name) { 
+            const matches = spawnedPlayerVehicles.filter(v => v.userData?.name === name); 
+            matches.forEach(vehicle => { 
+                scene.remove(vehicle); 
+                const worldIdx = vehicles.indexOf(vehicle); 
+                if (worldIdx !== -1) vehicles.splice(worldIdx, 1); 
+                const ownIdx = spawnedPlayerVehicles.indexOf(vehicle); 
+                if (ownIdx !== -1) spawnedPlayerVehicles.splice(ownIdx, 1); 
+                if (currentVehicle === vehicle) { 
+                    isInVehicle = false; 
+                    currentVehicle = null; 
+                    player.visible = true; 
+                } 
+            }); 
+        }
+        
+        function updateMoneyDisplay() { 
+            const moneySpan = document.getElementById('money'); 
+            if (moneySpan) moneySpan.innerText = gameData.money; 
+            playerStats.money = gameData.money; 
+        }
+        
+        function depositMoney(amount) { 
+            if (gameData.money < amount) return showNotification('Not enough cash', '#ff5555'); 
+            gameData.money -= amount; 
+            gameData.bank += amount; 
+            updateMoneyDisplay(); 
+            showNotification(`Deposited $${amount}`, '#88ffbb'); 
+        }
+        function withdrawMoney(amount) { 
+            if (gameData.bank < amount) return showNotification('Not enough bank funds', '#ff5555'); 
+            gameData.bank -= amount; 
+            gameData.money += amount; 
+            updateMoneyDisplay(); 
+            showNotification(`Withdrew $${amount}`, '#88ffbb'); 
+        }
+        function saveGameToLocal() { 
+            localStorage.setItem('rpWorldSave', JSON.stringify({ money: gameData.money, bank: gameData.bank, ownedVehicles: gameData.ownedVehicles, ownedHouses: gameData.ownedHouses, friends: gameData.friends, inventory: inventory, policeJob: policeJob, playerStats: playerStats })); 
+            showNotification('Game saved!', '#4ae04a'); 
+        }
+        function loadGameFromLocal() { 
+            const saved = localStorage.getItem('rpWorldSave'); 
+            if (saved) { 
+                const d = JSON.parse(saved); 
+                gameData.money = d.money || 100000; 
+                gameData.bank = d.bank || 2500; 
+                gameData.ownedVehicles = d.ownedVehicles || ["Test Vehicle"]; 
+                gameData.ownedHouses = d.ownedHouses || []; 
+                gameData.friends = d.friends || []; 
+                if (d.inventory) inventory = d.inventory; 
+                if (d.policeJob) policeJob = d.policeJob; 
+                if (d.playerStats) playerStats = { ...playerStats, ...d.playerStats }; 
+                updateMoneyDisplay(); 
+                updateInventoryUI(); 
+            } 
+        }
+        
+        function toggleCamera() { 
+            cameraMode = cameraMode === 'tpv' ? 'fpv' : 'tpv'; 
+            document.getElementById('camera-mode-indicator').textContent = `VIEW: ${cameraMode.toUpperCase()}`; 
+        }
+        
+        function createUberJob() { 
+            const start = player.position.clone().add(new THREE.Vector3((Math.random() - 0.5) * 90, 0, (Math.random() - 0.5) * 90)); 
+            const end = new THREE.Vector3((Math.random() - 0.5) * 260, 0, (Math.random() - 0.5) * 260); 
+            activeUberJob = { pickup: start, dropoff: end, fare: 40 + Math.floor(Math.random() * 45), state: 'waiting', accepted: false }; 
+        }
+        function updateUberJob() { 
+            if (!activeUberJob || !activeUberJob.accepted || !isInVehicle || !currentVehicle) return; 
+            if (activeUberJob.state === 'waiting' && distanceXZ(currentVehicle.position, activeUberJob.pickup) < 8 && vehicleStats.speed < 6) { 
+                activeUberJob.state = 'onboard'; 
+                showNotification('🚕 Passenger picked up', '#ffd66b'); 
+            } else if (activeUberJob.state === 'onboard' && distanceXZ(currentVehicle.position, activeUberJob.dropoff) < 8 && vehicleStats.speed < 6) { 
+                gameData.money += activeUberJob.fare; 
+                updateMoneyDisplay(); 
+                showNotification(`✅ Uber fare paid: $${activeUberJob.fare}`, '#4ae04a'); 
+                activeUberJob = null; 
+            } 
+        }
+        
+        function openPhoneApp(app) { 
+            document.getElementById('phone-ui').style.display = 'none'; 
+            if (app === 'police') { 
+                const menu = document.createElement('div'); 
+                menu.className = 'dealership-menu'; 
+                menu.innerHTML = `<h2>👮 POLICE</h2><div>💰 $500/hour</div>${!policeJob.active ? '<button id="apply">APPLY</button>' : `<button id="break">${policeJob.onDuty ? 'BREAK' : 'RESUME'}</button><button id="quit">QUIT</button>`}<button id="close">CLOSE</button>`; 
+                document.body.appendChild(menu); 
+                document.getElementById('apply')?.addEventListener('click', () => { startPoliceJob(); menu.remove(); }); 
+                document.getElementById('break')?.addEventListener('click', () => { if (policeJob.onDuty) takePoliceBreak(); else resumePoliceShift(); menu.remove(); }); 
+                document.getElementById('quit')?.addEventListener('click', () => { quitPoliceJob(); menu.remove(); }); 
+                document.getElementById('close')?.addEventListener('click', () => menu.remove()); 
+            } else if (app === 'dealership') { 
+                const vehicleDefs = [{ name: "Test Vehicle", price: 0, color: 0x44aaff, isPolice: false }, { name: "Police Charger", price: 1000, color: 0x2a6f8f, isPolice: true }]; 
+                const menu = document.createElement('div'); 
+                menu.className = 'dealership-menu'; 
+                menu.innerHTML = '<h2>🚗 DEALERSHIP</h2>'; 
+                vehicleDefs.forEach(def => { 
+                    const owned = gameData.ownedVehicles.includes(def.name); 
+                    menu.innerHTML += `<div class="vehicle-card"><div>${def.name} - ${def.price === 0 ? 'FREE' : `$${def.price}`}</div>${!owned ? `<button class="buy" data-v="${def.name}">BUY</button>` : '<button disabled>OWNED</button>'}</div>`; 
+                }); 
+                menu.innerHTML += '<button id="close">CLOSE</button>'; 
+                document.body.appendChild(menu); 
+                document.querySelectorAll('.buy').forEach(btn => { 
+                    btn.addEventListener('click', () => { 
+                        const def = vehicleDefs.find(v => v.name === btn.dataset.v); 
+                        if (def) buyVehicle(def); 
+                        menu.remove(); 
+                    }); 
+                }); 
+                document.getElementById('close')?.addEventListener('click', () => menu.remove()); 
+            } else if (app === 'garage') { 
+                const menu = document.createElement('div'); 
+                menu.className = 'dealership-menu'; 
+                menu.innerHTML = '<h2>🏠 GARAGE</h2>'; 
+                gameData.ownedVehicles.forEach(name => { 
+                    const activeCount = spawnedPlayerVehicles.filter(v => v.userData?.name === name).length; 
+                    menu.innerHTML += `<div class="vehicle-card"><div>🚗 ${name} ${activeCount ? `(Active: ${activeCount})` : ''}</div><div><button class="spawn" data-v="${name}">SPAWN</button> <button class="despawn" data-v="${name}">DESPAWN</button></div></div>`; 
+                }); 
+                menu.innerHTML += '<button id="close">CLOSE</button>'; 
+                document.body.appendChild(menu); 
+                const vehicleDefs = [{ name: "Test Vehicle", color: 0x44aaff, isPolice: false }, { name: "Police Charger", color: 0x2a6f8f, isPolice: true }]; 
+                document.querySelectorAll('.spawn').forEach(btn => { 
+                    btn.addEventListener('click', () => { 
+                        const def = vehicleDefs.find(v => v.name === btn.dataset.v); 
+                        if (def) spawnVehicleNearPlayer(def); 
+                        menu.remove(); 
+                    }); 
+                }); 
+                document.querySelectorAll('.despawn').forEach(btn => { 
+                    btn.addEventListener('click', () => { 
+                        despawnOwnedVehicleByName(btn.dataset.v); 
+                        menu.remove(); 
+                    }); 
+                }); 
+                document.getElementById('close')?.addEventListener('click', () => menu.remove()); 
+            } else if (app === 'houses') { 
+                const menu = document.createElement('div'); 
+                menu.className = 'dealership-menu'; 
+                menu.innerHTML = '<h2>🏘️ PROPERTIES</h2>'; 
+                const owned = houses.filter(h => gameData.ownedHouses.includes(h.userData.houseId)); 
+                if (owned.length === 0) menu.innerHTML += '<div>No owned houses</div>'; 
+                else owned.forEach(h => menu.innerHTML += `<div>House #${h.userData.houseId} at (${Math.round(h.position.x)}, ${Math.round(h.position.z)})</div>`); 
+                menu.innerHTML += '<button id="close">CLOSE</button>'; 
+                document.body.appendChild(menu); 
+                document.getElementById('close')?.addEventListener('click', () => menu.remove()); 
+            } else if (app === 'bank') { 
+                const menu = document.createElement('div'); 
+                menu.className = 'dealership-menu'; 
+                menu.innerHTML = `<h2>🏦 BANK</h2><div>Cash: $${gameData.money}</div><div>Bank: $${gameData.bank}</div><div style="margin:10px 0">Quick transfer</div><button id="dep-100">Deposit $100</button><button id="wd-100">Withdraw $100</button><button id="dep-500">Deposit $500</button><button id="wd-500">Withdraw $500</button><button id="dep-all">Deposit All Cash</button><button id="close">CLOSE</button>`; 
+                document.body.appendChild(menu); 
+                document.getElementById('dep-100')?.addEventListener('click', () => { depositMoney(100); menu.remove(); }); 
+                document.getElementById('wd-100')?.addEventListener('click', () => { withdrawMoney(100); menu.remove(); }); 
+                document.getElementById('dep-500')?.addEventListener('click', () => { depositMoney(500); menu.remove(); }); 
+                document.getElementById('wd-500')?.addEventListener('click', () => { withdrawMoney(500); menu.remove(); }); 
+                document.getElementById('dep-all')?.addEventListener('click', () => { if (gameData.money > 0) depositMoney(gameData.money); menu.remove(); }); 
+                document.getElementById('close')?.addEventListener('click', () => menu.remove()); 
+            } else if (app === 'friends') { 
+                const menu = document.createElement('div'); 
+                menu.className = 'dealership-menu'; 
+                const friendCount = gameData.friends.length; 
+                menu.innerHTML = `<h2>🤝 FRIENDS</h2><div>${friendCount} friend${friendCount === 1 ? '' : 's'} saved</div>`; 
+                if (!friendCount) menu.innerHTML += '<div style="margin-top:10px">Talk to nearby NPCs with E to add them.</div>'; 
+                else gameData.friends.forEach((friendId, idx) => { 
+                    menu.innerHTML += `<div class="vehicle-card"><div>Friend #${idx + 1}</div><button class="hang-friend" data-id="${friendId}">HANG OUT</button></div>`; 
+                }); 
+                menu.innerHTML += '<button id="close">CLOSE</button>'; 
+                document.body.appendChild(menu); 
+                document.querySelectorAll('.hang-friend').forEach(btn => { 
+                    btn.addEventListener('click', () => { 
+                        const npc = cityNPCs.find(n => n.userData?.id === btn.dataset.id); 
+                        if (npc && npc.userData?.home && npc.userData?.wanderTarget) { 
+                            npc.userData.home.copy(player.position); 
+                            npc.userData.wanderTarget.copy(player.position); 
+                            showNotification('🤝 Friend is heading your way', '#88ffbb'); 
+                        } else showNotification('Friend is too far away right now', '#ffaa00'); 
+                        menu.remove(); 
+                    }); 
+                }); 
+                document.getElementById('close')?.addEventListener('click', () => menu.remove()); 
+            } else if (app === 'uber') { 
+                if (!activeUberJob) createUberJob(); 
+                const menu = document.createElement('div'); 
+                menu.className = 'dealership-menu'; 
+                menu.innerHTML = `<h2>🚕 UBER</h2><div>Pickup: ${Math.round(activeUberJob.pickup.x)}, ${Math.round(activeUberJob.pickup.z)}</div><div>Dropoff: ${Math.round(activeUberJob.dropoff.x)}, ${Math.round(activeUberJob.dropoff.z)}</div><div>Fare: $${activeUberJob.fare}</div><div>Status: ${activeUberJob.accepted ? activeUberJob.state.toUpperCase() : 'AVAILABLE'}</div><button id="accept-uber">ACCEPT</button><button id="decline-uber">DECLINE</button><button id="close">CLOSE</button>`; 
+                document.body.appendChild(menu); 
+                document.getElementById('accept-uber')?.addEventListener('click', () => { activeUberJob.accepted = true; showNotification('🚕 Uber ride accepted', '#ffd66b'); menu.remove(); }); 
+                document.getElementById('decline-uber')?.addEventListener('click', () => { activeUberJob = null; showNotification('Uber job declined', '#ffaa00'); menu.remove(); }); 
+                document.getElementById('close')?.addEventListener('click', () => menu.remove()); 
+            } else if (app === 'weed') { 
+                const menu = document.createElement('div'); 
+                menu.className = 'dealership-menu'; 
+                menu.innerHTML = `<h2>🌿 WEED SHOP</h2><button id="buy">BUY 5 WEED ($500)</button><button id="roll">ROLL BLUNT (3 Weed)</button><button id="close">CLOSE</button>`; 
+                document.body.appendChild(menu); 
+                document.getElementById('buy')?.addEventListener('click', () => { 
+                    if (gameData.money >= 500) { 
+                        gameData.money -= 500; 
+                        const ws = inventory.slots.find(s => s && s.type === "weed"); 
+                        if (ws) ws.count += 5; 
+                        else { 
+                            const empty = inventory.slots.findIndex(s => !s); 
+                            if (empty !== -1) inventory.slots[empty] = { name: "Weed", icon: "🌿", count: 5, type: "weed" }; 
+                        } 
+                        updateMoneyDisplay(); 
+                        updateInventoryUI(); 
+                        showNotification('✅ Bought 5 weed!', '#4ae04a'); 
+                        menu.remove(); 
+                    } else showNotification('❌ Need $500!', '#ff5555'); 
+                }); 
+                document.getElementById('roll')?.addEventListener('click', () => { rollBlunt(); menu.remove(); }); 
+                document.getElementById('close')?.addEventListener('click', () => menu.remove()); 
+            } else if (app === 'save') { 
+                saveGameToLocal(); 
+            } else if (app === 'logout') { 
+                saveGameToLocal(); 
+                location.reload(); 
+            } 
+        }
         
         function getGroundHeight(x, z) { return -0.2; }
         
-        async function joinServer(serverId) { myUsername = document.getElementById('username').value.trim(); if (!myUsername) { myUsername = `Player_${Math.floor(Math.random() * 1000)}`; document.getElementById('username').value = myUsername; } if (updateInterval) clearInterval(updateInterval); if (syncInterval) clearInterval(syncInterval); otherPlayers.forEach(p => { scene.remove(p.mesh); scene.remove(p.label); }); otherPlayers.clear(); if (localPlayerMesh) scene.remove(localPlayerMesh); if (localLabel) scene.remove(localLabel); currentServerId = serverId; const spawnPos = { x: (Math.random() - 0.5) * 40, y: 0.8, z: (Math.random() - 0.5) * 40 }; const playerColor = `hsl(${Math.random() * 360}, 70%, 55%)`; const { data, error } = await supabase.from('players').insert({ username: myUsername, server_id: currentServerId, x: spawnPos.x, y: spawnPos.y, z: spawnPos.z, color: playerColor, money: playerStats.money, health: 100, is_alive: true }).select().single(); if (error) { addLog(`Error: ${error.message}`, 'info'); return; } myPlayerId = data.id; localPlayerMesh = createPlayerModel(playerColor, true); localPlayerMesh.position.set(spawnPos.x, spawnPos.y, spawnPos.z); scene.add(localPlayerMesh); localLabel = makeLabel(myUsername, '#ffff88'); localLabel.position.set(spawnPos.x, spawnPos.y + 1.6, spawnPos.z); scene.add(localLabel); addLog(`Joined ${currentServerId} as ${myUsername}`, 'success'); await syncPlayers(); syncInterval = setInterval(() => syncPlayers(), 150); updateInterval = setInterval(() => updatePosition(), 50); }
-        async function leaveServer() { if (myPlayerId) await supabase.from('players').delete().eq('id', myPlayerId); if (updateInterval) clearInterval(updateInterval); if (syncInterval) clearInterval(syncInterval); otherPlayers.forEach(p => { scene.remove(p.mesh); scene.remove(p.label); }); otherPlayers.clear(); if (localPlayerMesh) scene.remove(localPlayerMesh); if (localLabel) scene.remove(localLabel); currentServerId = null; myPlayerId = null; isDead = false; addLog('Left server', 'info'); }
+        async function joinServer(serverId) { 
+            myUsername = document.getElementById('username').value.trim(); 
+            if (!myUsername) { 
+                myUsername = `Player_${Math.floor(Math.random() * 1000)}`; 
+                document.getElementById('username').value = myUsername; 
+            } 
+            if (updateInterval) clearInterval(updateInterval); 
+            if (syncInterval) clearInterval(syncInterval); 
+            otherPlayers.forEach(p => { scene.remove(p.mesh); scene.remove(p.label); }); 
+            otherPlayers.clear(); 
+            if (localPlayerMesh) scene.remove(localPlayerMesh); 
+            if (localLabel) scene.remove(localLabel); 
+            currentServerId = serverId; 
+            const spawnPos = { x: (Math.random() - 0.5) * 40, y: 0.8, z: (Math.random() - 0.5) * 40 }; 
+            const playerColor = `hsl(${Math.random() * 360}, 70%, 55%)`; 
+            const { data, error } = await supabase.from('players').insert({ 
+                username: myUsername, 
+                server_id: currentServerId, 
+                x: spawnPos.x, 
+                y: spawnPos.y, 
+                z: spawnPos.z, 
+                color: playerColor, 
+                money: playerStats.money, 
+                health: 100, 
+                is_alive: true 
+            }).select().single(); 
+            if (error) { 
+                addLog(`Error: ${error.message}`, 'info'); 
+                return; 
+            } 
+            myPlayerId = data.id; 
+            localPlayerMesh = createPlayerModel(playerColor, true); 
+            localPlayerMesh.position.set(spawnPos.x, spawnPos.y, spawnPos.z); 
+            scene.add(localPlayerMesh); 
+            localLabel = makeLabel(myUsername, '#ffff88'); 
+            localLabel.position.set(spawnPos.x, spawnPos.y + 1.6, spawnPos.z); 
+            scene.add(localLabel); 
+            addLog(`Joined ${currentServerId} as ${myUsername}`, 'success'); 
+            await syncPlayers(); 
+            syncInterval = setInterval(() => syncPlayers(), 150); 
+            updateInterval = setInterval(() => updatePosition(), 50); 
+        }
+        async function leaveServer() { 
+            if (myPlayerId) await supabase.from('players').delete().eq('id', myPlayerId); 
+            if (updateInterval) clearInterval(updateInterval); 
+            if (syncInterval) clearInterval(syncInterval); 
+            otherPlayers.forEach(p => { scene.remove(p.mesh); scene.remove(p.label); }); 
+            otherPlayers.clear(); 
+            if (localPlayerMesh) scene.remove(localPlayerMesh); 
+            if (localLabel) scene.remove(localLabel); 
+            currentServerId = null; 
+            myPlayerId = null; 
+            isDead = false; 
+            addLog('Left server', 'info'); 
+        }
         
         // ==================== WORLD BUILDING ====================
-        function createTree(x, z) { const group = new THREE.Group(); const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.5, 1.2, 6), new THREE.MeshStandardMaterial({ color: 0x8B5A2B })); trunk.position.y = 0.6; group.add(trunk); const leaves = new THREE.Mesh(new THREE.ConeGeometry(0.7, 1, 8), new THREE.MeshStandardMaterial({ color: 0x3c9e3c })); leaves.position.y = 1.2; group.add(leaves); group.position.set(x, 0, z); scene.add(group); trees.push(group); }
-        function createCityBuilding(x, z, width, depth, height, color) { const building = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), new THREE.MeshStandardMaterial({ color })); building.position.set(x, height/2, z); building.castShadow = true; scene.add(building); cityBuildings.push(building); collisionBoxes.push({ source: building, width, depth, height }); }
-        function createHouse(x, z, id, price, rotation) { const group = new THREE.Group(); const box = new THREE.Mesh(new THREE.BoxGeometry(8, 4, 8), new THREE.MeshStandardMaterial({ color: 0xccaa88 })); box.position.y = 2; group.add(box); const roof = new THREE.Mesh(new THREE.ConeGeometry(5, 2, 4), new THREE.MeshStandardMaterial({ color: 0xaa6644 })); roof.rotation.y = Math.PI/4; roof.position.y = 4; group.add(roof); group.position.set(x, 0, z); group.rotation.y = rotation; group.userData = { type: 'house', houseId: id, price, owned: false }; scene.add(group); houses.push(group); collisionBoxes.push({ source: group, width: 8, depth: 8, height: 6 }); }
-        function createGasStation(x, z) { const group = new THREE.Group(); const building = new THREE.Mesh(new THREE.BoxGeometry(10, 4, 8), new THREE.MeshStandardMaterial({ color: 0xccaa88 })); building.position.y = 2; group.add(building); const roof = new THREE.Mesh(new THREE.CylinderGeometry(6, 6, 0.5, 8), new THREE.MeshStandardMaterial({ color: 0xaa8866 })); roof.position.y = 4.2; group.add(roof); const canopy = new THREE.Mesh(new THREE.BoxGeometry(12, 0.3, 8), new THREE.MeshStandardMaterial({ color: 0x888888 })); canopy.position.set(0, 3.5, 0); group.add(canopy); group.position.set(x, 0, z); scene.add(group); gasStationsList.push(group); collisionBoxes.push({ source: group, width: 12, depth: 12, height: 5 }); }
-        function createGunStore(x, z) { const group = new THREE.Group(); const building = new THREE.Mesh(new THREE.BoxGeometry(10, 4, 10), new THREE.MeshStandardMaterial({ color: 0x886666 })); building.position.y = 2; group.add(building); const sign = new THREE.Mesh(new THREE.BoxGeometry(4, 0.5, 0.2), new THREE.MeshStandardMaterial({ color: 0xff0000 })); sign.position.set(0, 4, 5); group.add(sign); group.position.set(x, 0, z); scene.add(group); gunDealers.push({ store: group, position: new THREE.Vector3(x, 0, z), dealer: null }); collisionBoxes.push({ source: group, width: 10, depth: 10, height: 5 }); }
-        function createNightClub(x, z) { const group = new THREE.Group(); const building = new THREE.Mesh(new THREE.BoxGeometry(12, 5, 12), new THREE.MeshStandardMaterial({ color: 0x552266 })); building.position.y = 2.5; group.add(building); const neon = new THREE.Mesh(new THREE.BoxGeometry(8, 1, 0.2), new THREE.MeshStandardMaterial({ color: 0xff44ff, emissive: 0xff44ff, emissiveIntensity: 0.5 })); neon.position.set(0, 5, 6); group.add(neon); group.position.set(x, 0, z); scene.add(group); stripClubs.push(group); clubBartenders.push({ npc: null, position: new THREE.Vector3(x, 0, z), club: group }); collisionBoxes.push({ source: group, width: 12, depth: 12, height: 6 }); }
-        function createTrafficVehicle(x, z, rotation) { const vehicle = createVehicleModel(0x44aaff); vehicle.position.set(x, 0, z); vehicle.rotation.y = rotation; vehicle.userData = { velocity: new THREE.Vector3(0,0,0), fuel: 100, speed: 4 + Math.random() * 3 }; scene.add(vehicle); trafficVehicles.push(vehicle); }
-        function createPedestrian(x, z) { const npc = createHumanoid({ shirt: 0x88aacc }); npc.position.set(x, 0, z); npc.userData = { type: 'pedestrian', speed: 0.5, home: new THREE.Vector3(x,0,z), wanderTarget: new THREE.Vector3(x+ (Math.random()-0.5)*20,0,z+(Math.random()-0.5)*20), wait: 0 }; scene.add(npc); cityNPCs.push(npc); }
+        function createTree(x, z) { 
+            const group = new THREE.Group(); 
+            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.5, 1.2, 6), new THREE.MeshStandardMaterial({ color: 0x8B5A2B })); 
+            trunk.position.y = 0.6; 
+            group.add(trunk); 
+            const leaves = new THREE.Mesh(new THREE.ConeGeometry(0.7, 1, 8), new THREE.MeshStandardMaterial({ color: 0x3c9e3c })); 
+            leaves.position.y = 1.2; 
+            group.add(leaves); 
+            group.position.set(x, 0, z); 
+            scene.add(group); 
+            trees.push(group); 
+        }
+        function createCityBuilding(x, z, width, depth, height, color) { 
+            const building = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), new THREE.MeshStandardMaterial({ color })); 
+            building.position.set(x, height/2, z); 
+            building.castShadow = true; 
+            scene.add(building); 
+            cityBuildings.push(building); 
+            collisionBoxes.push({ source: building, width, depth, height }); 
+        }
+        function createHouse(x, z, id, price, rotation) { 
+            const group = new THREE.Group(); 
+            const box = new THREE.Mesh(new THREE.BoxGeometry(8, 4, 8), new THREE.MeshStandardMaterial({ color: 0xccaa88 })); 
+            box.position.y = 2; 
+            group.add(box); 
+            const roof = new THREE.Mesh(new THREE.ConeGeometry(5, 2, 4), new THREE.MeshStandardMaterial({ color: 0xaa6644 })); 
+            roof.rotation.y = Math.PI/4; 
+            roof.position.y = 4; 
+            group.add(roof); 
+            group.position.set(x, 0, z); 
+            group.rotation.y = rotation; 
+            group.userData = { type: 'house', houseId: id, price, owned: false }; 
+            scene.add(group); 
+            houses.push(group); 
+            collisionBoxes.push({ source: group, width: 8, depth: 8, height: 6 }); 
+        }
+        function createGasStation(x, z) { 
+            const group = new THREE.Group(); 
+            const building = new THREE.Mesh(new THREE.BoxGeometry(10, 4, 8), new THREE.MeshStandardMaterial({ color: 0xccaa88 })); 
+            building.position.y = 2; 
+            group.add(building); 
+            const roof = new THREE.Mesh(new THREE.CylinderGeometry(6, 6, 0.5, 8), new THREE.MeshStandardMaterial({ color: 0xaa8866 })); 
+            roof.position.y = 4.2; 
+            group.add(roof); 
+            const canopy = new THREE.Mesh(new THREE.BoxGeometry(12, 0.3, 8), new THREE.MeshStandardMaterial({ color: 0x888888 })); 
+            canopy.position.set(0, 3.5, 0); 
+            group.add(canopy); 
+            group.position.set(x, 0, z); 
+            scene.add(group); 
+            gasStationsList.push(group); 
+            collisionBoxes.push({ source: group, width: 12, depth: 12, height: 5 }); 
+        }
+        function createGunStore(x, z) { 
+            const group = new THREE.Group(); 
+            const building = new THREE.Mesh(new THREE.BoxGeometry(10, 4, 10), new THREE.MeshStandardMaterial({ color: 0x886666 })); 
+            building.position.y = 2; 
+            group.add(building); 
+            const sign = new THREE.Mesh(new THREE.BoxGeometry(4, 0.5, 0.2), new THREE.MeshStandardMaterial({ color: 0xff0000 })); 
+            sign.position.set(0, 4, 5); 
+            group.add(sign); 
+            group.position.set(x, 0, z); 
+            scene.add(group); 
+            gunDealers.push({ store: group, position: new THREE.Vector3(x, 0, z), dealer: null }); 
+            collisionBoxes.push({ source: group, width: 10, depth: 10, height: 5 }); 
+        }
+        function createNightClub(x, z) { 
+            const group = new THREE.Group(); 
+            const building = new THREE.Mesh(new THREE.BoxGeometry(12, 5, 12), new THREE.MeshStandardMaterial({ color: 0x552266 })); 
+            building.position.y = 2.5; 
+            group.add(building); 
+            const neon = new THREE.Mesh(new THREE.BoxGeometry(8, 1, 0.2), new THREE.MeshStandardMaterial({ color: 0xff44ff, emissive: 0xff44ff, emissiveIntensity: 0.5 })); 
+            neon.position.set(0, 5, 6); 
+            group.add(neon); 
+            group.position.set(x, 0, z); 
+            scene.add(group); 
+            stripClubs.push(group); 
+            clubBartenders.push({ npc: null, position: new THREE.Vector3(x, 0, z), club: group }); 
+            collisionBoxes.push({ source: group, width: 12, depth: 12, height: 6 }); 
+        }
+        function createTrafficVehicle(x, z, rotation) { 
+            const vehicle = createVehicleModel(0x44aaff); 
+            vehicle.position.set(x, 0, z); 
+            vehicle.rotation.y = rotation; 
+            vehicle.userData = { velocity: new THREE.Vector3(0,0,0), fuel: 100, speed: 4 + Math.random() * 3 }; 
+            scene.add(vehicle); 
+            trafficVehicles.push(vehicle); 
+        }
+        function createPedestrian(x, z) { 
+            const npc = createHumanoid({ shirt: 0x88aacc }); 
+            npc.position.set(x, 0, z); 
+            npc.userData = { type: 'pedestrian', speed: 0.5, home: new THREE.Vector3(x,0,z), wanderTarget: new THREE.Vector3(x+ (Math.random()-0.5)*20,0,z+(Math.random()-0.5)*20), wait: 0 }; 
+            scene.add(npc); 
+            cityNPCs.push(npc); 
+        }
         
-        function buildWorld() { for (let i = -200; i <= 200; i += 80) { const roadMat = new THREE.MeshStandardMaterial({ color: 0x2a3a4a }); const roadHor = new THREE.Mesh(new THREE.BoxGeometry(12, 0.2, 450), roadMat); roadHor.position.set(i, -0.2, 0); scene.add(roadHor); const roadVer = new THREE.Mesh(new THREE.BoxGeometry(450, 0.2, 12), roadMat); roadVer.position.set(0, -0.2, i); scene.add(roadVer); } const buildingColors = [0xaa8866, 0xccaa88, 0x88aacc]; for (let i = -160; i <= 160; i += 80) { for (let j = -160; j <= 160; j += 80) { if (Math.abs(i) < 40 && Math.abs(j) < 40) continue; const color = buildingColors[(Math.abs(i)+Math.abs(j)) % buildingColors.length]; createCityBuilding(i, j, 12, 12, 18 + (Math.abs(i+j)%3)*4, color); for (let t = 0; t < 3; t++) { const tx = i + (Math.random() - 0.5) * 35; const tz = j + (Math.random() - 0.5) * 35; if (Math.abs(tx) < 180 && Math.abs(tz) < 180) createTree(tx, tz); } } } for (let i = 0; i < 20; i++) { createHouse(-220, -150 + i*15, i+1, 35000, 0); createHouse(220, -150 + i*15, i+21, 35000, Math.PI); createHouse(-150 + i*15, 220, i+41, 35000, Math.PI/2); createHouse(-150 + i*15, -220, i+61, 35000, -Math.PI/2); } createGasStation(140, 100); createGasStation(-140, 100); createGasStation(100, -140); createGunStore(100, 140); createGunStore(-100, 140); createNightClub(80, 80); createNightClub(-80, 80); for (let i = -200; i <= 200; i += 40) { if (Math.abs(i) < 20) continue; createStreetLight(i, 20); createStreetLight(i, -20); createStreetLight(20, i); createStreetLight(-20, i); } for (let i = 0; i < 25; i++) { const x = -200 + Math.random() * 400; const z = -200 + Math.random() * 400; if (Math.abs(x) > 40 && Math.abs(z) > 40) createPedestrian(x, z); } for (let i = -200; i <= 200; i += 80) { createTrafficVehicle(-220, i-3, Math.PI/2); createTrafficVehicle(220, i+3, -Math.PI/2); createTrafficVehicle(i-3, -220, 0); createTrafficVehicle(i+3, 220, Math.PI); } }
+        function buildWorld() { 
+            for (let i = -200; i <= 200; i += 80) { 
+                const roadMat = new THREE.MeshStandardMaterial({ color: 0x2a3a4a }); 
+                const roadHor = new THREE.Mesh(new THREE.BoxGeometry(12, 0.2, 450), roadMat); 
+                roadHor.position.set(i, -0.2, 0); 
+                scene.add(roadHor); 
+                const roadVer = new THREE.Mesh(new THREE.BoxGeometry(450, 0.2, 12), roadMat); 
+                roadVer.position.set(0, -0.2, i); 
+                scene.add(roadVer); 
+            } 
+            const buildingColors = [0xaa8866, 0xccaa88, 0x88aacc]; 
+            for (let i = -160; i <= 160; i += 80) { 
+                for (let j = -160; j <= 160; j += 80) { 
+                    if (Math.abs(i) < 40 && Math.abs(j) < 40) continue; 
+                    const color = buildingColors[(Math.abs(i)+Math.abs(j)) % buildingColors.length]; 
+                    createCityBuilding(i, j, 12, 12, 18 + (Math.abs(i+j)%3)*4, color); 
+                    for (let t = 0; t < 3; t++) { 
+                        const tx = i + (Math.random() - 0.5) * 35; 
+                        const tz = j + (Math.random() - 0.5) * 35; 
+                        if (Math.abs(tx) < 180 && Math.abs(tz) < 180) createTree(tx, tz); 
+                    } 
+                } 
+            } 
+            for (let i = 0; i < 20; i++) { 
+                createHouse(-220, -150 + i*15, i+1, 35000, 0); 
+                createHouse(220, -150 + i*15, i+21, 35000, Math.PI); 
+                createHouse(-150 + i*15, 220, i+41, 35000, Math.PI/2); 
+                createHouse(-150 + i*15, -220, i+61, 35000, -Math.PI/2); 
+            } 
+            createGasStation(140, 100); 
+            createGasStation(-140, 100); 
+            createGasStation(100, -140); 
+            createGunStore(100, 140); 
+            createGunStore(-100, 140); 
+            createNightClub(80, 80); 
+            createNightClub(-80, 80); 
+            for (let i = -200; i <= 200; i += 40) { 
+                if (Math.abs(i) < 20) continue; 
+                createStreetLight(i, 20); 
+                createStreetLight(i, -20); 
+                createStreetLight(20, i); 
+                createStreetLight(-20, i); 
+            } 
+            for (let i = 0; i < 25; i++) { 
+                const x = -200 + Math.random() * 400; 
+                const z = -200 + Math.random() * 400; 
+                if (Math.abs(x) > 40 && Math.abs(z) > 40) createPedestrian(x, z); 
+            } 
+            for (let i = -200; i <= 200; i += 80) { 
+                createTrafficVehicle(-220, i-3, Math.PI/2); 
+                createTrafficVehicle(220, i+3, -Math.PI/2); 
+                createTrafficVehicle(i-3, -220, 0); 
+                createTrafficVehicle(i+3, 220, Math.PI); 
+            } 
+        }
         
-        function createStreetLight(x, z) { const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 5.8, 10), new THREE.MeshStandardMaterial({ color: 0x44484f })); pole.position.set(x, 2.9, z); scene.add(pole); const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), new THREE.MeshStandardMaterial({ color: 0xffaa66, emissive: 0x442200 })); lamp.position.set(x, 5.5, z); scene.add(lamp); streetLights.push({ pole, lamp }); }
+        function createStreetLight(x, z) { 
+            const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 5.8, 10), new THREE.MeshStandardMaterial({ color: 0x44484f })); 
+            pole.position.set(x, 2.9, z); 
+            scene.add(pole); 
+            const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), new THREE.MeshStandardMaterial({ color: 0xffaa66, emissive: 0x442200 })); 
+            lamp.position.set(x, 5.5, z); 
+            scene.add(lamp); 
+            streetLights.push({ pole, lamp }); 
+        }
         
         // ==================== INITIALIZATION ====================
-        function init() { scene = new THREE.Scene(); scene.background = new THREE.Color(0x87CEEB); scene.fog = new THREE.Fog(0x87CEEB, 150, 300); camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 500); renderer = new THREE.WebGLRenderer({ antialias: true }); renderer.setSize(window.innerWidth, window.innerHeight); renderer.shadowMap.enabled = true; document.body.appendChild(renderer.domElement); labelRenderer = new CSS2DRenderer(); labelRenderer.setSize(window.innerWidth, window.innerHeight); labelRenderer.domElement.style.position = 'absolute'; labelRenderer.domElement.style.top = '0px'; labelRenderer.domElement.style.left = '0px'; labelRenderer.domElement.style.pointerEvents = 'none'; document.body.appendChild(labelRenderer.domElement); const groundMat = new THREE.MeshStandardMaterial({ color: 0x5c9e5e, roughness: 0.8 }); const ground = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), groundMat); ground.rotation.x = -Math.PI / 2; ground.position.y = -0.5; ground.receiveShadow = true; scene.add(ground); ambientLight = new THREE.AmbientLight(0x404060, 0.6); scene.add(ambientLight); sunLight = new THREE.DirectionalLight(0xfff5e6, 1); sunLight.position.set(50, 100, 50); sunLight.castShadow = true; scene.add(sunLight); buildWorld(); player = createHumanoid({ shirt: 0x3f7cbf, pants: 0x1f2438 }); player.position.set(0, 0, 0); scene.add(player); loadGameFromLocal(); updateMoneyDisplay(); updateInventoryUI(); document.getElementById('joinGame').onclick = () => joinServer(document.getElementById('serverCode').value); document.getElementById('leaveGame').onclick = () => leaveServer(); document.getElementById('username').value = `Player_${Math.floor(Math.random() * 1000)}`; document.getElementById('close-inventory').onclick = () => document.getElementById('inventory-panel').style.display = 'none'; document.getElementById('use-item-btn').onclick = () => { const item = inventory.slots[inventory.selectedSlot]; if (item?.type === "blunt") startSmoking(); else if (item?.type === "weed") showNotification("🌿 Roll into blunt in Weed Shop!", "#ffaa00"); else if (item?.name === 'Burger') { playerStats.hunger = clamp(playerStats.hunger + 35, 0, 100); item.count--; if (item.count <= 0) inventory.slots[inventory.selectedSlot] = null; updateInventoryUI(); } else if (item?.name === 'Water') { playerStats.thirst = clamp(playerStats.thirst + 45, 0, 100); item.count--; if (item.count <= 0) inventory.slots[inventory.selectedSlot] = null; updateInventoryUI(); } }; document.querySelectorAll('.inventory-slot').forEach(slot => { slot.addEventListener('click', () => { inventory.selectedSlot = parseInt(slot.dataset.slot); updateInventoryUI(); }); }); document.querySelectorAll('.app-icon').forEach(app => { app.addEventListener('click', () => { openPhoneApp(app.dataset.app); }); }); renderer.domElement.addEventListener('click', () => renderer.domElement.requestPointerLock()); document.addEventListener('pointerlockchange', () => { isPointerLocked = document.pointerLockElement === renderer.domElement; if (isPointerLocked) document.addEventListener('mousemove', onMouseMove); else document.removeEventListener('mousemove', onMouseMove); }); function onMouseMove(e) { if (!isPointerLocked) return; cameraAngle -= e.movementX * 0.0025; cameraPitch -= e.movementY * 0.0025; cameraPitch = Math.max(-0.8, Math.min(0.8, cameraPitch)); } renderer.domElement.addEventListener('click', (e) => { if (isPointerLocked && !isDead) shoot(); }); document.addEventListener('keydown', (e) => { keys[e.code] = true; if (e.code === 'KeyV') toggleCamera(); if (e.code === 'KeyQ') togglePoliceLights(); if (e.code === 'KeyF' && !e.repeat && !isSmoking) { isHoldingF = true; holdTimer = 0; } if (e.code === 'Tab') { e.preventDefault(); const inv = document.getElementById('inventory-panel'); inv.style.display = inv.style.display === 'none' ? 'block' : 'none'; updateInventoryUI(); } if (e.code === 'KeyO') { const phone = document.getElementById('phone-ui'); phone.style.display = phone.style.display === 'none' ? 'flex' : 'none'; } if (e.code === 'KeyE' && !e.repeat && !isInVehicle) { const nearby = vehicles.find(v => distanceXZ(player.position, v.position) < 2); if (nearby && !isInVehicle) { isInVehicle = true; currentVehicle = nearby; player.visible = false; showNotification(`Entered ${currentVehicle.userData.name}`, '#4ae04a'); } else if (isInVehicle) { isInVehicle = false; player.position.copy(currentVehicle.position.clone().add(new THREE.Vector3(2,0,2))); player.visible = true; currentVehicle = null; showNotification('Exited vehicle', '#ffaa00'); } } }); document.addEventListener('keyup', (e) => { keys[e.code] = false; if (e.code === 'KeyF') { isHoldingF = false; holdTimer = 0; } }); let keys = {}; function animate() { const delta = Math.min(0.033, 1/60); if (!isInVehicle && !isDead) { const move = new THREE.Vector3(); if (keys['KeyW']) move.z -= 1; if (keys['KeyS']) move.z += 1; if (keys['KeyA']) move.x -= 1; if (keys['KeyD']) move.x += 1; const forwardDir = new THREE.Vector3(Math.sin(cameraAngle), 0, Math.cos(cameraAngle)); const rightDir = new THREE.Vector3(Math.cos(cameraAngle), 0, -Math.sin(cameraAngle)); if (move.lengthSq() > 0) move.normalize().multiplyScalar(7); player.position.x += (move.x * rightDir.x + move.z * forwardDir.x) * delta; player.position.z += (move.x * rightDir.z + move.z * forwardDir.z) * delta; player.position.y = 0.7; player.rotation.y = Math.atan2(move.x, -move.z) + cameraAngle; } else if (currentVehicle && isInVehicle) { updateVehiclePhysics(currentVehicle, delta); player.position.copy(currentVehicle.position); } updateUberJob(); updateSmokeParticles(delta); updateHighEffect(delta); updatePoliceLights(delta); if (isHoldingF && !isSmoking) { holdTimer += delta; if (holdTimer >= 5) { isHoldingF = false; startSmoking(); } } const targetPos = isInVehicle && currentVehicle ? currentVehicle.position : player.position; if (cameraMode === 'fpv') { camera.position.copy(targetPos); camera.position.y += 0.8; camera.rotation.order = 'YXZ'; camera.rotation.y = cameraAngle; camera.rotation.x = cameraPitch; } else { const orbitX = targetPos.x + Math.sin(cameraAngle) * 6; const orbitZ = targetPos.z + Math.cos(cameraAngle) * 6; const orbitY = targetPos.y + 1.8 + cameraPitch * 1.5; camera.position.lerp(new THREE.Vector3(orbitX, orbitY, orbitZ), 0.15); camera.lookAt(targetPos.clone().add(new THREE.Vector3(0, 0.8, 0))); } renderer.render(scene, camera); labelRenderer.render(scene, camera); requestAnimationFrame(animate); } animate(); addLog('✨ Welcome to RP World! Click game to lock mouse.', 'info'); addLog('🔫 Multiplayer active. Join a server to start!', 'info'); }
+        function init() { 
+            scene = new THREE.Scene(); 
+            scene.background = new THREE.Color(0x87CEEB); 
+            scene.fog = new THREE.Fog(0x87CEEB, 150, 300); 
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 500); 
+            renderer = new THREE.WebGLRenderer({ antialias: true }); 
+            renderer.setSize(window.innerWidth, window.innerHeight); 
+            renderer.shadowMap.enabled = true; 
+            document.body.appendChild(renderer.domElement); 
+            labelRenderer = new CSS2DRenderer(); 
+            labelRenderer.setSize(window.innerWidth, window.innerHeight); 
+            labelRenderer.domElement.style.position = 'absolute'; 
+            labelRenderer.domElement.style.top = '0px'; 
+            labelRenderer.domElement.style.left = '0px'; 
+            labelRenderer.domElement.style.pointerEvents = 'none'; 
+            document.body.appendChild(labelRenderer.domElement); 
+            const groundMat = new THREE.MeshStandardMaterial({ color: 0x5c9e5e, roughness: 0.8 }); 
+            const ground = new THREE.Mesh(new THREE.PlaneGeometry(500, 500), groundMat); 
+            ground.rotation.x = -Math.PI / 2; 
+            ground.position.y = -0.5; 
+            ground.receiveShadow = true; 
+            scene.add(ground); 
+            ambientLight = new THREE.AmbientLight(0x404060, 0.6); 
+            scene.add(ambientLight); 
+            sunLight = new THREE.DirectionalLight(0xfff5e6, 1); 
+            sunLight.position.set(50, 100, 50); 
+            sunLight.castShadow = true; 
+            scene.add(sunLight); 
+            buildWorld(); 
+            player = createHumanoid({ shirt: 0x3f7cbf, pants: 0x1f2438 }); 
+            player.position.set(0, 0, 0); 
+            scene.add(player); 
+            loadGameFromLocal(); 
+            updateMoneyDisplay(); 
+            updateInventoryUI(); 
+            document.getElementById('joinGame').onclick = () => joinServer(document.getElementById('serverCode').value); 
+            document.getElementById('leaveGame').onclick = () => leaveServer(); 
+            document.getElementById('username').value = `Player_${Math.floor(Math.random() * 1000)}`; 
+            document.getElementById('close-inventory').onclick = () => document.getElementById('inventory-panel').style.display = 'none'; 
+            document.getElementById('use-item-btn').onclick = () => { 
+                const item = inventory.slots[inventory.selectedSlot]; 
+                if (item?.type === "blunt") startSmoking(); 
+                else if (item?.type === "weed") showNotification("🌿 Roll into blunt in Weed Shop!", "#ffaa00"); 
+                else if (item?.name === 'Burger') { 
+                    playerStats.hunger = clamp(playerStats.hunger + 35, 0, 100); 
+                    item.count--; 
+                    if (item.count <= 0) inventory.slots[inventory.selectedSlot] = null; 
+                    updateInventoryUI(); 
+                } else if (item?.name === 'Water') { 
+                    playerStats.thirst = clamp(playerStats.thirst + 45, 0, 100); 
+                    item.count--; 
+                    if (item.count <= 0) inventory.slots[inventory.selectedSlot] = null; 
+                    updateInventoryUI(); 
+                } 
+            }; 
+            document.querySelectorAll('.inventory-slot').forEach(slot => { 
+                slot.addEventListener('click', () => { 
+                    inventory.selectedSlot = parseInt(slot.dataset.slot); 
+                    updateInventoryUI(); 
+                }); 
+            }); 
+            document.querySelectorAll('.app-icon').forEach(app => { 
+                app.addEventListener('click', () => { 
+                    openPhoneApp(app.dataset.app); 
+                }); 
+            }); 
+            renderer.domElement.addEventListener('click', () => renderer.domElement.requestPointerLock()); 
+            document.addEventListener('pointerlockchange', () => { 
+                isPointerLocked = document.pointerLockElement === renderer.domElement; 
+                if (isPointerLocked) document.addEventListener('mousemove', onMouseMove); 
+                else document.removeEventListener('mousemove', onMouseMove); 
+            }); 
+            function onMouseMove(e) { 
+                if (!isPointerLocked) return; 
+                cameraAngle -= e.movementX * 0.0025; 
+                cameraPitch -= e.movementY * 0.0025; 
+                cameraPitch = Math.max(-0.8, Math.min(0.8, cameraPitch)); 
+            } 
+            renderer.domElement.addEventListener('click', (e) => { 
+                if (isPointerLocked && !isDead) shoot(); 
+            }); 
+            document.addEventListener('keydown', (e) => { 
+                keys[e.code] = true; 
+                if (e.code === 'KeyV') toggleCamera(); 
+                if (e.code === 'KeyQ') togglePoliceLights(); 
+                if (e.code === 'KeyF' && !e.repeat && !isSmoking) { 
+                    isHoldingF = true; 
+                    holdTimer = 0; 
+                } 
+                if (e.code === 'Tab') { 
+                    e.preventDefault(); 
+                    const inv = document.getElementById('inventory-panel'); 
+                    inv.style.display = inv.style.display === 'none' ? 'block' : 'none'; 
+                    updateInventoryUI(); 
+                } 
+                if (e.code === 'KeyO') { 
+                    const phone = document.getElementById('phone-ui'); 
+                    phone.style.display = phone.style.display === 'none' ? 'flex' : 'none'; 
+                } 
+                if (e.code === 'KeyE' && !e.repeat && !isInVehicle) { 
+                    const nearby = vehicles.find(v => distanceXZ(player.position, v.position) < 2); 
+                    if (nearby && !isInVehicle) { 
+                        isInVehicle = true; 
+                        currentVehicle = nearby; 
+                        player.visible = false; 
+                        showNotification(`Entered ${currentVehicle.userData.name}`, '#4ae04a'); 
+                    } else if (isInVehicle) { 
+                        isInVehicle = false; 
+                        player.position.copy(currentVehicle.position.clone().add(new THREE.Vector3(2,0,2))); 
+                        player.visible = true; 
+                        currentVehicle = null; 
+                        showNotification('Exited vehicle', '#ffaa00'); 
+                    } 
+                } 
+            }); 
+            document.addEventListener('keyup', (e) => { 
+                keys[e.code] = false; 
+                if (e.code === 'KeyF') { 
+                    isHoldingF = false; 
+                    holdTimer = 0; 
+                } 
+            }); 
+            function animate() { 
+                const delta = Math.min(0.033, 1/60); 
+                if (!isInVehicle && !isDead) { 
+                    const move = new THREE.Vector3(); 
+                    if (keys['KeyW']) move.z -= 1; 
+                    if (keys['KeyS']) move.z += 1; 
+                    if (keys['KeyA']) move.x -= 1; 
+                    if (keys['KeyD']) move.x += 1; 
+                    const forwardDir = new THREE.Vector3(Math.sin(cameraAngle), 0, Math.cos(cameraAngle)); 
+                    const rightDir = new THREE.Vector3(Math.cos(cameraAngle), 0, -Math.sin(cameraAngle)); 
+                    if (move.lengthSq() > 0) move.normalize().multiplyScalar(7); 
+                    player.position.x += (move.x * rightDir.x + move.z * forwardDir.x) * delta; 
+                    player.position.z += (move.x * rightDir.z + move.z * forwardDir.z) * delta; 
+                    player.position.y = 0.7; 
+                    player.rotation.y = Math.atan2(move.x, -move.z) + cameraAngle; 
+                } else if (currentVehicle && isInVehicle) { 
+                    updateVehiclePhysics(currentVehicle, delta); 
+                    player.position.copy(currentVehicle.position); 
+                } 
+                updateUberJob(); 
+                updateSmokeParticles(delta); 
+                updateHighEffect(delta); 
+                updatePoliceLights(delta); 
+                if (isHoldingF && !isSmoking) { 
+                    holdTimer += delta; 
+                    if (holdTimer >= 5) { 
+                        isHoldingF = false; 
+                        startSmoking(); 
+                    } 
+                } 
+                const targetPos = isInVehicle && currentVehicle ? currentVehicle.position : player.position; 
+                if (cameraMode === 'fpv') { 
+                    camera.position.copy(targetPos); 
+                    camera.position.y += 0.8; 
+                    camera.rotation.order = 'YXZ'; 
+                    camera.rotation.y = cameraAngle; 
+                    camera.rotation.x = cameraPitch; 
+                } else { 
+                    const orbitX = targetPos.x + Math.sin(cameraAngle) * 6; 
+                    const orbitZ = targetPos.z + Math.cos(cameraAngle) * 6; 
+                    const orbitY = targetPos.y + 1.8 + cameraPitch * 1.5; 
+                    camera.position.lerp(new THREE.Vector3(orbitX, orbitY, orbitZ), 0.15); 
+                    camera.lookAt(targetPos.clone().add(new THREE.Vector3(0, 0.8, 0))); 
+                } 
+                renderer.render(scene, camera); 
+                labelRenderer.render(scene, camera); 
+                requestAnimationFrame(animate); 
+            } 
+            animate(); 
+            addLog('✨ Welcome to RP World! Click game to lock mouse.', 'info'); 
+            addLog('🔫 Multiplayer active. Join a server to start!', 'info'); 
+        }
         
         window.togglePhone = () => { const apps = document.getElementById('phone-apps'); apps.style.display = apps.style.display === 'flex' ? 'none' : 'flex'; };
         window.respawn = respawn;
