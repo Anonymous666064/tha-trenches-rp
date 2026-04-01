@@ -1145,19 +1145,6 @@
             if (key === 'd') keys.d = false;
         });
         
-        renderer.domElement.addEventListener('click', () => {
-            if (!isPointerLocked) renderer.domElement.requestPointerLock();
-        });
-        
-        document.addEventListener('pointerlockchange', () => {
-            isPointerLocked = document.pointerLockElement === renderer.domElement;
-            if (isPointerLocked) {
-                document.addEventListener('mousemove', onMouseMove);
-            } else {
-                document.removeEventListener('mousemove', onMouseMove);
-            }
-        });
-        
         function onMouseMove(e) {
             if (!isPointerLocked) return;
             mouseX += e.movementX * 0.002;
@@ -1178,8 +1165,10 @@
                 updateWalking();
                 checkNearbyVehicles();
             }
-            renderer.render(scene, camera);
-            labelRenderer.render(scene, camera);
+            if (renderer && labelRenderer) {
+                renderer.render(scene, camera);
+                labelRenderer.render(scene, camera);
+            }
             requestAnimationFrame(animate);
         }
         
@@ -1204,6 +1193,20 @@
             labelRenderer.domElement.style.left = '0px';
             labelRenderer.domElement.style.pointerEvents = 'none';
             document.body.appendChild(labelRenderer.domElement);
+            
+            // Set up pointer lock after renderer is created
+            renderer.domElement.addEventListener('click', () => {
+                if (!isPointerLocked) renderer.domElement.requestPointerLock();
+            });
+            
+            document.addEventListener('pointerlockchange', () => {
+                isPointerLocked = document.pointerLockElement === renderer.domElement;
+                if (isPointerLocked) {
+                    document.addEventListener('mousemove', onMouseMove);
+                } else {
+                    document.removeEventListener('mousemove', onMouseMove);
+                }
+            });
             
             createCity();
             
@@ -1236,6 +1239,7 @@
             addLog('👥 Drivers and passengers both see the vehicle moving!', 'vehicle');
         }
         
+        // Start the game
         init();
     </script>
 </body>
