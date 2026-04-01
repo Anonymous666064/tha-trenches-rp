@@ -10,6 +10,7 @@
             overflow: hidden;
             font-family: 'Segoe UI', 'Poppins', sans-serif;
         }
+        
         /* UI Overlay */
         #ui-container {
             position: absolute;
@@ -20,28 +21,32 @@
             pointer-events: none;
             z-index: 10;
         }
+        
         .hud {
             position: absolute;
             bottom: 20px;
             left: 20px;
-            background: rgba(0,0,0,0.75);
+            background: rgba(0,0,0,0.85);
             backdrop-filter: blur(8px);
             border-radius: 12px;
             padding: 12px 20px;
             color: white;
             font-weight: bold;
-            font-size: 18px;
+            font-size: 16px;
             border-left: 4px solid #00ffcc;
             pointer-events: none;
             font-family: monospace;
         }
+        
         .hud span {
             color: #00ffcc;
         }
+        
         .stats {
             display: flex;
-            gap: 24px;
+            gap: 20px;
         }
+        
         .phone-icon {
             position: absolute;
             bottom: 30px;
@@ -59,22 +64,25 @@
             border: 1px solid #00ffcc;
             transition: 0.2s;
             font-size: 28px;
+            z-index: 20;
         }
+        
         .phone-icon:hover {
             transform: scale(1.05);
             background: #2a2a3a;
         }
+        
         /* Modal Screens */
         .modal {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            background: rgba(15,15,25,0.95);
+            background: rgba(15,15,25,0.98);
             backdrop-filter: blur(16px);
             border-radius: 24px;
-            padding: 20px;
-            width: 350px;
+            padding: 25px;
+            width: 380px;
             color: white;
             border: 1px solid #00ffcc88;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
@@ -82,9 +90,16 @@
             z-index: 100;
             font-family: monospace;
         }
+        
+        .modal h3 {
+            margin-top: 0;
+            text-align: center;
+            color: #00ffcc;
+        }
+        
         .modal input, .modal select {
-            width: 90%;
-            padding: 10px;
+            width: 92%;
+            padding: 12px;
             margin: 8px 0;
             background: #222;
             border: 1px solid #00ffcc;
@@ -92,81 +107,110 @@
             border-radius: 8px;
             font-size: 14px;
         }
+        
         .modal button {
             background: #00ccaa;
             border: none;
-            padding: 10px 20px;
+            padding: 12px 20px;
             border-radius: 20px;
             margin-top: 12px;
             cursor: pointer;
             font-weight: bold;
             font-size: 14px;
             transition: 0.2s;
+            width: 100%;
         }
+        
         .modal button:hover {
             background: #00ffcc;
             transform: scale(1.02);
         }
+        
         .close-btn {
             background: #aa3355;
         }
+        
         .close-btn:hover {
             background: #cc4466;
         }
+        
         .hidden {
             display: none;
         }
+        
         .error-message {
             color: #ff6666;
             font-size: 12px;
-            margin-top: 5px;
+            margin-top: 8px;
             text-align: center;
         }
+        
         .success-message {
             color: #66ff66;
             font-size: 12px;
-            margin-top: 5px;
+            margin-top: 8px;
             text-align: center;
         }
+        
         .button-group {
             display: flex;
             gap: 10px;
             margin-top: 10px;
         }
+        
         .button-group button {
             flex: 1;
         }
+        
         .login-btn {
             background: #3388ff;
         }
+        
         .register-btn {
             background: #ff8833;
         }
+        
+        .server-code {
+            font-size: 20px;
+            font-weight: bold;
+            text-align: center;
+            background: #000;
+            padding: 10px;
+            border-radius: 8px;
+            margin: 10px 0;
+            letter-spacing: 2px;
+            color: #00ffcc;
+        }
+        
         .phone-app {
-            width: 280px;
+            width: 300px;
             background: #0a0a1ad9;
             border-radius: 32px;
-            padding: 12px;
+            padding: 15px;
         }
+        
         .app-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 10px;
             margin-top: 12px;
         }
+        
         .app-btn {
             background: #1f1f2f;
-            padding: 10px;
+            padding: 12px;
             text-align: center;
             border-radius: 20px;
             cursor: pointer;
             font-size: 14px;
             transition: 0.2s;
         }
+        
         .app-btn:hover {
             background: #2f2f4f;
             transform: scale(1.05);
         }
+        
         .chat-box {
             max-height: 200px;
             overflow-y: auto;
@@ -174,36 +218,81 @@
             background: #000000aa;
             border-radius: 12px;
             padding: 8px;
+            margin-bottom: 8px;
         }
+        
+        .chat-input-area {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .chat-input-area input {
+            flex: 1;
+            padding: 8px;
+            background: #222;
+            border: 1px solid #00ffcc;
+            color: white;
+            border-radius: 8px;
+        }
+        
         .blackmarket-item {
             background: #2a2a2a;
-            margin: 5px 0;
-            padding: 5px;
+            margin: 8px 0;
+            padding: 8px;
             border-radius: 8px;
             display: flex;
             justify-content: space-between;
+            align-items: center;
         }
+        
         #respawn-screen {
             position: absolute;
             bottom: 30%;
             left: 50%;
             transform: translateX(-50%);
-            background: black;
-            padding: 20px;
+            background: rgba(0,0,0,0.95);
+            padding: 25px;
             border-radius: 20px;
             text-align: center;
             pointer-events: auto;
             z-index: 200;
+            border: 1px solid #ff4444;
         }
+        
         .username-display {
             position: absolute;
             top: 20px;
             right: 20px;
-            background: rgba(0,0,0,0.6);
+            background: rgba(0,0,0,0.7);
             padding: 8px 15px;
             border-radius: 20px;
             font-size: 14px;
             pointer-events: none;
+            font-family: monospace;
+        }
+        
+        .server-info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0,0,0,0.7);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            pointer-events: none;
+            font-family: monospace;
+        }
+        
+        .controls-hint {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.5);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 10px;
+            pointer-events: none;
+            font-family: monospace;
         }
     </style>
 </head>
@@ -214,10 +303,12 @@
                 <div>❤️ <span id="health-val">100</span></div>
                 <div>🍔 <span id="hunger-val">100</span></div>
                 <div>💧 <span id="thirst-val">100</span></div>
-                <div>💰 $<span id="money-val">0</span></div>
+                <div>💰 $<span id="money-val">1000</span></div>
             </div>
         </div>
         <div class="username-display" id="username-display"></div>
+        <div class="server-info" id="server-info"></div>
+        <div class="controls-hint">WASD: Move | Mouse: Look | F: Shoot | T: Chat</div>
         <div class="phone-icon" id="phoneBtn">📱</div>
 
         <!-- Login/Register Modal -->
@@ -238,13 +329,14 @@
             <h3>🌐 MULTIPLAYER</h3>
             <p>Welcome, <span id="welcomeUsername"></span>!</p>
             <button id="createServerBtn">✨ Create New Server</button>
+            <div id="createdServerCode" class="server-code hidden"></div>
             <input type="text" id="joinCode" placeholder="Enter Server Code">
             <button id="joinServerBtn">🔗 Join Server</button>
             <button id="closeServerBtn" class="close-btn">Close</button>
         </div>
 
         <!-- Phone Interface -->
-        <div id="phoneModal" class="modal hidden" style="width: 320px;">
+        <div id="phoneModal" class="modal hidden" style="width: 340px;">
             <div class="phone-app">
                 <h3>📱 PHONE</h3>
                 <div class="app-grid">
@@ -254,7 +346,7 @@
                     <div class="app-btn" data-app="blackmarket">🖤 Black Market</div>
                 </div>
                 <div id="appContent" style="margin-top:12px; max-height:300px; overflow-y:auto;">
-                    <p>Select an app</p>
+                    <p style="text-align:center;">Select an app</p>
                 </div>
                 <button id="closePhoneBtn" class="close-btn">Close</button>
             </div>
@@ -263,13 +355,14 @@
         <!-- Respawn Screen -->
         <div id="respawn-screen" class="hidden">
             <h2>💀 YOU DIED</h2>
+            <p>You were eliminated!</p>
             <button id="respawnBtn">🏥 Respawn at Hospital</button>
         </div>
         
         <!-- Chat Input (floating) -->
-        <div id="chatInputArea" style="position: absolute; bottom: 100px; left: 20px; pointer-events: auto; background: #000000aa; border-radius: 20px; padding: 5px; display: none;">
-            <input type="text" id="chatMsgInput" placeholder="Chat..." style="width: 200px; background: black; color:white; border:1px solid cyan;">
-            <button id="sendChatBtn">Send</button>
+        <div id="chatInputArea" style="position: absolute; bottom: 100px; left: 20px; pointer-events: auto; background: #000000cc; border-radius: 20px; padding: 8px; display: none; z-index: 50;">
+            <input type="text" id="chatMsgInput" placeholder="Type message..." style="width: 250px; padding: 8px; background: black; color:white; border:1px solid cyan; border-radius: 8px;">
+            <button id="sendChatBtn" style="margin-left: 5px; padding: 8px 15px;">Send</button>
         </div>
     </div>
 
@@ -297,83 +390,238 @@
         let currentServerId = null;
         let playersMap = new Map();
         let localPlayerMesh = null;
-        let localPlayerData = { id: null, username: "", money: 1000, health: 100, hunger: 100, thirst: 100, position: { x: 0, y: 2, z: 0 } };
+        let localPlayerData = { money: 1000, health: 100, hunger: 100, thirst: 100 };
         let keys = { w: false, s: false, a: false, d: false, shift: false };
         let camera, scene, renderer;
-        let moveSpeed = 5;
-        let worldGroup;
+        let moveSpeed = 8;
         let isDead = false;
         let playersChannel = null;
         let chatMessages = [];
         
+        // Camera controls
+        let mouseX = 0, mouseY = 0;
+        let pitch = 0, yaw = -Math.PI / 4;
+        let cameraTarget = new THREE.Vector3();
+        
+        // World objects
+        let worldGroup;
+        let buildings = [];
+        
         // ---------- THREE.JS Setup ----------
         scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x050b1a);
-        scene.fog = new THREE.FogExp2(0x050b1a, 0.008);
+        scene.background = new THREE.Color(0x0a0a2a);
+        scene.fog = new THREE.FogExp2(0x0a0a2a, 0.003);
+        
         camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 3, 8);
+        camera.position.set(0, 2, 0);
+        
         renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.body.appendChild(renderer.domElement);
         
         // Lighting
         const ambientLight = new THREE.AmbientLight(0x404060);
         scene.add(ambientLight);
-        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-        dirLight.position.set(10, 20, 5);
-        dirLight.castShadow = true;
-        scene.add(dirLight);
-        const backLight = new THREE.PointLight(0x4466cc, 0.3);
-        backLight.position.set(0, 5, -5);
-        scene.add(backLight);
         
-        // Ground & City
+        const dirLight = new THREE.DirectionalLight(0xfff5e6, 1.2);
+        dirLight.position.set(20, 30, 10);
+        dirLight.castShadow = true;
+        dirLight.receiveShadow = true;
+        dirLight.shadow.mapSize.width = 1024;
+        dirLight.shadow.mapSize.height = 1024;
+        dirLight.shadow.camera.near = 0.5;
+        dirLight.shadow.camera.far = 50;
+        dirLight.shadow.camera.left = -15;
+        dirLight.shadow.camera.right = 15;
+        dirLight.shadow.camera.top = 15;
+        dirLight.shadow.camera.bottom = -15;
+        scene.add(dirLight);
+        
+        const fillLight = new THREE.PointLight(0x4466cc, 0.4);
+        fillLight.position.set(0, 10, 0);
+        scene.add(fillLight);
+        
+        const streetLight = new THREE.PointLight(0xffaa66, 0.5);
+        streetLight.position.set(0, 5, 0);
+        scene.add(streetLight);
+        
+        // Ground
+        const groundMat = new THREE.MeshStandardMaterial({ color: 0x2a2a3a, roughness: 0.8, metalness: 0.1 });
+        const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -0.5;
+        ground.receiveShadow = true;
+        scene.add(ground);
+        
+        // Grid helper
         const gridHelper = new THREE.GridHelper(200, 40, 0x88aaff, 0x335588);
-        gridHelper.position.y = -0.5;
+        gridHelper.position.y = -0.4;
         scene.add(gridHelper);
         
-        // Simple buildings
-        worldGroup = new THREE.Group();
-        const buildingMat = new THREE.MeshStandardMaterial({ color: 0x4a6c8f });
-        const glassMat = new THREE.MeshStandardMaterial({ color: 0x88aaff, emissive: 0x224466 });
-        for (let i = -6; i <= 6; i++) {
-            for (let j = -6; j <= 6; j++) {
-                if (Math.random() > 0.7 && (i !== 0 || j !== 0)) {
-                    const height = 1 + Math.random() * 3;
-                    const box = new THREE.Mesh(new THREE.BoxGeometry(1.5, height, 1.5), buildingMat);
-                    box.position.set(i * 4, height/2 - 0.5, j * 4);
-                    box.castShadow = true;
-                    box.receiveShadow = true;
-                    worldGroup.add(box);
+        // Create detailed city
+        function createCity() {
+            const buildingColors = [0x4a6c8f, 0x5a7c9f, 0x3a5c7f, 0x6a8caf, 0x2a4c6f];
+            const glassColors = [0x88aaff, 0x77aaff, 0x99bbff];
+            
+            // Buildings in a grid
+            for (let i = -12; i <= 12; i++) {
+                for (let j = -12; j <= 12; j++) {
+                    if (Math.abs(i) < 3 && Math.abs(j) < 3) continue; // Center park area
                     
-                    const roof = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.3, 4), glassMat);
-                    roof.position.set(i * 4, height - 0.2, j * 4);
-                    worldGroup.add(roof);
+                    const height = 1.5 + Math.random() * 4;
+                    const color = buildingColors[Math.floor(Math.random() * buildingColors.length)];
+                    const buildingMat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.3, metalness: 0.7 });
+                    
+                    const building = new THREE.Mesh(new THREE.BoxGeometry(1.8, height, 1.8), buildingMat);
+                    building.position.set(i * 3.5, height/2 - 0.5, j * 3.5);
+                    building.castShadow = true;
+                    building.receiveShadow = true;
+                    scene.add(building);
+                    buildings.push(building);
+                    
+                    // Roof
+                    const roofMat = new THREE.MeshStandardMaterial({ color: glassColors[Math.floor(Math.random() * glassColors.length)], emissive: 0x224466, emissiveIntensity: 0.3 });
+                    const roof = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 0.3, 4), roofMat);
+                    roof.position.set(i * 3.5, height - 0.2, j * 3.5);
+                    roof.castShadow = true;
+                    scene.add(roof);
+                    
+                    // Windows effect (small emissive cubes)
+                    if (height > 2.5) {
+                        const windowMat = new THREE.MeshStandardMaterial({ color: 0xffaa66, emissive: 0xff6622, emissiveIntensity: 0.5 });
+                        const windowLight = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.05), windowMat);
+                        windowLight.position.set(i * 3.5, height/2, j * 3.5 + 0.95);
+                        windowLight.castShadow = false;
+                        scene.add(windowLight);
+                    }
+                }
+            }
+            
+            // Roads (simple dark strips)
+            const roadMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9 });
+            for (let x = -40; x <= 40; x += 3.5) {
+                const road = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.1, 120), roadMat);
+                road.position.set(x, -0.45, 0);
+                road.receiveShadow = true;
+                scene.add(road);
+                
+                const roadZ = new THREE.Mesh(new THREE.BoxGeometry(120, 0.1, 0.8), roadMat);
+                roadZ.position.set(0, -0.45, x);
+                roadZ.receiveShadow = true;
+                scene.add(roadZ);
+            }
+        }
+        
+        // Create landmarks
+        function createLandmarks() {
+            // Hospital (red cross building)
+            const hospitalMat = new THREE.MeshStandardMaterial({ color: 0xff6666, emissive: 0x441111 });
+            const hospital = new THREE.Mesh(new THREE.BoxGeometry(4, 3, 4), hospitalMat);
+            hospital.position.set(20, 1, 20);
+            hospital.castShadow = true;
+            scene.add(hospital);
+            
+            const crossMat = new THREE.MeshStandardMaterial({ color: 0xff3333, emissive: 0xff0000 });
+            const cross = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 0.2), crossMat);
+            cross.position.set(20, 2.5, 20.5);
+            scene.add(cross);
+            
+            const cross2 = new THREE.Mesh(new THREE.BoxGeometry(2, 1, 0.2), crossMat);
+            cross2.position.set(20, 2, 20.5);
+            scene.add(cross2);
+            
+            // Police Station
+            const policeMat = new THREE.MeshStandardMaterial({ color: 0x3366cc });
+            const police = new THREE.Mesh(new THREE.BoxGeometry(3.5, 2.5, 3.5), policeMat);
+            police.position.set(-18, 1, 15);
+            police.castShadow = true;
+            scene.add(police);
+            
+            // Car Dealership
+            const dealerMat = new THREE.MeshStandardMaterial({ color: 0x88aaff });
+            const dealer = new THREE.Mesh(new THREE.BoxGeometry(5, 2, 4), dealerMat);
+            dealer.position.set(15, 1, -18);
+            dealer.castShadow = true;
+            scene.add(dealer);
+            
+            // Park (green area with trees)
+            const grassMat = new THREE.MeshStandardMaterial({ color: 0x44aa44 });
+            const parkGround = new THREE.Mesh(new THREE.PlaneGeometry(12, 12), grassMat);
+            parkGround.rotation.x = -Math.PI / 2;
+            parkGround.position.set(0, -0.4, 0);
+            parkGround.receiveShadow = true;
+            scene.add(parkGround);
+            
+            // Trees
+            const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8B5A2B });
+            const leafMat = new THREE.MeshStandardMaterial({ color: 0x3a8c3a });
+            
+            for (let i = -4; i <= 4; i++) {
+                for (let j = -4; j <= 4; j++) {
+                    if (Math.abs(i) + Math.abs(j) > 5) continue;
+                    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.5, 1, 6), trunkMat);
+                    trunk.position.set(i * 1.8, 0, j * 1.8);
+                    trunk.castShadow = true;
+                    scene.add(trunk);
+                    
+                    const leaves = new THREE.Mesh(new THREE.ConeGeometry(0.7, 1.2, 8), leafMat);
+                    leaves.position.set(i * 1.8, 0.8, j * 1.8);
+                    leaves.castShadow = true;
+                    scene.add(leaves);
                 }
             }
         }
-        // Hospital & Park marker
-        const hospitalSign = new THREE.Mesh(new THREE.BoxGeometry(3, 2, 0.5), new THREE.MeshStandardMaterial({ color: 0xff6666 }));
-        hospitalSign.position.set(15, 1, 15);
-        worldGroup.add(hospitalSign);
-        const parkTree = new THREE.Mesh(new THREE.ConeGeometry(1, 2, 6), new THREE.MeshStandardMaterial({ color: 0x44aa44 }));
-        parkTree.position.set(-12, 0, -12);
-        worldGroup.add(parkTree);
-        scene.add(worldGroup);
         
-        // Local player representation
-        const geometry = new THREE.BoxGeometry(0.8, 1.6, 0.8);
-        const material = new THREE.MeshStandardMaterial({ color: 0x44aaff, emissive: 0x2266aa });
-        localPlayerMesh = new THREE.Mesh(geometry, material);
+        createCity();
+        createLandmarks();
+        
+        // Local player mesh
+        const playerGeometry = new THREE.BoxGeometry(0.8, 1.6, 0.8);
+        const playerMaterial = new THREE.MeshStandardMaterial({ color: 0x44aaff, emissive: 0x2266aa, emissiveIntensity: 0.3 });
+        localPlayerMesh = new THREE.Mesh(playerGeometry, playerMaterial);
         localPlayerMesh.castShadow = true;
+        localPlayerMesh.receiveShadow = true;
         scene.add(localPlayerMesh);
         
-        function createRemotePlayer(color = 0xffaa44) {
-            const box = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.6, 0.8), new THREE.MeshStandardMaterial({ color }));
-            box.castShadow = true;
-            return box;
+        // Add a simple character head
+        const headMat = new THREE.MeshStandardMaterial({ color: 0xffccaa });
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 16), headMat);
+        head.position.y = 0.9;
+        localPlayerMesh.add(head);
+        
+        function createRemotePlayer() {
+            const group = new THREE.Group();
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0xffaa55 });
+            const body = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.2, 0.8), bodyMat);
+            body.position.y = 0.6;
+            body.castShadow = true;
+            group.add(body);
+            
+            const remoteHead = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 16), new THREE.MeshStandardMaterial({ color: 0xffccaa }));
+            remoteHead.position.y = 1.2;
+            remoteHead.castShadow = true;
+            group.add(remoteHead);
+            
+            return group;
         }
+        
+        // ---------- Mouse Look ----------
+        document.addEventListener('mousemove', (event) => {
+            if (document.pointerLockElement === renderer.domElement) {
+                mouseX += event.movementX * 0.002;
+                mouseY += event.movementY * 0.002;
+                
+                mouseY = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, mouseY));
+                yaw = mouseX;
+                pitch = mouseY;
+            }
+        });
+        
+        renderer.domElement.addEventListener('click', () => {
+            renderer.domElement.requestPointerLock();
+        });
         
         // ---------- Authentication Functions ----------
         async function registerUser(username, password) {
@@ -383,14 +631,12 @@
             }
             
             try {
-                // Check if user exists
                 const { data: existing, error: checkError } = await supabase
                     .from('players')
                     .select('username')
                     .eq('username', username);
                 
                 if (checkError) {
-                    console.error("Check error:", checkError);
                     showAuthMessage("Database error: " + checkError.message, "error");
                     return null;
                 }
@@ -400,7 +646,6 @@
                     return null;
                 }
                 
-                // Create new user
                 const newPlayer = {
                     username: username,
                     password: password,
@@ -419,7 +664,6 @@
                     .select();
                 
                 if (insertError) {
-                    console.error("Insert error:", insertError);
                     showAuthMessage("Registration failed: " + insertError.message, "error");
                     return null;
                 }
@@ -428,10 +672,8 @@
                     showAuthMessage("Registration successful! Welcome!", "success");
                     return inserted[0];
                 }
-                
                 return null;
             } catch (error) {
-                console.error("Register error:", error);
                 showAuthMessage("Connection error. Please try again.", "error");
                 return null;
             }
@@ -451,7 +693,6 @@
                     .eq('password', password);
                 
                 if (error) {
-                    console.error("Login error:", error);
                     showAuthMessage("Database error: " + error.message, "error");
                     return null;
                 }
@@ -464,7 +705,6 @@
                     return null;
                 }
             } catch (error) {
-                console.error("Login error:", error);
                 showAuthMessage("Connection error. Please try again.", "error");
                 return null;
             }
@@ -475,7 +715,7 @@
             msgDiv.textContent = message;
             msgDiv.className = type === 'error' ? 'error-message' : 'success-message';
             setTimeout(() => {
-                msgDiv.textContent = '';
+                if (msgDiv.textContent === message) msgDiv.textContent = '';
             }, 3000);
         }
         
@@ -497,9 +737,10 @@
             localPlayerData.health = 100;
             localPlayerData.hunger = 80;
             localPlayerData.thirst = 80;
-            localPlayerMesh.position.set(15, 2, 15);
+            localPlayerMesh.position.set(20, 2, 20);
             localPlayerMesh.visible = true;
             updateLocalPlayerDB();
+            updateHUD();
             document.getElementById('respawn-screen').classList.add('hidden');
         }
         
@@ -520,6 +761,7 @@
         async function joinServer(serverCode) {
             if (playersChannel) await supabase.removeChannel(playersChannel);
             currentServerId = serverCode;
+            document.getElementById('server-info').innerHTML = `🖥️ Server: ${serverCode}`;
             
             playersChannel = supabase.channel(`server:${serverCode}`, {
                 config: { broadcast: { ack: true }, presence: { key: currentUser.id } }
@@ -530,8 +772,7 @@
                 if (userId === currentUser.id) return;
                 const remote = playersMap.get(userId);
                 if (remote) {
-                    remote.data.position = { x, y, z };
-                    remote.mesh.position.set(x, y, z);
+                    remote.position.set(x, y, z);
                 }
             });
             
@@ -561,19 +802,18 @@
                         for (let [id, presences] of Object.entries(state)) {
                             if (id === currentUser.id) continue;
                             if (!playersMap.has(id)) {
-                                const remoteMesh = createRemotePlayer(0xccaa55);
-                                scene.add(remoteMesh);
-                                playersMap.set(id, { mesh: remoteMesh, data: { id } });
+                                const remotePlayer = createRemotePlayer();
+                                scene.add(remotePlayer);
+                                playersMap.set(id, remotePlayer);
                             }
                             const pdata = presences[0];
                             if (pdata && playersMap.has(id)) {
-                                const p = playersMap.get(id);
-                                p.mesh.position.set(pdata.x, pdata.y, pdata.z);
+                                playersMap.get(id).position.set(pdata.x, pdata.y, pdata.z);
                             }
                         }
                         for (let [id] of playersMap) {
                             if (!state[id] && id !== currentUser.id) {
-                                scene.remove(playersMap.get(id).mesh);
+                                scene.remove(playersMap.get(id));
                                 playersMap.delete(id);
                             }
                         }
@@ -581,6 +821,7 @@
                 }
             });
             
+            // Broadcast position every 50ms
             setInterval(() => {
                 if (currentServerId && playersChannel && !isDead) {
                     playersChannel.send({
@@ -593,7 +834,7 @@
                         x: localPlayerMesh.position.x, y: localPlayerMesh.position.y, z: localPlayerMesh.position.z
                     });
                 }
-            }, 100);
+            }, 50);
         }
         
         // ---------- UI & Phone Apps ----------
@@ -607,50 +848,89 @@
         function updateChatUI() {
             const chatDiv = document.querySelector('#appContent .chat-box');
             if (chatDiv) {
-                chatDiv.innerHTML = chatMessages.slice(0, 15).map(m => `<div><b>${m.username}:</b> ${m.message}</div>`).join('');
+                chatDiv.innerHTML = chatMessages.slice(0, 20).map(m => `<div><b>${m.username}:</b> ${m.message}</div>`).join('');
             }
         }
         
         function openPhoneApp(appName) {
             const contentDiv = document.getElementById('appContent');
             if (appName === 'jobs') {
-                contentDiv.innerHTML = `<h4>💼 Jobs</h4><p>🚔 Police Officer - $150/shift</p><p>🚕 Taxi Driver - $80/ride</p><p>🌿 Weed Farmer - $250/sale</p><button id="weedJob">Sell Weed (+$50)</button>`;
-                document.getElementById('weedJob')?.addEventListener('click', () => {
-                    localPlayerData.money += 50;
-                    updateLocalPlayerDB();
-                    updateHUD();
-                    alert("You sold weed! +$50");
-                });
+                contentDiv.innerHTML = `<h4>💼 AVAILABLE JOBS</h4>
+                    <div class="blackmarket-item">🚔 Police Officer - $150/shift <button onclick="alert('Job applied!')">Apply</button></div>
+                    <div class="blackmarket-item">🚕 Taxi Driver - $80/ride <button onclick="alert('Job applied!')">Apply</button></div>
+                    <div class="blackmarket-item">🌿 Weed Farmer - $250/sale <button id="weedJobBtn">Sell Weed (+$50)</button></div>`;
+                setTimeout(() => {
+                    document.getElementById('weedJobBtn')?.addEventListener('click', () => {
+                        localPlayerData.money += 50;
+                        updateLocalPlayerDB();
+                        updateHUD();
+                        alert("You sold weed! +$50");
+                    });
+                }, 100);
             } else if (appName === 'vehicles') {
-                contentDiv.innerHTML = `<h4>🚗 My Vehicles</h4><p>🚗 Sedan (Spawn)</p><button id="spawnCarBtn">Spawn Vehicle</button>`;
-                document.getElementById('spawnCarBtn')?.addEventListener('click', () => {
-                    const carGeo = new THREE.BoxGeometry(1, 0.5, 1.8);
-                    const carMat = new THREE.MeshStandardMaterial({ color: 0xff3300 });
-                    const car = new THREE.Mesh(carGeo, carMat);
-                    car.position.copy(localPlayerMesh.position);
-                    car.position.y -= 0.6;
-                    scene.add(car);
-                    setTimeout(() => scene.remove(car), 5000);
-                    alert("Vehicle spawned temporarily!");
-                });
+                contentDiv.innerHTML = `<h4>🚗 MY VEHICLES</h4>
+                    <div class="blackmarket-item">🚗 Sedan - Available <button id="spawnCarBtn">Spawn</button></div>
+                    <div class="blackmarket-item">🏍️ Motorcycle - Available <button id="spawnMotoBtn">Spawn</button></div>`;
+                setTimeout(() => {
+                    document.getElementById('spawnCarBtn')?.addEventListener('click', () => {
+                        const carGeo = new THREE.BoxGeometry(1, 0.5, 1.8);
+                        const carMat = new THREE.MeshStandardMaterial({ color: 0xff3300 });
+                        const car = new THREE.Mesh(carGeo, carMat);
+                        car.position.copy(localPlayerMesh.position);
+                        car.position.y -= 0.6;
+                        scene.add(car);
+                        setTimeout(() => scene.remove(car), 8000);
+                        alert("Vehicle spawned! (Temporary)");
+                    });
+                    document.getElementById('spawnMotoBtn')?.addEventListener('click', () => {
+                        const motoGeo = new THREE.BoxGeometry(0.6, 0.4, 1.4);
+                        const motoMat = new THREE.MeshStandardMaterial({ color: 0x33ff33 });
+                        const moto = new THREE.Mesh(motoGeo, motoMat);
+                        moto.position.copy(localPlayerMesh.position);
+                        moto.position.y -= 0.6;
+                        scene.add(moto);
+                        setTimeout(() => scene.remove(moto), 8000);
+                        alert("Motorcycle spawned!");
+                    });
+                }, 100);
             } else if (appName === 'chat') {
-                contentDiv.innerHTML = `<div class="chat-box" id="chatMsgList"></div><input id="chatInputField" placeholder="Say something" style="width:95%; margin-top:5px;"><button id="sendMsgBtn">Send</button>`;
+                contentDiv.innerHTML = `<h4>💬 GLOBAL CHAT</h4>
+                    <div class="chat-box" id="chatMsgList"></div>
+                    <div class="chat-input-area" style="margin-top: 8px;">
+                        <input type="text" id="chatInputField" placeholder="Type message...">
+                        <button id="sendMsgBtn">Send</button>
+                    </div>`;
                 updateChatUI();
-                document.getElementById('sendMsgBtn')?.addEventListener('click', () => {
+                setTimeout(() => {
+                    const sendBtn = document.getElementById('sendMsgBtn');
                     const input = document.getElementById('chatInputField');
-                    if (input.value && playersChannel) {
-                        playersChannel.send({ type: 'broadcast', event: 'chat', payload: { username: currentUser.username, message: input.value } });
-                        input.value = '';
+                    if (sendBtn && input) {
+                        sendBtn.addEventListener('click', () => {
+                            if (input.value && playersChannel) {
+                                playersChannel.send({ type: 'broadcast', event: 'chat', payload: { username: currentUser.username, message: input.value } });
+                                input.value = '';
+                            }
+                        });
+                        input.addEventListener('keypress', (e) => {
+                            if (e.key === 'Enter' && input.value && playersChannel) {
+                                playersChannel.send({ type: 'broadcast', event: 'chat', payload: { username: currentUser.username, message: input.value } });
+                                input.value = '';
+                            }
+                        });
                     }
-                });
+                }, 100);
             } else if (appName === 'blackmarket') {
-                contentDiv.innerHTML = `<h4>🖤 Black Market</h4><div id="bmItems"><div class="blackmarket-item">🔫 Pistol - $300 <button class="buyGun">Buy</button></div><div class="blackmarket-item">💊 Medkit - $100 <button class="buyMedkit">Buy</button></div><div class="blackmarket-item">🌿 Weed - $50 <button class="buyWeed">Buy</button></div></div>`;
+                contentDiv.innerHTML = `<h4>🖤 BLACK MARKET</h4>
+                    <div class="blackmarket-item">🔫 Pistol - $300 <button class="buyGun">Buy</button></div>
+                    <div class="blackmarket-item">💊 Medkit - $100 <button class="buyMedkit">Buy</button></div>
+                    <div class="blackmarket-item">🌿 Weed - $50 <button class="buyWeed">Buy</button></div>
+                    <div class="blackmarket-item">🔪 Combat Knife - $150 <button class="buyKnife">Buy</button></div>`;
                 setTimeout(() => {
                     document.querySelector('.buyGun')?.addEventListener('click', () => {
                         if (localPlayerData.money >= 300) {
                             localPlayerData.money -= 300;
                             updateHUD();
-                            alert("Bought Pistol! Press F to shoot nearby players!");
+                            alert("Bought Pistol! Press F to shoot!");
                         } else alert("Not enough money!");
                     });
                     document.querySelector('.buyMedkit')?.addEventListener('click', () => {
@@ -659,14 +939,14 @@
                             localPlayerData.health = Math.min(100, localPlayerData.health + 50);
                             updateHUD();
                             alert("Health restored!");
-                        } else alert("Cannot use medkit!");
+                        } else alert("Cannot use medkit or not enough money!");
                     });
                     document.querySelector('.buyWeed')?.addEventListener('click', () => {
                         if (localPlayerData.money >= 50) {
                             localPlayerData.money -= 50;
                             localPlayerData.hunger = Math.min(100, localPlayerData.hunger + 15);
                             updateHUD();
-                            alert("You consumed weed and feel less hungry!");
+                            alert("You consumed weed!");
                         }
                     });
                 }, 100);
@@ -679,48 +959,84 @@
                 alert("You are dead! Respawn first.");
                 return;
             }
-            const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-            const raycaster = new THREE.Raycaster(localPlayerMesh.position, direction, 0, 8);
+            
+            const direction = new THREE.Vector3(0, 0, -1);
+            direction.applyEuler(new THREE.Euler(pitch, yaw, 0));
+            
+            const raycaster = new THREE.Raycaster(localPlayerMesh.position.clone().add(new THREE.Vector3(0, 0.8, 0)), direction, 0, 10);
+            
             let hitPlayerId = null;
-            for (let [id, p] of playersMap.entries()) {
-                const box = new THREE.Box3().setFromObject(p.mesh);
+            for (let [id, playerMesh] of playersMap.entries()) {
+                const box = new THREE.Box3().setFromObject(playerMesh);
                 if (raycaster.ray.intersectBox(box, new THREE.Vector3())) {
                     hitPlayerId = id;
                     break;
                 }
             }
+            
             if (hitPlayerId && playersChannel) {
-                playersChannel.send({ type: 'broadcast', event: 'player-damage', payload: { targetId: hitPlayerId, damage: 34 } });
-                alert("You shot a player!");
+                playersChannel.send({ type: 'broadcast', event: 'player-damage', payload: { targetId: hitPlayerId, damage: 35 } });
+                // Visual effect
+                const flash = new THREE.PointLight(0xff4400, 1, 5);
+                flash.position.copy(localPlayerMesh.position);
+                scene.add(flash);
+                setTimeout(() => scene.remove(flash), 100);
             } else {
-                alert("No player in range!");
+                // Miss effect
+                const flash = new THREE.PointLight(0xffaa00, 0.5, 3);
+                flash.position.copy(localPlayerMesh.position);
+                scene.add(flash);
+                setTimeout(() => scene.remove(flash), 50);
             }
         }
         
         // ---------- Movement ----------
         function handleMovement(deltaTime) {
             if (isDead) return;
-            const speed = moveSpeed * deltaTime * (keys.shift ? 2 : 1);
-            let move = new THREE.Vector3(0, 0, 0);
-            if (keys.w) move.z -= 1;
-            if (keys.s) move.z += 1;
-            if (keys.a) move.x -= 1;
-            if (keys.d) move.x += 1;
-            if (move.length() > 0) move.normalize();
-            move.applyQuaternion(camera.quaternion);
-            move.y = 0;
-            localPlayerMesh.position.x += move.x * speed;
-            localPlayerMesh.position.z += move.z * speed;
-            localPlayerMesh.position.x = Math.max(-45, Math.min(45, localPlayerMesh.position.x));
-            localPlayerMesh.position.z = Math.max(-45, Math.min(45, localPlayerMesh.position.z));
-            camera.position.copy(localPlayerMesh.position);
-            camera.position.y += 1.2;
             
-            // hunger/thirst decay
-            if (Date.now() % 60 === 0) {
-                localPlayerData.hunger = Math.max(0, localPlayerData.hunger - 0.003);
-                localPlayerData.thirst = Math.max(0, localPlayerData.thirst - 0.004);
-                if (localPlayerData.hunger <= 0 || localPlayerData.thirst <= 0) applyDamage(0.3);
+            const speed = moveSpeed * deltaTime * (keys.shift ? 2 : 1);
+            const moveDirection = new THREE.Vector3(0, 0, 0);
+            
+            if (keys.w) moveDirection.z -= 1;
+            if (keys.s) moveDirection.z += 1;
+            if (keys.a) moveDirection.x -= 1;
+            if (keys.d) moveDirection.x += 1;
+            
+            if (moveDirection.length() > 0) moveDirection.normalize();
+            
+            // Rotate move direction based on camera yaw
+            const forward = new THREE.Vector3(Math.sin(yaw), 0, Math.cos(yaw));
+            const right = new THREE.Vector3(Math.cos(yaw), 0, -Math.sin(yaw));
+            
+            const movement = new THREE.Vector3(0, 0, 0);
+            movement.addScaledVector(forward, moveDirection.z);
+            movement.addScaledVector(right, moveDirection.x);
+            
+            localPlayerMesh.position.x += movement.x * speed;
+            localPlayerMesh.position.z += movement.z * speed;
+            
+            // Boundaries
+            localPlayerMesh.position.x = Math.max(-55, Math.min(55, localPlayerMesh.position.x));
+            localPlayerMesh.position.z = Math.max(-55, Math.min(55, localPlayerMesh.position.z));
+            
+            // Update camera position with smooth follow
+            const targetX = localPlayerMesh.position.x;
+            const targetZ = localPlayerMesh.position.z;
+            
+            // Update camera based on mouse look
+            camera.position.x = localPlayerMesh.position.x;
+            camera.position.y = localPlayerMesh.position.y + 1.2;
+            camera.position.z = localPlayerMesh.position.z;
+            
+            camera.rotation.order = 'YXZ';
+            camera.rotation.y = yaw;
+            camera.rotation.x = pitch;
+            
+            // Hunger/thirst decay
+            if (Math.random() < 0.01) {
+                localPlayerData.hunger = Math.max(0, localPlayerData.hunger - 0.3);
+                localPlayerData.thirst = Math.max(0, localPlayerData.thirst - 0.4);
+                if (localPlayerData.hunger <= 0 || localPlayerData.thirst <= 0) applyDamage(0.5);
                 updateHUD();
             }
         }
@@ -734,10 +1050,14 @@
             if (e.key === 'Shift') keys.shift = true;
             if (e.key === 'f') shootRay();
             if (e.key === 't') {
-                document.getElementById('chatInputArea').style.display = 'block';
+                document.getElementById('chatInputArea').style.display = 'flex';
                 document.getElementById('chatMsgInput').focus();
             }
+            if (e.key === 'Escape') {
+                document.exitPointerLock();
+            }
         });
+        
         window.addEventListener('keyup', (e) => {
             if (e.key === 'w') keys.w = false;
             if (e.key === 's') keys.s = false;
@@ -795,14 +1115,18 @@
         };
         
         document.getElementById('createServerBtn').onclick = () => {
-            const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-            alert(`Server Created! Code: ${code}\nShare this code with friends to join!`);
+            const code = Math.random().toString(36).substring(2, 10).toUpperCase();
+            const codeDiv = document.getElementById('createdServerCode');
+            codeDiv.innerHTML = `📋 Your Server Code: <span style="color:#00ffcc;">${code}</span><br><small>Share this with friends!</small>`;
+            codeDiv.classList.remove('hidden');
             joinServer(code);
-            document.getElementById('serverModal').classList.add('hidden');
+            setTimeout(() => {
+                document.getElementById('serverModal').classList.add('hidden');
+            }, 2000);
         };
         
         document.getElementById('joinServerBtn').onclick = () => {
-            const code = document.getElementById('joinCode').value;
+            const code = document.getElementById('joinCode').value.toUpperCase();
             if (code) {
                 joinServer(code);
                 document.getElementById('serverModal').classList.add('hidden');
@@ -826,10 +1150,16 @@
             let delta = Math.min(0.033, (now - lastTime) / 1000);
             lastTime = now;
             handleMovement(delta);
+            
+            // Animate street light
+            streetLight.intensity = 0.5 + Math.sin(Date.now() * 0.003) * 0.2;
+            
             renderer.render(scene, camera);
             requestAnimationFrame(animate);
         }
         animate();
+        
+        console.log("Game initialized! Click the screen to lock mouse, use WASD to move.");
     </script>
 </body>
 </html>
