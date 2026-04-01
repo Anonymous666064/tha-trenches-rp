@@ -3,26 +3,26 @@
 <head>
 <meta charset="UTF-8">
 <title>Multiplayer RP Game</title>
-<style>
-body { margin:0; overflow:hidden; font-family:Arial; background:#000; }
 
-/* MENU */
+<style>
+body { margin:0; overflow:hidden; background:black; font-family:Arial; }
+
 #menu {
   position:fixed;
   width:100%;
   height:100%;
   background:#0a0f1e;
   display:flex;
+  flex-direction:column;
   justify-content:center;
   align-items:center;
-  flex-direction:column;
   color:white;
 }
 
 input, button {
   padding:10px;
-  margin:5px;
-  border-radius:8px;
+  margin:6px;
+  border-radius:10px;
   border:none;
 }
 
@@ -47,19 +47,22 @@ button {
 import * as THREE from 'https://unpkg.com/three@0.128.0/build/three.module.js';
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-const SUPABASE_URL = "https://hcvewiwhtxqpbogcrukk.supabase.co";
-const SUPABASE_KEY = "YOUR_API_KEY_HERE"; // put your key
-
-const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const supabase = createClient(
+  "https://hcvewiwhtxqpbogcrukk.supabase.co",
+  "YOUR_API_KEY_HERE"
+);
 
 let playerId = crypto.randomUUID();
 let server = null;
 
 let scene, camera, renderer;
-let player, players = {}, meshes = {};
+let player;
+let players = {};
+let meshes = {};
 
 let keys = {};
 
+/* ================= INPUT ================= */
 document.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
 document.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
 
@@ -69,7 +72,7 @@ window.createServer = async () => {
   const code = document.getElementById('serverCode').value;
   const username = document.getElementById('username').value;
 
-  if (!code || !username) return alert("Enter info");
+  if (!code || !username) return alert("Enter username + code");
 
   await supabase.from('servers').insert({ code });
 
@@ -80,12 +83,12 @@ window.joinServer = async () => {
   const code = document.getElementById('serverCode').value;
   const username = document.getElementById('username').value;
 
-  if (!code || !username) return alert("Enter info");
+  if (!code || !username) return alert("Enter username + code");
 
   startGame(username, code);
 };
 
-/* ================= GAME START ================= */
+/* ================= START ================= */
 
 async function startGame(username, code) {
   server = code;
@@ -95,48 +98,56 @@ async function startGame(username, code) {
   await supabase.from('players').upsert({
     id: playerId,
     username,
-    server
+    server,
+    x: 0,
+    y: 1,
+    z: 0
   });
 
-  initThree();
-  startRealtime();
+  initWorld();
+  setupRealtime();
   animate();
 }
 
-/* ================= THREE ================= */
+/* ================= WORLD ================= */
 
-function initThree() {
+function initWorld() {
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x87ceeb);
 
   camera = new THREE.PerspectiveCamera(75, innerWidth/innerHeight, 0.1, 1000);
-  camera.position.set(0,5,10);
 
-  renderer = new THREE.WebGLRenderer();
+  renderer = new THREE.WebGLRenderer({ antialias:true });
   renderer.setSize(innerWidth, innerHeight);
   document.body.appendChild(renderer.domElement);
 
-  const light = new THREE.DirectionalLight(0xffffff, 1);
-  light.position.set(10,10,10);
-  scene.add(light);
+  // LIGHTS
+  const sun = new THREE.DirectionalLight(0xffffff, 1);
+  sun.position.set(10,20,10);
+  scene.add(sun);
 
+  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+
+  // GROUND
   const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(200,200),
-    new THREE.MeshStandardMaterial({ color:0x228B22 })
+    new THREE.PlaneGeometry(500,500),
+    new THREE.MeshStandardMaterial({ color:0x2ecc71 })
   );
   ground.rotation.x = -Math.PI/2;
   scene.add(ground);
 
+  // PLAYER (YOU)
   player = new THREE.Mesh(
     new THREE.BoxGeometry(1,2,1),
-    new THREE.MeshStandardMaterial({ color:0x00ff00 })
+    new THREE.MeshStandardMaterial({ color:0x00ffcc })
   );
+  player.position.y = 1;
   scene.add(player);
 }
 
 /* ================= REALTIME ================= */
 
-function startRealtime() {
+function setupRealtime() {
   supabase.channel('room-'+server)
     .on('postgres_changes',{
       event:'*',
@@ -163,20 +174,22 @@ setInterval(syncPlayer, 100);
 
 /* ================= OTHER PLAYERS ================= */
 
-function updatePlayers() {
+function updateOtherPlayers() {
   for (let id in players) {
     if (id === playerId) continue;
+
+    let data = players[id];
 
     if (!meshes[id]) {
       const mesh = new THREE.Mesh(
         new THREE.BoxGeometry(1,2,1),
-        new THREE.MeshStandardMaterial({ color:0xff0000 })
+        new THREE.MeshStandardMaterial({ color:0xff4444 })
       );
+      mesh.position.y = 1;
       scene.add(mesh);
       meshes[id] = mesh;
     }
 
-    let data = players[id];
     meshes[id].position.set(data.x, data.y, data.z);
   }
 }
@@ -184,15 +197,18 @@ function updatePlayers() {
 /* ================= MOVEMENT ================= */
 
 function updateMovement() {
-  let speed = 0.1;
+  let speed = 0.15;
 
   if (keys['w']) player.position.z -= speed;
   if (keys['s']) player.position.z += speed;
   if (keys['a']) player.position.x -= speed;
   if (keys['d']) player.position.x += speed;
 
+  // CAMERA FOLLOW
   camera.position.x = player.position.x;
+  camera.position.y = player.position.y + 6;
   camera.position.z = player.position.z + 10;
+
   camera.lookAt(player.position);
 }
 
@@ -202,10 +218,11 @@ function animate() {
   requestAnimationFrame(animate);
 
   updateMovement();
-  updatePlayers();
+  updateOtherPlayers();
 
   renderer.render(scene, camera);
 }
 </script>
+
 </body>
 </html>
