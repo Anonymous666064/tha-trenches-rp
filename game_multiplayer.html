@@ -1,47 +1,48 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>RP Game</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
 body { margin:0; overflow:hidden; font-family:Arial; background:black; }
 
 /* MENUS */
-#menu, #auth, #serverMenu, #pauseMenu {
+.screen {
     position:absolute;
-    top:0; left:0;
     width:100%; height:100%;
     display:flex;
     flex-direction:column;
     justify-content:center;
     align-items:center;
-    background:rgba(0,0,0,0.8);
+    background:rgba(0,0,0,0.9);
     color:white;
 }
 
+.hidden { display:none; }
+
 button, input {
-    margin:10px;
     padding:10px;
+    margin:10px;
     font-size:16px;
 }
-
-#pauseMenu { display:none; }
-#auth, #serverMenu { display:none; }
 
 #gameCanvas { display:none; }
 </style>
 </head>
+
 <body>
 
 <!-- MAIN MENU -->
-<div id="menu">
+<div id="menu" class="screen">
     <h1>RP GAME</h1>
     <button onclick="selectMode('single')">Story Mode</button>
     <button onclick="selectMode('multi')">Multiplayer</button>
 </div>
 
 <!-- AUTH -->
-<div id="auth">
+<div id="auth" class="screen hidden">
     <h2>Login / Signup</h2>
     <input id="email" placeholder="Email">
     <input id="password" type="password" placeholder="Password">
@@ -50,7 +51,7 @@ button, input {
 </div>
 
 <!-- SERVER MENU -->
-<div id="serverMenu">
+<div id="serverMenu" class="screen hidden">
     <h2>Multiplayer</h2>
     <input id="serverCode" placeholder="Server Code">
     <button onclick="createServer()">Create Server</button>
@@ -58,7 +59,7 @@ button, input {
 </div>
 
 <!-- PAUSE -->
-<div id="pauseMenu">
+<div id="pauseMenu" class="screen hidden">
     <h2>Paused</h2>
     <button onclick="resumeGame()">Resume</button>
 </div>
@@ -71,13 +72,16 @@ button, input {
 
 <script>
 /* =========================
-   SUPABASE CONFIG
+   SUPABASE (FIXED)
 ========================= */
-const supabase = window.supabase.createClient(
+const sb = window.supabase.createClient(
   "https://hcvewiwhtxqpbogcrukk.supabase.co",
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjdmV3aXdodHhxcGJvZ2NydWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTQ4MzMsImV4cCI6MjA5MDQ3MDgzM30.UsdvDyrGl4OhmbDjonyOagknHf--Zhe-fhCi0LFVoQw"
 );
 
+/* =========================
+   GLOBAL STATE
+========================= */
 let mode = null;
 let user = null;
 let serverId = null;
@@ -85,17 +89,17 @@ let serverId = null;
 /* =========================
    MENU FLOW
 ========================= */
-function selectMode(m) {
+window.selectMode = function(m){
     mode = m;
-    document.getElementById("menu").style.display="none";
-    document.getElementById("auth").style.display="flex";
+    menu.classList.add("hidden");
+    auth.classList.remove("hidden");
 }
 
-async function login() {
-    const email = emailInput.value;
-    const password = passwordInput.value;
+window.login = async function(){
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
 
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
 
     if(error) return alert(error.message);
 
@@ -103,22 +107,22 @@ async function login() {
     afterAuth();
 }
 
-async function signup() {
-    const email = emailInput.value;
-    const password = passwordInput.value;
+window.signup = async function(){
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
 
-    const { data, error } = await supabase.auth.signUp({ email, password });
+    const { error } = await sb.auth.signUp({ email, password });
 
     if(error) return alert(error.message);
 
     alert("Account created! Now login.");
 }
 
-function afterAuth() {
-    document.getElementById("auth").style.display="none";
+function afterAuth(){
+    auth.classList.add("hidden");
 
     if(mode === "multi"){
-        document.getElementById("serverMenu").style.display="flex";
+        serverMenu.classList.remove("hidden");
     } else {
         startGame();
     }
@@ -127,10 +131,10 @@ function afterAuth() {
 /* =========================
    SERVER SYSTEM
 ========================= */
-async function createServer() {
+window.createServer = async function(){
     const code = document.getElementById("serverCode").value;
 
-    const { data, error } = await supabase
+    const { data, error } = await sb
         .from("servers")
         .insert([{ code }])
         .select();
@@ -141,10 +145,10 @@ async function createServer() {
     startGame();
 }
 
-async function joinServer() {
+window.joinServer = async function(){
     const code = document.getElementById("serverCode").value;
 
-    const { data, error } = await supabase
+    const { data, error } = await sb
         .from("servers")
         .select("*")
         .eq("code", code)
@@ -162,8 +166,8 @@ async function joinServer() {
 let scene, camera, renderer, player;
 
 function startGame(){
-    document.getElementById("serverMenu").style.display="none";
-    document.getElementById("gameCanvas").style.display="block";
+    serverMenu.classList.add("hidden");
+    gameCanvas.style.display = "block";
 
     scene = new THREE.Scene();
 
@@ -174,9 +178,10 @@ function startGame(){
     renderer.setSize(window.innerWidth, window.innerHeight);
 
     /* GROUND */
-    const groundGeo = new THREE.PlaneGeometry(500,500);
-    const groundMat = new THREE.MeshStandardMaterial({ color:0x228822 });
-    const ground = new THREE.Mesh(groundGeo, groundMat);
+    const ground = new THREE.Mesh(
+        new THREE.PlaneGeometry(500,500),
+        new THREE.MeshStandardMaterial({ color:0x228822 })
+    );
     ground.rotation.x = -Math.PI/2;
     scene.add(ground);
 
@@ -186,15 +191,14 @@ function startGame(){
     scene.add(light);
 
     /* PLAYER */
-    const geo = new THREE.BoxGeometry(1,2,1);
-    const mat = new THREE.MeshStandardMaterial({ color:0x00ffcc });
-    player = new THREE.Mesh(geo, mat);
+    player = new THREE.Mesh(
+        new THREE.BoxGeometry(1,2,1),
+        new THREE.MeshStandardMaterial({ color:0x00ffcc })
+    );
     player.position.set(0,1,0);
     scene.add(player);
 
     animate();
-
-    if(mode === "multi") setupRealtime();
 }
 
 /* =========================
@@ -202,15 +206,15 @@ function startGame(){
 ========================= */
 let keys = {};
 
-document.addEventListener("keydown", e => {
+document.addEventListener("keydown", e=>{
     keys[e.key] = true;
 
     if(e.key === "Escape"){
-        document.getElementById("pauseMenu").style.display="flex";
+        pauseMenu.classList.remove("hidden");
     }
 });
 
-document.addEventListener("keyup", e => {
+document.addEventListener("keyup", e=>{
     keys[e.key] = false;
 });
 
@@ -227,34 +231,7 @@ function movePlayer(){
 }
 
 /* =========================
-   MULTIPLAYER SYNC
-========================= */
-let channel;
-
-function setupRealtime(){
-    channel = supabase.channel("room-"+serverId)
-    .on("broadcast", { event:"move" }, payload => {
-        // TODO: update other players
-    })
-    .subscribe();
-}
-
-function sendPosition(){
-    if(mode !== "multi") return;
-
-    channel.send({
-        type:"broadcast",
-        event:"move",
-        payload:{
-            x:player.position.x,
-            z:player.position.z,
-            user:user.id
-        }
-    });
-}
-
-/* =========================
-   GAME LOOP
+   LOOP
 ========================= */
 let time = 0;
 
@@ -262,10 +239,8 @@ function animate(){
     requestAnimationFrame(animate);
 
     movePlayer();
-    sendPosition();
 
-    /* DAY NIGHT */
-    time += 0.001;
+    time += 0.002;
     scene.background = new THREE.Color().setHSL(0.6,1,Math.abs(Math.sin(time)));
 
     renderer.render(scene, camera);
@@ -274,8 +249,8 @@ function animate(){
 /* =========================
    PAUSE
 ========================= */
-function resumeGame(){
-    document.getElementById("pauseMenu").style.display="none";
+window.resumeGame = function(){
+    pauseMenu.classList.add("hidden");
 }
 
 /* =========================
@@ -287,5 +262,6 @@ window.addEventListener("resize", ()=>{
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
 </script>
+
 </body>
 </html>
