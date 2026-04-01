@@ -381,10 +381,9 @@
         
         // Vehicle state
         let currentVehicleId = null;
-        let currentVehicleObject = null;
         let isDriver = false;
-        let vehicleSpeed = 0;
         let vehicleVelocity = 0;
+        let vehicleRotation = 0;
         
         let playerStats = { health: 100, hunger: 100, thirst: 100, money: 100000, kills: 0 };
         
@@ -416,11 +415,10 @@
         labelRenderer.domElement.style.pointerEvents = 'none';
         document.body.appendChild(labelRenderer.domElement);
         
-        // Create a simple car model
+        // Create car model
         function createCarModel(color) {
             const group = new THREE.Group();
             
-            // Car body
             const bodyGeo = new THREE.BoxGeometry(1.8, 0.5, 4);
             const bodyMat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.3, metalness: 0.7 });
             const body = new THREE.Mesh(bodyGeo, bodyMat);
@@ -429,7 +427,6 @@
             body.receiveShadow = true;
             group.add(body);
             
-            // Roof
             const roofGeo = new THREE.BoxGeometry(1.4, 0.4, 2.5);
             const roofMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
             const roof = new THREE.Mesh(roofGeo, roofMat);
@@ -437,10 +434,8 @@
             roof.castShadow = true;
             group.add(roof);
             
-            // Wheels
             const wheelGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.4, 16);
             const wheelMat = new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.5 });
-            
             const wheelPositions = [[-0.9, 0.2, -1.2], [0.9, 0.2, -1.2], [-0.9, 0.2, 1.2], [0.9, 0.2, 1.2]];
             wheelPositions.forEach(pos => {
                 const wheel = new THREE.Mesh(wheelGeo, wheelMat);
@@ -450,7 +445,6 @@
                 group.add(wheel);
             });
             
-            // Windows
             const windowMat = new THREE.MeshStandardMaterial({ color: 0x88aaff, emissive: 0x224466 });
             const frontWindow = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.3, 0.8), windowMat);
             frontWindow.position.set(0, 0.85, 1.4);
@@ -459,9 +453,8 @@
             return group;
         }
         
-        // Create city layout with proper roads and buildings
+        // Create city layout
         function createCityLayout() {
-            // Ground
             const groundMat = new THREE.MeshStandardMaterial({ color: 0x3a7e3a, roughness: 0.8 });
             const ground = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), groundMat);
             ground.rotation.x = -Math.PI / 2;
@@ -469,22 +462,16 @@
             ground.receiveShadow = true;
             scene.add(ground);
             
-            // Road system (grid layout)
             const roadMat = new THREE.MeshStandardMaterial({ color: 0x2c2c2c, roughness: 0.4 });
             const lineMat = new THREE.MeshStandardMaterial({ color: 0xffdd88 });
-            
-            // Main roads (horizontal and vertical)
             const roadWidth = 4;
             const roadPositions = [-40, -20, 0, 20, 40];
             
-            // Horizontal roads
             roadPositions.forEach(z => {
                 const road = new THREE.Mesh(new THREE.BoxGeometry(100, 0.2, roadWidth), roadMat);
                 road.position.set(0, 0, z);
                 road.receiveShadow = true;
                 scene.add(road);
-                
-                // Road lines
                 for (let x = -45; x <= 45; x += 10) {
                     const line = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.21, 0.2), lineMat);
                     line.position.set(x, 0.05, z);
@@ -492,14 +479,11 @@
                 }
             });
             
-            // Vertical roads
             roadPositions.forEach(x => {
                 const road = new THREE.Mesh(new THREE.BoxGeometry(roadWidth, 0.2, 100), roadMat);
                 road.position.set(x, 0, 0);
                 road.receiveShadow = true;
                 scene.add(road);
-                
-                // Road lines
                 for (let z = -45; z <= 45; z += 10) {
                     const line = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.21, 0.3), lineMat);
                     line.position.set(x, 0.05, z);
@@ -507,72 +491,41 @@
                 }
             });
             
-            // Buildings in city blocks
             const buildingColors = [0x8b7d6b, 0x9a8b7a, 0x7a6b5a, 0x9d8b72, 0x8d7a63];
             const roofMat = new THREE.MeshStandardMaterial({ color: 0x6b5a4a });
             
-            // Create buildings in each block (between roads)
             for (let blockX = -3; blockX <= 3; blockX++) {
                 for (let blockZ = -3; blockZ <= 3; blockZ++) {
-                    if (blockX === 0 && blockZ === 0) continue; // Center plaza
-                    
+                    if (blockX === 0 && blockZ === 0) continue;
                     const baseX = blockX * 20;
                     const baseZ = blockZ * 20;
-                    
-                    // Create 4 buildings per block
                     const offsets = [[-6, -6], [6, -6], [-6, 6], [6, 6]];
                     offsets.forEach(offset => {
                         const x = baseX + offset[0];
                         const z = baseZ + offset[1];
                         const height = 2 + Math.random() * 4;
                         const color = buildingColors[Math.floor(Math.random() * buildingColors.length)];
-                        
                         const building = new THREE.Mesh(new THREE.BoxGeometry(6, height, 6), new THREE.MeshStandardMaterial({ color: color, roughness: 0.4 }));
                         building.position.set(x, height/2, z);
                         building.castShadow = true;
                         building.receiveShadow = true;
                         scene.add(building);
-                        
-                        // Roof
                         const roof = new THREE.Mesh(new THREE.ConeGeometry(3.5, 0.6, 4), roofMat);
                         roof.position.set(x, height + 0.3, z);
                         roof.castShadow = true;
                         scene.add(roof);
-                        
-                        // Windows
-                        const windowMat = new THREE.MeshStandardMaterial({ color: 0xffaa66, emissive: 0x442200 });
-                        for (let i = 0; i < 4; i++) {
-                            const windowGeo = new THREE.BoxGeometry(0.8, 0.8, 0.1);
-                            const windowMesh = new THREE.Mesh(windowGeo, windowMat);
-                            const side = i % 2 === 0 ? 1 : -1;
-                            windowMesh.position.set(x + (side * 2.5), height/2, z + (Math.random() - 0.5) * 3);
-                            windowMesh.castShadow = true;
-                            scene.add(windowMesh);
-                        }
                     });
                 }
             }
             
-            // Center plaza with fountain
             const plazaMat = new THREE.MeshStandardMaterial({ color: 0xccccaa });
             const plaza = new THREE.Mesh(new THREE.BoxGeometry(15, 0.2, 15), plazaMat);
             plaza.position.set(0, 0, 0);
             plaza.receiveShadow = true;
             scene.add(plaza);
-            
-            // Fountain
-            const fountainBase = new THREE.Mesh(new THREE.CylinderGeometry(2.5, 3, 0.8, 16), new THREE.MeshStandardMaterial({ color: 0xaa9977 }));
-            fountainBase.position.set(0, 0.4, 0);
-            fountainBase.castShadow = true;
-            scene.add(fountainBase);
-            
-            const fountainTop = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.8, 0.6, 16), new THREE.MeshStandardMaterial({ color: 0xccaa88 }));
-            fountainTop.position.set(0, 0.9, 0);
-            fountainTop.castShadow = true;
-            scene.add(fountainTop);
         }
         
-        // Vehicle class for networked vehicles
+        // Networked Vehicle class
         class NetworkedVehicle {
             constructor(id, position, color, driverId = null, passengers = []) {
                 this.id = id;
@@ -590,7 +543,6 @@
                 this.passengers = passengers || [];
                 this.color = color;
                 this.position = position;
-                this.velocity = 0;
             }
             
             createLabel() {
@@ -627,7 +579,6 @@
             }
         }
         
-        // Vehicle spawner
         async function spawnVehicle() {
             if (!currentServerId || !myPlayerId) {
                 addLog('Join a server first!', 'info');
@@ -643,7 +594,7 @@
             updateUI();
             
             let spawnPos;
-            if (localPlayerMesh && !currentVehicleId) {
+            if (localPlayerMesh && localPlayerMesh.visible) {
                 spawnPos = localPlayerMesh.position.clone();
                 spawnPos.x += 3;
                 spawnPos.z += 3;
@@ -668,50 +619,45 @@
                 updateUI();
             } else {
                 addLog(`🚗 Vehicle spawned! Walk up and press E to enter`, 'vehicle');
-                await syncVehicles();
             }
         }
         
-        // Enter vehicle function
         async function enterVehicle(vehicle) {
-            if (currentVehicleId) {
-                addLog('You are already in a vehicle!', 'info');
-                return;
-            }
+            if (currentVehicleId) return;
             
-            // Check if vehicle has a driver
-            if (vehicle.driverId && vehicle.driverId !== myPlayerId) {
-                // Check if there's space as passenger
-                if (vehicle.passengers.length >= 3) {
+            // Get latest vehicle data
+            const { data: vehicleData } = await supabase
+                .from('vehicles')
+                .select('*')
+                .eq('id', vehicle.id)
+                .single();
+            
+            if (!vehicleData) return;
+            
+            // Check if can enter
+            if (vehicleData.driver_id && vehicleData.driver_id !== myPlayerId) {
+                if ((vehicleData.passengers || []).length >= 3) {
                     addLog('Vehicle is full!', 'info');
                     return;
                 }
                 // Join as passenger
                 isDriver = false;
-                currentVehicleId = vehicle.id;
-                currentVehicleObject = vehicle;
-                
-                // Update database
-                const newPassengers = [...vehicle.passengers, myPlayerId];
+                const newPassengers = [...(vehicleData.passengers || []), myPlayerId];
                 await supabase.from('vehicles').update({
                     passengers: newPassengers
                 }).eq('id', vehicle.id);
-                
                 addLog(`You entered as a passenger`, 'vehicle');
             } else {
                 // Become driver
                 isDriver = true;
-                currentVehicleId = vehicle.id;
-                currentVehicleObject = vehicle;
-                
-                // Update database
                 await supabase.from('vehicles').update({
                     driver_id: myPlayerId
                 }).eq('id', vehicle.id);
-                
-                addLog(`You are now driving the vehicle! Use WASD to drive`, 'vehicle');
+                addLog(`You are now driving! Use WASD to drive`, 'vehicle');
                 document.getElementById('speedometer').style.display = 'block';
             }
+            
+            currentVehicleId = vehicle.id;
             
             // Hide player model
             if (localPlayerMesh) {
@@ -719,23 +665,17 @@
                 localLabel.visible = false;
             }
             
-            // Position camera at vehicle
-            const cameraOffset = new THREE.Vector3(0, 1.6, 3);
-            const rotatedOffset = cameraOffset.clone().applyQuaternion(currentVehicleObject.mesh.quaternion);
-            camera.position.copy(currentVehicleObject.position.clone().add(rotatedOffset));
-            
             document.getElementById('vehicle-status').style.display = 'block';
             document.getElementById('vehicle-status').innerHTML = isDriver ? '🚗 Driving' : '🚗 Passenger';
             
-            // Update vehicle label
-            vehicle.updateLabel();
+            // Force immediate sync
+            await syncVehicles();
         }
         
-        // Exit vehicle function
         async function exitVehicle() {
             if (!currentVehicleId) return;
             
-            // Get current vehicle data
+            // Get current vehicle to find position
             const { data: vehicleData } = await supabase
                 .from('vehicles')
                 .select('*')
@@ -744,63 +684,50 @@
             
             if (vehicleData) {
                 if (isDriver) {
-                    // Clear driver
                     await supabase.from('vehicles').update({
                         driver_id: null
                     }).eq('id', currentVehicleId);
                 } else {
-                    // Remove passenger
                     const newPassengers = (vehicleData.passengers || []).filter(id => id !== myPlayerId);
                     await supabase.from('vehicles').update({
                         passengers: newPassengers
                     }).eq('id', currentVehicleId);
                 }
-            }
-            
-            // Place player next to vehicle
-            const exitPos = currentVehicleObject.position.clone();
-            exitPos.x += 3;
-            exitPos.z += 3;
-            exitPos.y = 0.8;
-            
-            if (localPlayerMesh) {
-                localPlayerMesh.position.copy(exitPos);
-                localPlayerMesh.visible = true;
-                localLabel.position.copy(exitPos);
-                localLabel.position.y += 1.6;
-                localLabel.visible = true;
-                camera.position.copy(exitPos);
-                camera.position.y += 1.6;
+                
+                // Place player next to vehicle
+                const exitPos = new THREE.Vector3(vehicleData.x, 0.8, vehicleData.z);
+                exitPos.x += 3;
+                exitPos.z += 3;
+                
+                if (localPlayerMesh) {
+                    localPlayerMesh.position.copy(exitPos);
+                    localPlayerMesh.visible = true;
+                    localLabel.position.copy(exitPos);
+                    localLabel.position.y += 1.6;
+                    localLabel.visible = true;
+                }
             }
             
             addLog(`You exited the vehicle`, 'vehicle');
             
             currentVehicleId = null;
-            currentVehicleObject = null;
             isDriver = false;
             vehicleVelocity = 0;
             
             document.getElementById('speedometer').style.display = 'none';
             document.getElementById('vehicle-status').style.display = 'none';
-            
-            // Update vehicle label
-            if (vehicleData) {
-                const vehicle = otherVehicles.get(currentVehicleId);
-                if (vehicle) vehicle.updateLabel();
-            }
         }
         
-        // Vehicle movement update
+        // Vehicle movement update - DRIVER ONLY
         function updateVehicleMovement() {
-            if (!currentVehicleObject || !isDriver || !isPointerLocked) return;
+            if (!currentVehicleId || !isDriver || !isPointerLocked) return;
             
-            // Get camera forward direction for vehicle orientation
-            const forward = new THREE.Vector3();
-            camera.getWorldDirection(forward);
-            forward.y = 0;
-            forward.normalize();
+            const vehicle = otherVehicles.get(currentVehicleId);
+            if (!vehicle) return;
             
-            // Acceleration and braking
+            // Get forward direction based on vehicle rotation
+            const forward = new THREE.Vector3(0, 0, -1).applyEuler(new THREE.Euler(0, vehicle.mesh.rotation.y, 0));
+            
             const acceleration = 8;
             const braking = 12;
             const maxSpeed = 25;
@@ -812,53 +739,38 @@
                 vehicleVelocity -= braking * 0.016;
                 if (vehicleVelocity < -maxSpeed/2) vehicleVelocity = -maxSpeed/2;
             } else {
-                // Friction
                 if (vehicleVelocity > 0) vehicleVelocity -= 4 * 0.016;
                 if (vehicleVelocity < 0) vehicleVelocity += 4 * 0.016;
                 if (Math.abs(vehicleVelocity) < 0.5) vehicleVelocity = 0;
             }
             
-            // Update speedometer
             const speedKmh = Math.abs(vehicleVelocity) * 3.6;
             document.getElementById('speedometer').innerHTML = `${Math.floor(speedKmh)} km/h`;
             
             if (vehicleVelocity !== 0) {
-                // Calculate movement
                 const move = forward.clone().multiplyScalar(vehicleVelocity * 0.016);
-                let newPos = currentVehicleObject.position.clone().add(move);
+                let newPos = vehicle.position.clone().add(move);
                 
-                // Boundary limits
                 newPos.x = Math.min(85, Math.max(-85, newPos.x));
                 newPos.z = Math.min(85, Math.max(-85, newPos.z));
                 
-                currentVehicleObject.setPosition(newPos);
+                vehicle.setPosition(newPos);
                 
-                // Rotate vehicle to face movement direction
-                if (vehicleVelocity !== 0) {
-                    const angle = Math.atan2(forward.x, forward.z);
-                    currentVehicleObject.mesh.rotation.y = angle;
+                // Update rotation based on turning
+                if (Math.abs(vehicleVelocity) > 1) {
+                    if (keys.a) vehicle.mesh.rotation.y += 2.5 * 0.016;
+                    if (keys.d) vehicle.mesh.rotation.y -= 2.5 * 0.016;
                 }
             }
             
-            // Update camera to follow vehicle
-            const cameraOffset = new THREE.Vector3(0, 1.6, 4);
-            const rotatedOffset = cameraOffset.clone().applyQuaternion(currentVehicleObject.mesh.quaternion);
-            camera.position.copy(currentVehicleObject.position.clone().add(rotatedOffset));
-            
-            // Update player position in database (driver position)
-            updateVehiclePositionInDB();
+            // Update database with new position
+            supabase.from('vehicles').update({
+                x: vehicle.position.x,
+                z: vehicle.position.z
+            }).eq('id', currentVehicleId).then();
         }
         
-        async function updateVehiclePositionInDB() {
-            if (currentVehicleId && isDriver && currentVehicleObject) {
-                await supabase.from('vehicles').update({
-                    x: currentVehicleObject.position.x,
-                    z: currentVehicleObject.position.z
-                }).eq('id', currentVehicleId);
-            }
-        }
-        
-        // Vehicle sync from database
+        // Sync vehicles from database
         async function syncVehicles() {
             if (!currentServerId) return;
             
@@ -870,7 +782,7 @@
                     const existing = otherVehicles.get(vehicleData.id);
                     const newPos = new THREE.Vector3(vehicleData.x, 0.2, vehicleData.z);
                     
-                    // Don't update position if this is the vehicle we're driving (we control it)
+                    // Only update position if this is not the vehicle we're driving
                     if (currentVehicleId !== vehicleData.id) {
                         existing.setPosition(newPos);
                     }
@@ -888,7 +800,7 @@
                 }
             }
             
-            // Remove vehicles that no longer exist
+            // Remove old vehicles
             for (let [id, vehicle] of otherVehicles) {
                 if (!data.find(v => v.id === id)) {
                     vehicle.dispose();
@@ -897,7 +809,7 @@
             }
         }
         
-        // Check for nearby vehicles to enter
+        // Check for nearby vehicles
         function checkNearbyVehicles() {
             if (!localPlayerMesh || currentVehicleId || !localPlayerMesh.visible) return;
             
@@ -915,14 +827,14 @@
             const prompt = document.getElementById('vehicle-prompt');
             if (nearestVehicle) {
                 prompt.style.display = 'block';
-                window.nearbyVehicleData = nearestVehicle;
+                window.nearbyVehicle = nearestVehicle;
             } else {
                 prompt.style.display = 'none';
-                window.nearbyVehicleData = null;
+                window.nearbyVehicle = null;
             }
         }
         
-        // Helper functions from original
+        // Helper functions
         function makeLabel(text, color) {
             const div = document.createElement('div');
             div.textContent = text;
@@ -977,7 +889,6 @@
             entry.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}`;
             logDiv.appendChild(entry);
             if (logDiv.children.length > 12) logDiv.removeChild(logDiv.children[0]);
-            console.log(msg);
         }
         
         function updateUI() {
@@ -1036,7 +947,7 @@
             syncInterval = setInterval(() => {
                 syncVehicles();
                 syncPlayers();
-            }, 150);
+            }, 100); // Faster sync for smoother vehicle movement
             updateInterval = setInterval(() => updatePosition(), 50);
         }
         
@@ -1110,7 +1021,6 @@
             if (localLabel) scene.remove(localLabel);
             currentServerId = null; myPlayerId = null; isDead = false;
             currentVehicleId = null;
-            currentVehicleObject = null;
             addLog('Left server', 'info');
         }
         
@@ -1166,10 +1076,9 @@
             if (key === 'a') keys.a = true;
             if (key === 'd') keys.d = true;
             
-            // Enter/exit vehicle
             if (key === 'e') {
-                if (!currentVehicleId && window.nearbyVehicleData) {
-                    await enterVehicle(window.nearbyVehicleData);
+                if (!currentVehicleId && window.nearbyVehicle) {
+                    await enterVehicle(window.nearbyVehicle);
                 } else if (currentVehicleId) {
                     await exitVehicle();
                 }
@@ -1194,15 +1103,21 @@
         function updateMovement() {
             if (isDead) return;
             
+            const currentVehicle = currentVehicleId ? otherVehicles.get(currentVehicleId) : null;
+            
             // Handle vehicle driving
             if (currentVehicleId && isDriver) {
                 updateVehicleMovement();
-            } 
-            // Handle passenger camera
-            else if (currentVehicleId && !isDriver && currentVehicleObject) {
+                // Camera follows vehicle
                 const cameraOffset = new THREE.Vector3(0, 1.6, 4);
-                const rotatedOffset = cameraOffset.clone().applyQuaternion(currentVehicleObject.mesh.quaternion);
-                camera.position.copy(currentVehicleObject.position.clone().add(rotatedOffset));
+                const rotatedOffset = cameraOffset.clone().applyQuaternion(currentVehicle.mesh.quaternion);
+                camera.position.copy(currentVehicle.position.clone().add(rotatedOffset));
+            } 
+            // Handle passenger - camera follows vehicle
+            else if (currentVehicleId && !isDriver && currentVehicle) {
+                const cameraOffset = new THREE.Vector3(0, 1.6, 4);
+                const rotatedOffset = cameraOffset.clone().applyQuaternion(currentVehicle.mesh.quaternion);
+                camera.position.copy(currentVehicle.position.clone().add(rotatedOffset));
             }
             // Handle normal walking
             else if (localPlayerMesh && localPlayerMesh.visible && !currentVehicleId) {
@@ -1275,10 +1190,8 @@
         document.getElementById('leaveGame').onclick = () => leaveServer();
         document.getElementById('username').value = `Citizen_${Math.floor(Math.random() * 1000)}`;
         
-        // Create city
         createCityLayout();
         
-        // Lighting
         const ambientLight = new THREE.AmbientLight(0x404060);
         scene.add(ambientLight);
         const dirLight = new THREE.DirectionalLight(0xfff5e6, 1);
@@ -1288,7 +1201,6 @@
         dirLight.shadow.mapSize.height = 1024;
         scene.add(dirLight);
         
-        // Stars
         const starGeometry = new THREE.BufferGeometry();
         const starPositions = new Float32Array(800 * 3);
         for (let i = 0; i < 800; i++) {
@@ -1309,9 +1221,10 @@
         
         animate();
         
-        addLog('🏙️ Welcome to RP City! Vehicles are now fully functional!', 'info');
+        addLog('🏙️ Welcome to RP City! Fully synced vehicles!', 'info');
         addLog('🚗 Open phone (TAB) to spawn a car for $5000', 'vehicle');
-        addLog('🚗 Walk up to a car and press E to enter as driver', 'vehicle');
+        addLog('🚗 Walk up to a car and press E to enter', 'vehicle');
+        addLog('👥 Passengers will now see the car moving correctly!', 'vehicle');
     </script>
 </body>
 </html>
