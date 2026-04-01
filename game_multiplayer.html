@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Multiplayer RP Game</title>
+<title>Working Multiplayer 3D</title>
 
 <style>
 body { margin:0; overflow:hidden; background:black; font-family:Arial; }
@@ -21,97 +21,77 @@ body { margin:0; overflow:hidden; background:black; font-family:Arial; }
 
 input, button {
   padding:10px;
-  margin:6px;
+  margin:5px;
   border-radius:10px;
   border:none;
 }
 
-button {
-  background:#4ec9e0;
-  cursor:pointer;
-  font-weight:bold;
-}
+button { background:#4ec9e0; cursor:pointer; }
 </style>
 </head>
 <body>
 
 <div id="menu">
-  <h1>🌍 Multiplayer RP</h1>
+  <h1>🌍 Multiplayer Test</h1>
   <input id="username" placeholder="Username">
-  <input id="serverCode" placeholder="Server Code">
-  <button onclick="createServer()">Create Server</button>
-  <button onclick="joinServer()">Join Server</button>
+  <input id="server" placeholder="Server Code">
+  <button onclick="start()">Play</button>
 </div>
 
 <script type="module">
 import * as THREE from 'https://unpkg.com/three@0.128.0/build/three.module.js';
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
+/* ================= SUPABASE ================= */
+
 const supabase = createClient(
   "https://hcvewiwhtxqpbogcrukk.supabase.co",
-  "YOUR_API_KEY_HERE"
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjdmV3aXdodHhxcGJvZ2NydWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTQ4MzMsImV4cCI6MjA5MDQ3MDgzM30.UsdvDyrGl4OhmbDjonyOagknHf--Zhe-fhCi0LFVoQw"
 );
 
-let playerId = crypto.randomUUID();
-let server = null;
+let id = crypto.randomUUID();
+let server = "";
+
+let players = {};
+let meshes = {};
+
+/* ================= THREE ================= */
 
 let scene, camera, renderer;
 let player;
-let players = {};
-let meshes = {};
+let yaw = 0;
 
 let keys = {};
 
 /* ================= INPUT ================= */
+
 document.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
 document.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
 
-/* ================= SERVER ================= */
-
-window.createServer = async () => {
-  const code = document.getElementById('serverCode').value;
-  const username = document.getElementById('username').value;
-
-  if (!code || !username) return alert("Enter username + code");
-
-  await supabase.from('servers').insert({ code });
-
-  startGame(username, code);
-};
-
-window.joinServer = async () => {
-  const code = document.getElementById('serverCode').value;
-  const username = document.getElementById('username').value;
-
-  if (!code || !username) return alert("Enter username + code");
-
-  startGame(username, code);
-};
-
 /* ================= START ================= */
 
-async function startGame(username, code) {
-  server = code;
+window.start = async () => {
+  const username = document.getElementById('username').value;
+  server = document.getElementById('server').value;
+
+  if (!username || !server) return alert("Enter info");
 
   document.getElementById('menu').style.display = "none";
 
   await supabase.from('players').upsert({
-    id: playerId,
+    id,
     username,
-    server,
-    x: 0,
-    y: 1,
-    z: 0
+    server
   });
 
-  initWorld();
-  setupRealtime();
+  init();
+  realtime();
   animate();
-}
+};
 
-/* ================= WORLD ================= */
+/* ================= INIT ================= */
 
-function initWorld() {
+function init() {
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x87ceeb);
 
@@ -121,33 +101,41 @@ function initWorld() {
   renderer.setSize(innerWidth, innerHeight);
   document.body.appendChild(renderer.domElement);
 
-  // LIGHTS
-  const sun = new THREE.DirectionalLight(0xffffff, 1);
-  sun.position.set(10,20,10);
-  scene.add(sun);
+  const light = new THREE.DirectionalLight(0xffffff,1);
+  light.position.set(10,10,10);
+  scene.add(light);
 
-  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+  scene.add(new THREE.AmbientLight(0xffffff,0.5));
 
-  // GROUND
   const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(500,500),
-    new THREE.MeshStandardMaterial({ color:0x2ecc71 })
+    new THREE.MeshStandardMaterial({ color:0x228B22 })
   );
   ground.rotation.x = -Math.PI/2;
   scene.add(ground);
 
-  // PLAYER (YOU)
   player = new THREE.Mesh(
     new THREE.BoxGeometry(1,2,1),
     new THREE.MeshStandardMaterial({ color:0x00ffcc })
   );
   player.position.y = 1;
   scene.add(player);
+
+  /* MOUSE LOCK */
+  document.body.addEventListener('click', () => {
+    document.body.requestPointerLock();
+  });
+
+  document.addEventListener('mousemove', e => {
+    if (document.pointerLockElement === document.body) {
+      yaw -= e.movementX * 0.002;
+    }
+  });
 }
 
 /* ================= REALTIME ================= */
 
-function setupRealtime() {
+function realtime() {
   supabase.channel('room-'+server)
     .on('postgres_changes',{
       event:'*',
@@ -162,54 +150,54 @@ function setupRealtime() {
 
 /* ================= SYNC ================= */
 
-async function syncPlayer() {
+async function sync() {
   await supabase.from('players').update({
     x: player.position.x,
     y: player.position.y,
-    z: player.position.z
-  }).eq('id', playerId);
+    z: player.position.z,
+    rot: yaw
+  }).eq('id', id);
 }
 
-setInterval(syncPlayer, 100);
+setInterval(sync, 100);
+
+/* ================= MOVEMENT ================= */
+
+function move() {
+  let speed = 0.15;
+
+  let forward = new THREE.Vector3(Math.sin(yaw),0,Math.cos(yaw));
+  let right = new THREE.Vector3(forward.z,0,-forward.x);
+
+  if (keys['w']) player.position.add(forward.clone().multiplyScalar(-speed));
+  if (keys['s']) player.position.add(forward.clone().multiplyScalar(speed));
+  if (keys['a']) player.position.add(right.clone().multiplyScalar(-speed));
+  if (keys['d']) player.position.add(right.clone().multiplyScalar(speed));
+
+  camera.position.copy(player.position).add(new THREE.Vector3(0,5,10));
+  camera.lookAt(player.position);
+}
 
 /* ================= OTHER PLAYERS ================= */
 
-function updateOtherPlayers() {
-  for (let id in players) {
-    if (id === playerId) continue;
+function updatePlayers() {
+  for (let pid in players) {
+    if (pid === id) continue;
 
-    let data = players[id];
+    let data = players[pid];
 
-    if (!meshes[id]) {
+    if (!meshes[pid]) {
       const mesh = new THREE.Mesh(
         new THREE.BoxGeometry(1,2,1),
         new THREE.MeshStandardMaterial({ color:0xff4444 })
       );
       mesh.position.y = 1;
       scene.add(mesh);
-      meshes[id] = mesh;
+      meshes[pid] = mesh;
     }
 
-    meshes[id].position.set(data.x, data.y, data.z);
+    meshes[pid].position.set(data.x, data.y, data.z);
   }
-}
-
-/* ================= MOVEMENT ================= */
-
-function updateMovement() {
-  let speed = 0.15;
-
-  if (keys['w']) player.position.z -= speed;
-  if (keys['s']) player.position.z += speed;
-  if (keys['a']) player.position.x -= speed;
-  if (keys['d']) player.position.x += speed;
-
-  // CAMERA FOLLOW
-  camera.position.x = player.position.x;
-  camera.position.y = player.position.y + 6;
-  camera.position.z = player.position.z + 10;
-
-  camera.lookAt(player.position);
 }
 
 /* ================= LOOP ================= */
@@ -217,8 +205,8 @@ function updateMovement() {
 function animate() {
   requestAnimationFrame(animate);
 
-  updateMovement();
-  updateOtherPlayers();
+  move();
+  updatePlayers();
 
   renderer.render(scene, camera);
 }
