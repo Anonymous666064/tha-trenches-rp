@@ -151,7 +151,6 @@
         import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
         import { createClient } from '@supabase/supabase-js';
 
-        // Supabase
         const SUPABASE_URL = 'https://hcvewiwhtxqpbogcrukk.supabase.co';
         const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjdmV3aXdodHhxcGJvZ2NydWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ4OTQ4MzMsImV4cCI6MjA5MDQ3MDgzM30.UsdvDyrGl4OhmbDjonyOagknHf--Zhe-fhCi0LFVoQw';
         const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -167,11 +166,11 @@
         let isDead = false;
         let updateInterval = null;
         let syncInterval = null;
-        let vehicles = new Map();
+        let vehicles = new Map(); // vehicleId -> { mesh, driverId, passengerIds }
         let myVehicleId = null;
-        let mySeat = null;
+        let mySeat = null; // 'driver' or index (0,1,2)
         let playerStats = { health: 100, hunger: 100, thirst: 100, money: 100000, kills: 0 };
-        let gameData = { money: 100000, bank: 2500, ownedVehicles: [], ownedHouses: [], friends: [] };
+        let gameData = { money: 100000, ownedVehicles: [], ownedHouses: [] };
         let inventory = { slots: [], selectedSlot: 0 };
         let cameraAngle = 0, cameraPitch = 0;
         let cameraMode = 'tpv';
@@ -182,7 +181,7 @@
         let buildings = [];
         let gasStation = null, policeStation = null, hospital = null, houses = [];
 
-        // ==================== HELPERS ====================
+        // ==================== HELPER FUNCTIONS ====================
         function showNotification(msg, color) {
             const n = document.getElementById('notification');
             if (!n) return;
@@ -208,7 +207,6 @@
                 return false;
             }
             if (!profile) {
-                // Create profile
                 const { error: insertError } = await supabase.from('user_profiles').insert({
                     user_id: currentUser.id,
                     username: `User_${Math.floor(Math.random() * 10000)}`,
@@ -545,7 +543,6 @@
                     if (type === 3) houses[houses.length-1].mesh = building;
                 }
             }
-            // Fallback positions
             if (!gasStationFound) {
                 const building = new THREE.Mesh(new THREE.BoxGeometry(12, 4, 12), new THREE.MeshStandardMaterial({ color: 0xffaa44 }));
                 building.position.set(0, 2, 0);
@@ -879,6 +876,8 @@
                 if (e.code === 'KeyV') { cameraMode = cameraMode === 'tpv' ? 'fpv' : 'tpv'; document.getElementById('camera-mode-indicator').textContent = `VIEW: ${cameraMode.toUpperCase()}`; }
                 if (e.code === 'Tab') { e.preventDefault(); const inv = document.getElementById('inventory-panel'); inv.style.display = inv.style.display === 'none' ? 'block' : 'none'; }
                 if (e.code === 'KeyO') { const phone = document.getElementById('phone-ui'); phone.style.display = phone.style.display === 'none' ? 'flex' : 'none'; }
+                // Prevent default for movement keys
+                if (['KeyW','KeyS','KeyA','KeyD','Space'].includes(e.code)) e.preventDefault();
             });
             document.addEventListener('keyup', e => { keys[e.code] = false; });
             renderer.domElement.addEventListener('click', () => renderer.domElement.requestPointerLock());
