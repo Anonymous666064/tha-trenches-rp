@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>RP World - Open World Multiplayer RPG</title>
+    <title>RP World - City Roleplay Multiplayer</title>
     <style>
         * {
             margin: 0;
@@ -266,8 +266,8 @@
         
         <div class="server-panel">
             <input type="text" id="username" placeholder="Username">
-            <input type="text" id="serverCode" placeholder="Server Code" value="RP_WORLD">
-            <button id="joinGame">🎮 Join</button>
+            <input type="text" id="serverCode" placeholder="Server Code" value="RP_CITY">
+            <button id="joinGame">🎮 Join Game</button>
             <button id="leaveGame" style="background:#8a4a4a;">🚪 Leave</button>
         </div>
         <div class="log-container" id="log"></div>
@@ -333,7 +333,7 @@
         
         let playerStats = { health: 100, hunger: 100, thirst: 100, money: 100000, kills: 0 };
         
-        // Camera controls for mouse lock aiming
+        // Camera controls
         let mouseX = 0;
         let mouseY = 0;
         let cameraPitch = 0;
@@ -343,7 +343,7 @@
         // Three.js setup
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x87CEEB);
-        scene.fog = new THREE.Fog(0x87CEEB, 120, 200);
+        scene.fog = new THREE.Fog(0x87CEEB, 150, 250);
         
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         camera.position.set(0, 1.6, 0);
@@ -361,31 +361,207 @@
         labelRenderer.domElement.style.pointerEvents = 'none';
         document.body.appendChild(labelRenderer.domElement);
         
-        // Create world - Open field with NO TREES
-        const groundMat = new THREE.MeshStandardMaterial({ color: 0x6aab5a });
-        const ground = new THREE.Mesh(new THREE.PlaneGeometry(250, 250), groundMat);
+        // Create ground
+        const groundMat = new THREE.MeshStandardMaterial({ color: 0x5c9e5e, roughness: 0.8 });
+        const ground = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), groundMat);
         ground.rotation.x = -Math.PI / 2;
         ground.position.y = -0.1;
         ground.receiveShadow = true;
         scene.add(ground);
         
-        // Simple grid helper
-        const gridHelper = new THREE.GridHelper(250, 50, 0x88aaff, 0x446688);
-        gridHelper.position.y = 0;
-        scene.add(gridHelper);
+        // ========== CITY LAYOUT ==========
         
-        // Add some simple rocks/decoration (very minimal)
-        const rockMat = new THREE.MeshStandardMaterial({ color: 0x888888 });
-        for (let i = 0; i < 30; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const radius = 90 + Math.random() * 50;
-            const x = Math.cos(angle) * radius;
-            const z = Math.sin(angle) * radius;
-            const rock = new THREE.Mesh(new THREE.DodecahedronGeometry(0.3), rockMat);
-            rock.position.set(x, 0.2, z);
-            rock.castShadow = true;
-            scene.add(rock);
-        }
+        // Road material
+        const roadMat = new THREE.MeshStandardMaterial({ color: 0x2c2c2c, roughness: 0.6 });
+        const sidewalkMat = new THREE.MeshStandardMaterial({ color: 0xaaaaaa, roughness: 0.8 });
+        const buildingMat = new THREE.MeshStandardMaterial({ color: 0x8b7d6b, roughness: 0.4 });
+        const roofMat = new THREE.MeshStandardMaterial({ color: 0x6b5a4a, roughness: 0.7 });
+        const windowMat = new THREE.MeshStandardMaterial({ color: 0xffaa66, emissive: 0x442200 });
+        
+        // Main roads (grid pattern)
+        const roadWidth = 3;
+        const roadPositions = [-24, -12, 0, 12, 24];
+        
+        // Horizontal roads
+        roadPositions.forEach(z => {
+            const road = new THREE.Mesh(new THREE.BoxGeometry(70, 0.2, roadWidth), roadMat);
+            road.position.set(0, 0, z);
+            road.receiveShadow = true;
+            scene.add(road);
+        });
+        
+        // Vertical roads
+        roadPositions.forEach(x => {
+            const road = new THREE.Mesh(new THREE.BoxGeometry(roadWidth, 0.2, 70), roadMat);
+            road.position.set(x, 0, 0);
+            road.receiveShadow = true;
+            scene.add(road);
+        });
+        
+        // Sidewalks (around roads)
+        const sidewalkPositions = [
+            [-27, -13.5], [-27, -1.5], [-27, 10.5], [-27, 22.5],
+            [-15, -13.5], [-15, -1.5], [-15, 10.5], [-15, 22.5],
+            [-3, -13.5], [-3, -1.5], [-3, 10.5], [-3, 22.5],
+            [9, -13.5], [9, -1.5], [9, 10.5], [9, 22.5],
+            [21, -13.5], [21, -1.5], [21, 10.5], [21, 22.5]
+        ];
+        
+        sidewalkPositions.forEach(pos => {
+            const sidewalk = new THREE.Mesh(new THREE.BoxGeometry(2, 0.2, 2), sidewalkMat);
+            sidewalk.position.set(pos[0], 0.05, pos[1]);
+            sidewalk.receiveShadow = true;
+            scene.add(sidewalk);
+        });
+        
+        // ========== BUILDINGS ==========
+        
+        // Building positions (x, z, width, depth, height, color)
+        const buildings = [
+            // Row 1 (North side)
+            { x: -30, z: -30, w: 5, d: 5, h: 4, color: 0x8b7d6b, name: "Bank" },
+            { x: -22, z: -30, w: 5, d: 5, h: 3.5, color: 0x9a8b7a, name: "Cafe" },
+            { x: -14, z: -30, w: 5, d: 5, h: 6, color: 0x7a6b5a, name: "Police Station" },
+            { x: -6, z: -30, w: 5, d: 5, h: 4, color: 0x8b7d6b, name: "Hospital" },
+            { x: 2, z: -30, w: 5, d: 5, h: 5, color: 0x9a8b7a, name: "Hotel" },
+            { x: 10, z: -30, w: 5, d: 5, h: 3.5, color: 0x8b7d6b, name: "Restaurant" },
+            { x: 18, z: -30, w: 5, d: 5, h: 4, color: 0x7a6b5a, name: "Gym" },
+            { x: 26, z: -30, w: 5, d: 5, h: 6, color: 0x9a8b7a, name: "Office Tower" },
+            
+            // Row 2
+            { x: -30, z: -18, w: 5, d: 5, h: 3.5, color: 0x8b7d6b, name: "Clothing Store" },
+            { x: -22, z: -18, w: 5, d: 5, h: 4, color: 0x9a8b7a, name: "Electronics" },
+            { x: -14, z: -18, w: 5, d: 5, h: 5, color: 0x7a6b5a, name: "Bar" },
+            { x: -6, z: -18, w: 5, d: 5, h: 4, color: 0x8b7d6b, name: "Bakery" },
+            { x: 2, z: -18, w: 5, d: 5, h: 3.5, color: 0x9a8b7a, name: "Pharmacy" },
+            { x: 10, z: -18, w: 5, d: 5, h: 4, color: 0x8b7d6b, name: "Bookstore" },
+            { x: 18, z: -18, w: 5, d: 5, h: 5, color: 0x7a6b5a, name: "Nightclub" },
+            { x: 26, z: -18, w: 5, d: 5, h: 4, color: 0x9a8b7a, name: "Arcade" },
+            
+            // Row 3 (Center - Main Square)
+            { x: -30, z: -6, w: 5, d: 5, h: 6, color: 0x7a6b5a, name: "City Hall" },
+            { x: -22, z: -6, w: 5, d: 5, h: 4, color: 0x8b7d6b, name: "Museum" },
+            { x: -14, z: -6, w: 5, d: 5, h: 3.5, color: 0x9a8b7a, name: "Coffee Shop" },
+            { x: -6, z: -6, w: 5, d: 5, h: 4, color: 0x8b7d6b, name: "Library" },
+            { x: 2, z: -6, w: 5, d: 5, h: 8, color: 0xaa8866, name: "TOWER" }, // Center Tower
+            { x: 10, z: -6, w: 5, d: 5, h: 4, color: 0x8b7d6b, name: "Gallery" },
+            { x: 18, z: -6, w: 5, d: 5, h: 5, color: 0x9a8b7a, name: "Theater" },
+            { x: 26, z: -6, w: 5, d: 5, h: 4, color: 0x7a6b5a, name: "Courthouse" },
+            
+            // Row 4
+            { x: -30, z: 6, w: 5, d: 5, h: 3.5, color: 0x8b7d6b, name: "Shoe Store" },
+            { x: -22, z: 6, w: 5, d: 5, h: 4, color: 0x9a8b7a, name: "Jewelry" },
+            { x: -14, z: 6, w: 5, d: 5, h: 5, color: 0x7a6b5a, name: "Barbershop" },
+            { x: -6, z: 6, w: 5, d: 5, h: 4, color: 0x8b7d6b, name: "Flower Shop" },
+            { x: 2, z: 6, w: 5, d: 5, h: 3.5, color: 0x9a8b7a, name: "Toy Store" },
+            { x: 10, z: 6, w: 5, d: 5, h: 4, color: 0x8b7d6b, name: "Pet Shop" },
+            { x: 18, z: 6, w: 5, d: 5, h: 6, color: 0x7a6b5a, name: "Fitness Center" },
+            { x: 26, z: 6, w: 5, d: 5, h: 4, color: 0x9a8b7a, name: "Spa" },
+            
+            // Row 5 (South side)
+            { x: -30, z: 18, w: 5, d: 5, h: 5, color: 0x8b7d6b, name: "Car Dealership" },
+            { x: -22, z: 18, w: 5, d: 5, h: 4, color: 0x9a8b7a, name: "Gas Station" },
+            { x: -14, z: 18, w: 5, d: 5, h: 3.5, color: 0x7a6b5a, name: "Auto Repair" },
+            { x: -6, z: 18, w: 5, d: 5, h: 4, color: 0x8b7d6b, name: "Hardware Store" },
+            { x: 2, z: 18, w: 5, d: 5, h: 5, color: 0x9a8b7a, name: "Supermarket" },
+            { x: 10, z: 18, w: 5, d: 5, h: 4, color: 0x8b7d6b, name: "Electronics" },
+            { x: 18, z: 18, w: 5, d: 5, h: 3.5, color: 0x7a6b5a, name: "Furniture" },
+            { x: 26, z: 18, w: 5, d: 5, h: 6, color: 0x9a8b7a, name: "Warehouse" },
+            
+            // Row 6 (Far south)
+            { x: -30, z: 30, w: 5, d: 5, h: 4, color: 0x8b7d6b, name: "Motel" },
+            { x: -22, z: 30, w: 5, d: 5, h: 3.5, color: 0x9a8b7a, name: "Fast Food" },
+            { x: -14, z: 30, w: 5, d: 5, h: 4, color: 0x7a6b5a, name: "Laundromat" },
+            { x: -6, z: 30, w: 5, d: 5, h: 5, color: 0x8b7d6b, name: "Pawn Shop" },
+            { x: 2, z: 30, w: 5, d: 5, h: 4, color: 0x9a8b7a, name: "Liquor Store" },
+            { x: 10, z: 30, w: 5, d: 5, h: 3.5, color: 0x8b7d6b, name: "Diner" },
+            { x: 18, z: 30, w: 5, d: 5, h: 4, color: 0x7a6b5a, name: "Bar" },
+            { x: 26, z: 30, w: 5, d: 5, h: 5, color: 0x9a8b7a, name: "Club" }
+        ];
+        
+        // Add all buildings
+        buildings.forEach(b => {
+            const buildingMatColor = new THREE.MeshStandardMaterial({ color: b.color, roughness: 0.4 });
+            const building = new THREE.Mesh(new THREE.BoxGeometry(b.w, b.h, b.d), buildingMatColor);
+            building.position.set(b.x, b.h/2, b.z);
+            building.castShadow = true;
+            building.receiveShadow = true;
+            scene.add(building);
+            
+            // Add roof
+            const roof = new THREE.Mesh(new THREE.ConeGeometry(b.w/1.5, 0.6, 4), roofMat);
+            roof.position.set(b.x, b.h + 0.3, b.z);
+            roof.castShadow = true;
+            scene.add(roof);
+            
+            // Add windows
+            for (let i = 0; i < 4; i++) {
+                const windowGeo = new THREE.BoxGeometry(0.8, 0.8, 0.1);
+                const windowMesh = new THREE.Mesh(windowGeo, windowMat);
+                const side = i % 2 === 0 ? 1 : -1;
+                windowMesh.position.set(b.x + (side * (b.w/2 - 0.5)), b.h/2, b.z);
+                windowMesh.castShadow = true;
+                scene.add(windowMesh);
+            }
+            
+            // Add building label (CSS2D)
+            const labelDiv = document.createElement('div');
+            labelDiv.textContent = b.name;
+            labelDiv.style.color = '#fff';
+            labelDiv.style.fontSize = '10px';
+            labelDiv.style.fontWeight = 'bold';
+            labelDiv.style.textShadow = '1px 1px black';
+            labelDiv.style.background = 'rgba(0,0,0,0.6)';
+            labelDiv.style.padding = '2px 6px';
+            labelDiv.style.borderRadius = '12px';
+            labelDiv.style.border = '1px solid #ffaa44';
+            labelDiv.style.whiteSpace = 'nowrap';
+            const label = new CSS2DObject(labelDiv);
+            label.position.set(b.x, b.h + 0.8, b.z);
+            scene.add(label);
+        });
+        
+        // Add street lights at corners
+        const lightMat = new THREE.MeshStandardMaterial({ color: 0xccccaa });
+        const lampPositions = [
+            [-33, -33], [-33, 33], [33, -33], [33, 33],
+            [-33, -21], [-33, -9], [-33, 3], [-33, 15], [-33, 27],
+            [33, -21], [33, -9], [33, 3], [33, 15], [33, 27]
+        ];
+        
+        lampPositions.forEach(pos => {
+            const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.3, 3, 6), lightMat);
+            pole.position.set(pos[0], 1.5, pos[1]);
+            pole.castShadow = true;
+            scene.add(pole);
+            
+            const lamp = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), new THREE.MeshStandardMaterial({ color: 0xffaa66, emissive: 0x442200 }));
+            lamp.position.set(pos[0], 3, pos[1]);
+            lamp.castShadow = true;
+            scene.add(lamp);
+        });
+        
+        // Add trees for park areas
+        const treeTrunkMat = new THREE.MeshStandardMaterial({ color: 0x8B5A2B });
+        const treeLeavesMat = new THREE.MeshStandardMaterial({ color: 0x3c9e3c });
+        
+        const treePositions = [
+            [-27, -27], [-27, 27], [27, -27], [27, 27],
+            [-27, 0], [27, 0], [0, -27], [0, 27],
+            [-18, -18], [-18, 18], [18, -18], [18, 18]
+        ];
+        
+        treePositions.forEach(pos => {
+            const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.5, 1.2, 6), treeTrunkMat);
+            trunk.position.set(pos[0], 0.6, pos[1]);
+            trunk.castShadow = true;
+            scene.add(trunk);
+            
+            const leaves = new THREE.Mesh(new THREE.ConeGeometry(0.7, 1, 8), treeLeavesMat);
+            leaves.position.set(pos[0], 1.2, pos[1]);
+            leaves.castShadow = true;
+            scene.add(leaves);
+        });
         
         // Lighting
         const ambientLight = new THREE.AmbientLight(0x404060);
@@ -427,7 +603,6 @@
             head.castShadow = true;
             group.add(head);
             
-            // Eyes
             const eyeMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
             const leftEye = new THREE.Mesh(new THREE.SphereGeometry(0.1, 16, 16), eyeMat);
             leftEye.position.set(-0.2, 1.35, 0.45);
@@ -484,25 +659,15 @@
             }
         }
         
-        // Kill a player
         async function killPlayer(targetId, targetName, targetPos, targetColor) {
             addLog(`💀 YOU KILLED ${targetName}! +$5000!`, 'kill');
-            
-            // Update killer's money
             playerStats.money += 5000;
             playerStats.kills++;
             updateUI();
             
-            // Mark target as dead in database
-            await supabase
-                .from('players')
-                .update({ is_alive: false, health: 0 })
-                .eq('id', targetId);
-            
-            // Create death effect
+            await supabase.from('players').update({ is_alive: false, health: 0 }).eq('id', targetId);
             createBloodEffect(targetPos);
             
-            // Remove from scene
             const player = otherPlayers.get(targetId);
             if (player) {
                 scene.remove(player.mesh);
@@ -512,7 +677,6 @@
             }
         }
         
-        // Local player death
         async function die(killerName = null) {
             if (isDead) return;
             isDead = true;
@@ -521,7 +685,6 @@
             addLog(message, 'death');
             document.getElementById('death-message').innerHTML = message;
             
-            // Create death effect
             if (localPlayerMesh) {
                 createBloodEffect(localPlayerMesh.position);
                 scene.remove(localPlayerMesh);
@@ -530,12 +693,8 @@
                 localLabel = null;
             }
             
-            // Mark as dead in database
             if (myPlayerId) {
-                await supabase
-                    .from('players')
-                    .update({ is_alive: false, health: 0 })
-                    .eq('id', myPlayerId);
+                await supabase.from('players').update({ is_alive: false, health: 0 }).eq('id', myPlayerId);
             }
             
             document.getElementById('wasted').style.display = 'flex';
@@ -547,26 +706,15 @@
                 playerStats.health = 100;
                 updateUI();
                 document.getElementById('wasted').style.display = 'none';
-                
                 addLog('You respawned!', 'info');
                 
-                const spawnPos = { x: (Math.random() - 0.5) * 25, y: 0.8, z: (Math.random() - 0.5) * 25 };
+                const spawnPos = { x: (Math.random() - 0.5) * 40, y: 0.8, z: (Math.random() - 0.5) * 40 };
                 const playerColor = `hsl(${Math.random() * 360}, 70%, 55%)`;
                 
-                // Update existing player
-                await supabase
-                    .from('players')
-                    .update({
-                        is_alive: true,
-                        health: 100,
-                        x: spawnPos.x,
-                        y: spawnPos.y,
-                        z: spawnPos.z,
-                        color: playerColor
-                    })
-                    .eq('id', myPlayerId);
+                await supabase.from('players').update({
+                    is_alive: true, health: 100, x: spawnPos.x, y: spawnPos.y, z: spawnPos.z, color: playerColor
+                }).eq('id', myPlayerId);
                 
-                // Create local player again
                 localPlayerMesh = createPlayerModel(playerColor, true);
                 localPlayerMesh.position.set(spawnPos.x, spawnPos.y, spawnPos.z);
                 scene.add(localPlayerMesh);
@@ -576,23 +724,15 @@
                 scene.add(localLabel);
                 
                 isDead = false;
-                
-                // Reset camera
-                mouseX = 0;
-                mouseY = 0;
-                cameraPitch = 0;
-                cameraYaw = 0;
+                mouseX = 0; mouseY = 0; cameraPitch = 0; cameraYaw = 0;
                 camera.rotation.order = 'YXZ';
                 camera.rotation.y = 0;
                 camera.rotation.x = 0;
-                
-                addLog('You have respawned!', 'info');
             } else {
                 addLog('Need $1000 to respawn!', 'info');
             }
         }
         
-        // Shooting
         async function shoot() {
             if (!localPlayerMesh || isDead || !isPointerLocked) return;
             
@@ -602,39 +742,24 @@
             for (let [id, player] of otherPlayers) {
                 const intersects = raycaster.intersectObject(player.mesh, true);
                 if (intersects.length > 0) {
-                    const distance = camera.position.distanceTo(intersects[0].point);
-                    if (distance < 30) {
-                        await killPlayer(id, player.name, player.mesh.position, player.color);
-                    }
+                    await killPlayer(id, player.name, player.mesh.position, player.color);
                     break;
                 }
             }
             
-            // Muzzle flash
             const flash = new THREE.PointLight(0xff6600, 1.5, 8);
             flash.position.copy(camera.position);
             scene.add(flash);
             setTimeout(() => scene.remove(flash), 50);
         }
         
-        // Sync players from database
         async function syncPlayers() {
             if (!currentServerId) return;
-            
-            const { data, error } = await supabase
-                .from('players')
-                .select('*')
-                .eq('server_id', currentServerId)
-                .eq('is_alive', true);
-            
-            if (error) {
-                console.error('Sync error:', error);
-                return;
-            }
+            const { data, error } = await supabase.from('players').select('*').eq('server_id', currentServerId).eq('is_alive', true);
+            if (error) return;
             
             for (const player of data) {
                 if (player.id === myPlayerId) continue;
-                
                 if (otherPlayers.has(player.id)) {
                     const existing = otherPlayers.get(player.id);
                     existing.mesh.position.set(player.x, player.y, player.z);
@@ -643,11 +768,9 @@
                     const mesh = createPlayerModel(player.color, false);
                     mesh.position.set(player.x, player.y, player.z);
                     scene.add(mesh);
-                    
                     const label = makeLabel(player.username, '#aaffdd');
                     label.position.set(player.x, player.y + 1.6, player.z);
                     scene.add(label);
-                    
                     otherPlayers.set(player.id, { mesh, label, name: player.username, color: player.color });
                     addLog(`🟢 ${player.username} joined`, 'join');
                 }
@@ -659,41 +782,22 @@
                     scene.remove(player.mesh);
                     scene.remove(player.label);
                     otherPlayers.delete(id);
-                    addLog(`🔴 ${player.name} left`, 'info');
                 }
             }
-            
             updatePlayerList();
         }
         
-        // Update local player position
         async function updatePosition() {
             if (!myPlayerId || !localPlayerMesh || isDead) return;
-            
-            await supabase
-                .from('players')
-                .update({
-                    x: localPlayerMesh.position.x,
-                    y: localPlayerMesh.position.y,
-                    z: localPlayerMesh.position.z,
-                    last_seen: new Date().toISOString()
-                })
-                .eq('id', myPlayerId);
+            await supabase.from('players').update({
+                x: localPlayerMesh.position.x, y: localPlayerMesh.position.y, z: localPlayerMesh.position.z, last_seen: new Date().toISOString()
+            }).eq('id', myPlayerId);
         }
         
-        // Check if local player died
         async function checkDeathStatus() {
             if (!currentServerId || !myPlayerId || isDead) return;
-            
-            const { data } = await supabase
-                .from('players')
-                .select('is_alive')
-                .eq('id', myPlayerId)
-                .single();
-            
-            if (data && data.is_alive === false && !isDead) {
-                die();
-            }
+            const { data } = await supabase.from('players').select('is_alive').eq('id', myPlayerId).single();
+            if (data && data.is_alive === false && !isDead) die();
         }
         
         async function joinServer(serverId) {
@@ -706,42 +810,23 @@
             if (updateInterval) clearInterval(updateInterval);
             if (syncInterval) clearInterval(syncInterval);
             
-            otherPlayers.forEach(p => {
-                scene.remove(p.mesh);
-                scene.remove(p.label);
-            });
+            otherPlayers.forEach(p => { scene.remove(p.mesh); scene.remove(p.label); });
             otherPlayers.clear();
-            
             if (localPlayerMesh) scene.remove(localPlayerMesh);
             if (localLabel) scene.remove(localLabel);
             
             currentServerId = serverId;
-            const spawnPos = { x: (Math.random() - 0.5) * 25, y: 0.8, z: (Math.random() - 0.5) * 25 };
+            const spawnPos = { x: (Math.random() - 0.5) * 40, y: 0.8, z: (Math.random() - 0.5) * 40 };
             const playerColor = `hsl(${Math.random() * 360}, 70%, 55%)`;
             
-            const { data, error } = await supabase
-                .from('players')
-                .insert({
-                    username: myUsername,
-                    server_id: currentServerId,
-                    x: spawnPos.x,
-                    y: spawnPos.y,
-                    z: spawnPos.z,
-                    color: playerColor,
-                    money: playerStats.money,
-                    health: 100,
-                    is_alive: true
-                })
-                .select()
-                .single();
+            const { data, error } = await supabase.from('players').insert({
+                username: myUsername, server_id: currentServerId, x: spawnPos.x, y: spawnPos.y, z: spawnPos.z,
+                color: playerColor, money: playerStats.money, health: 100, is_alive: true
+            }).select().single();
             
-            if (error) {
-                addLog(`Error: ${error.message}`, 'info');
-                return;
-            }
+            if (error) { addLog(`Error: ${error.message}`, 'info'); return; }
             
             myPlayerId = data.id;
-            
             localPlayerMesh = createPlayerModel(playerColor, true);
             localPlayerMesh.position.set(spawnPos.x, spawnPos.y, spawnPos.z);
             scene.add(localPlayerMesh);
@@ -750,46 +835,31 @@
             localLabel.position.set(spawnPos.x, spawnPos.y + 1.6, spawnPos.z);
             scene.add(localLabel);
             
-            addLog(`Joined server as ${myUsername}`, 'success');
+            addLog(`Joined ${currentServerId} as ${myUsername}`, 'success');
             
-            mouseX = 0;
-            mouseY = 0;
-            cameraPitch = 0;
-            cameraYaw = 0;
+            mouseX = 0; mouseY = 0; cameraPitch = 0; cameraYaw = 0;
             camera.rotation.order = 'YXZ';
             camera.rotation.y = 0;
             camera.rotation.x = 0;
             
             await syncPlayers();
-            
             syncInterval = setInterval(() => syncPlayers(), 150);
             updateInterval = setInterval(() => updatePosition(), 50);
             setInterval(() => checkDeathStatus(), 500);
         }
         
         async function leaveServer() {
-            if (myPlayerId) {
-                await supabase.from('players').delete().eq('id', myPlayerId);
-            }
+            if (myPlayerId) await supabase.from('players').delete().eq('id', myPlayerId);
             if (updateInterval) clearInterval(updateInterval);
             if (syncInterval) clearInterval(syncInterval);
-            
-            otherPlayers.forEach(p => {
-                scene.remove(p.mesh);
-                scene.remove(p.label);
-            });
+            otherPlayers.forEach(p => { scene.remove(p.mesh); scene.remove(p.label); });
             otherPlayers.clear();
-            
             if (localPlayerMesh) scene.remove(localPlayerMesh);
             if (localLabel) scene.remove(localLabel);
-            
-            currentServerId = null;
-            myPlayerId = null;
-            isDead = false;
+            currentServerId = null; myPlayerId = null; isDead = false;
             addLog('Left server', 'info');
         }
         
-        // Movement
         const keys = { w: false, s: false, a: false, d: false };
         let moveSpeed = 6;
         
@@ -799,14 +869,8 @@
             if (key === 's') keys.s = true;
             if (key === 'a') keys.a = true;
             if (key === 'd') keys.d = true;
-            if (key === 'tab') {
-                e.preventDefault();
-                const apps = document.getElementById('phone-apps');
-                apps.style.display = apps.style.display === 'flex' ? 'none' : 'flex';
-            }
-            if (key === 'escape' && isPointerLocked) {
-                document.exitPointerLock();
-            }
+            if (key === 'tab') { e.preventDefault(); const apps = document.getElementById('phone-apps'); apps.style.display = apps.style.display === 'flex' ? 'none' : 'flex'; }
+            if (key === 'escape' && isPointerLocked) document.exitPointerLock();
         });
         
         document.addEventListener('keyup', (e) => {
@@ -819,12 +883,10 @@
         
         function updateMovement() {
             if (!localPlayerMesh || isDead) return;
-            
             const forward = new THREE.Vector3();
             const right = new THREE.Vector3();
             camera.getWorldDirection(forward);
-            forward.y = 0;
-            forward.normalize();
+            forward.y = 0; forward.normalize();
             right.crossVectors(new THREE.Vector3(0, 1, 0), forward);
             
             const move = new THREE.Vector3();
@@ -837,73 +899,53 @@
             move.multiplyScalar(moveSpeed * 0.016);
             
             let newPos = localPlayerMesh.position.clone().add(move);
-            newPos.x = Math.min(110, Math.max(-110, newPos.x));
-            newPos.z = Math.min(110, Math.max(-110, newPos.z));
+            newPos.x = Math.min(55, Math.max(-55, newPos.x));
+            newPos.z = Math.min(55, Math.max(-55, newPos.z));
             newPos.y = 0.8;
             
             localPlayerMesh.position.copy(newPos);
             localLabel.position.copy(newPos);
             localLabel.position.y += 1.6;
-            
             camera.position.copy(localPlayerMesh.position);
             camera.position.y += 1.6;
         }
         
-        // Mouse lock
-        renderer.domElement.addEventListener('click', () => {
-            renderer.domElement.requestPointerLock();
-        });
+        renderer.domElement.addEventListener('click', () => { renderer.domElement.requestPointerLock(); });
         
-        document.addEventListener('pointerlockchange', lockChange);
-        
-        function lockChange() {
-            if (document.pointerLockElement === renderer.domElement) {
-                isPointerLocked = true;
+        document.addEventListener('pointerlockchange', () => {
+            isPointerLocked = document.pointerLockElement === renderer.domElement;
+            if (isPointerLocked) {
                 document.addEventListener('mousemove', onMouseMove);
                 addLog('🔒 Mouse locked - Move mouse to aim!', 'info');
             } else {
-                isPointerLocked = false;
                 document.removeEventListener('mousemove', onMouseMove);
-                addLog('🔓 Mouse unlocked', 'info');
             }
-        }
+        });
         
         function onMouseMove(e) {
             if (!isPointerLocked) return;
-            
             mouseX += e.movementX * 0.002;
             mouseY += e.movementY * 0.002;
             mouseY = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, mouseY));
-            
             cameraYaw = mouseX;
             cameraPitch = mouseY;
-            
             camera.rotation.order = 'YXZ';
             camera.rotation.y = cameraYaw;
             camera.rotation.x = cameraPitch;
         }
         
-        renderer.domElement.addEventListener('click', (e) => {
-            if (isPointerLocked && !isDead) shoot();
-        });
+        renderer.domElement.addEventListener('click', (e) => { if (isPointerLocked && !isDead) shoot(); });
         
-        function showInventory() {
-            addLog(`📦 Kills: ${playerStats.kills} | Money: $${playerStats.money}`, 'info');
-        }
+        function showInventory() { addLog(`📦 Kills: ${playerStats.kills} | Money: $${playerStats.money}`, 'info'); }
         
-        window.togglePhone = () => {
-            const apps = document.getElementById('phone-apps');
-            apps.style.display = apps.style.display === 'flex' ? 'none' : 'flex';
-        };
-        
+        window.togglePhone = () => { const apps = document.getElementById('phone-apps'); apps.style.display = apps.style.display === 'flex' ? 'none' : 'flex'; };
         window.respawn = respawn;
         window.showInventory = showInventory;
         
         document.getElementById('joinGame').onclick = () => joinServer(document.getElementById('serverCode').value);
         document.getElementById('leaveGame').onclick = () => leaveServer();
-        document.getElementById('username').value = `Player_${Math.floor(Math.random() * 1000)}`;
+        document.getElementById('username').value = `Citizen_${Math.floor(Math.random() * 1000)}`;
         
-        // Survival mechanics
         setInterval(() => {
             if (localPlayerMesh && !isDead) {
                 playerStats.hunger = Math.max(0, playerStats.hunger - 0.2);
@@ -912,7 +954,6 @@
             }
         }, 5000);
         
-        // Animation
         function animate() {
             updateMovement();
             renderer.render(scene, camera);
@@ -922,10 +963,9 @@
         
         animate();
         
-        addLog('✨ Welcome! Click game to lock mouse and aim!', 'info');
-        addLog('🔫 Move mouse to look around - Click to shoot!', 'info');
+        addLog('🏙️ Welcome to RP City! Explore the streets and interact with others!', 'info');
+        addLog('🔫 Click game to lock mouse - Move around the city!', 'info');
         
-        // Stars
         const starGeometry = new THREE.BufferGeometry();
         const starPositions = new Float32Array(800 * 3);
         for (let i = 0; i < 800; i++) {
