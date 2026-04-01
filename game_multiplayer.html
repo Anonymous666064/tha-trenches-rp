@@ -5,10 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>RP World - Multiplayer Roleplay</title>
     <style>
+        /* (styles remain exactly as before) */
         * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
         body { overflow: hidden; font-family: 'Segoe UI', monospace; background: #000; color: white; }
-        
-        /* UI Elements */
         #ui { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); border-radius: 12px; padding: 10px; border: 1px solid rgba(255,255,255,0.2); pointer-events: auto; font-size: 11px; min-width: 220px; z-index: 100; }
         .stat-bar { margin: 3px 0; }
         .stat-label { display: inline-block; width: 45px; font-size: 10px; }
@@ -206,7 +205,14 @@
         function createPlayerModel(color, isLocal = false) { const group = new THREE.Group(); const bodyMat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.3 }); const body = new THREE.Mesh(new THREE.BoxGeometry(0.7, 1.2, 0.7), bodyMat); body.position.y = 0.6; body.castShadow = true; group.add(body); const headMat = new THREE.MeshStandardMaterial({ color: 0xffccaa }); const head = new THREE.Mesh(new THREE.SphereGeometry(0.45, 24, 24), headMat); head.position.y = 1.25; head.castShadow = true; group.add(head); if (isLocal) { const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.55, 0.65, 0.2, 8), new THREE.MeshStandardMaterial({ color: 0xff4444 })); hat.position.y = 1.55; group.add(hat); } return group; }
         function createBloodEffect(position) { for (let i = 0; i < 20; i++) { const blood = new THREE.Mesh(new THREE.SphereGeometry(0.08, 4, 4), new THREE.MeshStandardMaterial({ color: 0xcc0000 })); blood.position.set(position.x + (Math.random() - 0.5) * 1, position.y + 0.1, position.z + (Math.random() - 0.5) * 1); scene.add(blood); setTimeout(() => scene.remove(blood), 3000); } }
         function addLog(msg, type = 'info') { const logDiv = document.getElementById('log'); const entry = document.createElement('div'); entry.className = `log-entry ${type}`; entry.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}`; logDiv.appendChild(entry); if (logDiv.children.length > 15) logDiv.removeChild(logDiv.children[0]); console.log(msg); }
-        function updateUI() { document.getElementById('money').innerText = playerStats.money; document.getElementById('health-bar').style.width = `${playerStats.health}%`; document.getElementById('hunger-bar').style.width = `${playerStats.hunger}%`; document.getElementById('thirst-bar').style.width = `${playerStats.thirst}%`; }
+        function updateUI() { 
+            document.getElementById('money').innerText = playerStats.money; 
+            document.getElementById('health-bar').style.width = `${playerStats.health}%`; 
+            document.getElementById('hunger-bar').style.width = `${playerStats.hunger}%`; 
+            document.getElementById('thirst-bar').style.width = `${playerStats.thirst}%`; 
+            // Also update gameData.money to keep it in sync
+            gameData.money = playerStats.money;
+        }
         function updatePlayerList() { const container = document.getElementById('player-list-content'); container.innerHTML = ''; container.innerHTML += `<div class="player-name" style="color:#ffaa44">👤 ${myUsername} (You)</div>`; for (let [id, player] of otherPlayers) { container.innerHTML += `<div class="player-name" style="color:#aaffdd">👥 ${player.name}</div>`; } }
         
         // ==================== ADVANCED GAME SYSTEMS ====================
@@ -241,7 +247,14 @@
         function spawnVehicleNearPlayer(vehicleDef) { if (!player) return; const spawnX = player.position.x + Math.sin(cameraAngle) * 4; const spawnZ = player.position.z + Math.cos(cameraAngle) * 4; const vehicle = createVehicleModel(vehicleDef.color || 0x44aaff); vehicle.position.set(spawnX, 0, spawnZ); vehicle.rotation.y = cameraAngle; vehicle.userData = { name: vehicleDef.name, velocity: new THREE.Vector3(0,0,0), fuel: 100, maxFuel: 100, isPolice: vehicleDef.isPolice || false, scale: 1 }; scene.add(vehicle); vehicles.push(vehicle); spawnedPlayerVehicles.push(vehicle); addVehicleLights(vehicle); if (vehicleDef.isPolice) createEnhancedPoliceLights(vehicle); }
         function despawnOwnedVehicleByName(name) { const matches = spawnedPlayerVehicles.filter(v => v.userData?.name === name); matches.forEach(vehicle => { scene.remove(vehicle); const worldIdx = vehicles.indexOf(vehicle); if (worldIdx !== -1) vehicles.splice(worldIdx, 1); const ownIdx = spawnedPlayerVehicles.indexOf(vehicle); if (ownIdx !== -1) spawnedPlayerVehicles.splice(ownIdx, 1); if (currentVehicle === vehicle) { isInVehicle = false; currentVehicle = null; player.visible = true; } }); }
         
-        function updateMoneyDisplay() { document.getElementById('money-ui').innerHTML = `💰 $${gameData.money}`; playerStats.money = gameData.money; document.getElementById('money').innerText = gameData.money; }
+        function updateMoneyDisplay() { 
+            // Update the UI money element
+            const moneySpan = document.getElementById('money');
+            if (moneySpan) moneySpan.innerText = gameData.money;
+            // Keep playerStats.money in sync with gameData.money
+            playerStats.money = gameData.money;
+        }
+        
         function depositMoney(amount) { if (gameData.money < amount) return showNotification('Not enough cash', '#ff5555'); gameData.money -= amount; gameData.bank += amount; updateMoneyDisplay(); showNotification(`Deposited $${amount}`, '#88ffbb'); }
         function withdrawMoney(amount) { if (gameData.bank < amount) return showNotification('Not enough bank funds', '#ff5555'); gameData.bank -= amount; gameData.money += amount; updateMoneyDisplay(); showNotification(`Withdrew $${amount}`, '#88ffbb'); }
         function saveGameToLocal() { localStorage.setItem('rpWorldSave', JSON.stringify({ money: gameData.money, bank: gameData.bank, ownedVehicles: gameData.ownedVehicles, ownedHouses: gameData.ownedHouses, friends: gameData.friends, inventory: inventory, policeJob: policeJob, playerStats: playerStats })); showNotification('Game saved!', '#4ae04a'); }
