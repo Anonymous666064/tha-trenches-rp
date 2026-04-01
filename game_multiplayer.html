@@ -280,11 +280,16 @@
         }
         
         .log-entry.kill {
-            color: #ff8888;
+            color: #ff4444;
+            font-weight: bold;
         }
         
         .log-entry.join {
             color: #88ff88;
+        }
+        
+        .log-entry.death {
+            color: #ff8888;
         }
         
         .instruction {
@@ -295,6 +300,50 @@
             padding: 3px;
             background: rgba(0,0,0,0.5);
             border-radius: 5px;
+        }
+        
+        /* Debug console */
+        #debug-console {
+            position: absolute;
+            bottom: 80px;
+            right: 20px;
+            background: rgba(0,0,0,0.85);
+            border: 1px solid #00ff00;
+            border-radius: 10px;
+            padding: 10px;
+            min-width: 250px;
+            max-width: 350px;
+            max-height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 10px;
+            color: #0f0;
+            z-index: 150;
+            pointer-events: none;
+        }
+        
+        #debug-console h4 {
+            margin: 0 0 5px 0;
+            color: #ffaa44;
+            text-align: center;
+        }
+        
+        .debug-entry {
+            padding: 2px 0;
+            border-bottom: 1px solid #333;
+            font-size: 9px;
+        }
+        
+        .debug-entry.kill {
+            color: #ff6666;
+        }
+        
+        .debug-entry.death {
+            color: #ffaa66;
+        }
+        
+        .debug-entry.respawn {
+            color: #66ff66;
         }
     </style>
 </head>
@@ -324,6 +373,11 @@
         <div class="instruction">💡 Click on game to lock mouse | Click to shoot | ESC to unlock</div>
     </div>
     
+    <div id="debug-console">
+        <h4>🔍 DEBUG CONSOLE</h4>
+        <div id="debug-log"></div>
+    </div>
+    
     <div id="phone" onclick="togglePhone()">
         <div id="phone-icon">📱</div>
     </div>
@@ -350,7 +404,7 @@
     <div id="npc-interaction"></div>
     
     <div id="controls-note">
-        🎮 WASD Move | 🖱️ Click to Lock Mouse | 🔫 Click to Shoot | E Interact | TAB Phone | F Enter/Exit Vehicle
+        🎮 WASD Move | 🖱️ Click to Lock Mouse | 🔫 Click to Shoot | E Interact | TAB Phone
     </div>
     
     <script type="importmap">
@@ -380,6 +434,7 @@
         let localPlayerMesh = null;
         let localLabel = null;
         let otherPlayers = new Map();
+        let deadBodies = [];
         let npcs = [];
         let currentVehicle = null;
         let isInVehicle = false;
@@ -390,8 +445,8 @@
         let syncInterval = null;
         let isDead = false;
         
-        // Player stats with 100,000 starting money
-        let playerStats = { health: 100, hunger: 100, thirst: 100, money: 100000 };
+        // Player stats
+        let playerStats = { health: 100, hunger: 100, thirst: 100, money: 100000, kills: 0 };
         
         // Camera control with mouse lock
         let mouseX = 0;
@@ -550,100 +605,114 @@
             return group;
         }
         
-        function createVehicle(color) {
+        // Create ragdoll effect for dead body
+        function createRagdoll(position, color, name) {
             const group = new THREE.Group();
-            const body = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.4, 2.2), new THREE.MeshStandardMaterial({ color }));
-            body.position.y = 0.2;
+            
+            // Create a fallen body (lying down)
+            const bodyMat = new THREE.MeshStandardMaterial({ color: color, roughness: 0.5 });
+            const body = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.4, 1.2), bodyMat);
+            body.position.set(0, 0.2, 0);
+            body.rotation.x = Math.PI / 2;
             body.castShadow = true;
             group.add(body);
             
-            const roof = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.3, 1.4), new THREE.MeshStandardMaterial({ color: 0x888888 }));
-            roof.position.y = 0.55;
-            roof.castShadow = true;
-            group.add(roof);
+            // Head
+            const headMat = new THREE.MeshStandardMaterial({ color: 0xffccaa });
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 16), headMat);
+            head.position.set(0, 0.5, 0.4);
+            head.castShadow = true;
+            group.add(head);
             
-            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
-            const positions = [[-0.6, 0.1, -0.9], [0.6, 0.1, -0.9], [-0.6, 0.1, 0.9], [0.6, 0.1, 0.9]];
-            positions.forEach(pos => {
-                const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.1, 16), wheelMat);
-                wheel.rotation.z = Math.PI / 2;
-                wheel.position.set(pos[0], pos[1], pos[2]);
-                wheel.castShadow = true;
-                group.add(wheel);
-            });
+            group.position.copy(position);
+            scene.add(group);
             
-            return group;
-        }
-        
-        // Mouse lock for aiming
-        renderer.domElement.addEventListener('click', () => {
-            renderer.domElement.requestPointerLock();
-        });
-        
-        document.addEventListener('pointerlockchange', lockChange);
-        document.addEventListener('mozpointerlockchange', lockChange);
-        
-        function lockChange() {
-            if (document.pointerLockElement === renderer.domElement) {
-                isPointerLocked = true;
-                document.addEventListener('mousemove', onMouseMove);
-                addLog('🔒 Mouse locked - You can now aim and shoot!', 'info');
-            } else {
-                isPointerLocked = false;
-                document.removeEventListener('mousemove', onMouseMove);
-                addLog('🔓 Mouse unlocked', 'info');
+            // Create blood particles
+            const bloodParticles = [];
+            for (let i = 0; i < 30; i++) {
+                const bloodMat = new THREE.MeshStandardMaterial({ color: 0xcc0000 });
+                const blood = new THREE.Mesh(new THREE.SphereGeometry(0.05 + Math.random() * 0.1, 4, 4), bloodMat);
+                blood.position.set(
+                    position.x + (Math.random() - 0.5) * 1.5,
+                    position.y + 0.1,
+                    position.z + (Math.random() - 0.5) * 1.5
+                );
+                blood.castShadow = true;
+                scene.add(blood);
+                bloodParticles.push(blood);
             }
+            
+            // Create blood decal on ground (red circle)
+            const bloodDecalMat = new THREE.MeshStandardMaterial({ color: 0xcc0000 });
+            const bloodDecal = new THREE.Mesh(new THREE.CircleGeometry(0.6, 8), bloodDecalMat);
+            bloodDecal.rotation.x = -Math.PI / 2;
+            bloodDecal.position.set(position.x, position.y - 0.2, position.z);
+            bloodDecal.receiveShadow = true;
+            scene.add(bloodDecal);
+            
+            return { group, bloodParticles, bloodDecal };
         }
         
-        function onMouseMove(e) {
-            if (!isPointerLocked) return;
-            
-            mouseX += e.movementX * 0.002;
-            mouseY += e.movementY * 0.002;
-            
-            // Limit vertical look
-            mouseY = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, mouseY));
-            
-            cameraYaw = mouseX;
-            cameraPitch = mouseY;
-            
-            // Apply camera rotation
-            camera.rotation.order = 'YXZ';
-            camera.rotation.y = cameraYaw;
-            camera.rotation.x = cameraPitch;
+        function createBloodSplatter(position) {
+            const bloodGroup = new THREE.Group();
+            for (let i = 0; i < 15; i++) {
+                const bloodMat = new THREE.MeshStandardMaterial({ color: 0xcc0000 });
+                const blood = new THREE.Mesh(new THREE.SphereGeometry(0.08 + Math.random() * 0.12, 5, 5), bloodMat);
+                blood.position.set(
+                    position.x + (Math.random() - 0.5) * 1.2,
+                    position.y + 0.05,
+                    position.z + (Math.random() - 0.5) * 1.2
+                );
+                blood.castShadow = true;
+                bloodGroup.add(blood);
+            }
+            scene.add(bloodGroup);
+            return bloodGroup;
         }
         
-        // UI Updates
-        function updateUI() {
-            document.getElementById('money').innerText = playerStats.money;
-            document.getElementById('health-bar').style.width = `${playerStats.health}%`;
-            document.getElementById('hunger-bar').style.width = `${playerStats.hunger}%`;
-            document.getElementById('thirst-bar').style.width = `${playerStats.thirst}%`;
-        }
-        
-        function addLog(msg, type = 'info') {
-            const logDiv = document.getElementById('log');
+        // Debug console logging
+        function addDebugLog(message, type = 'info') {
+            const debugDiv = document.getElementById('debug-log');
             const entry = document.createElement('div');
-            entry.className = `log-entry ${type}`;
-            entry.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}`;
-            logDiv.appendChild(entry);
+            entry.className = `debug-entry ${type}`;
+            const timestamp = new Date().toLocaleTimeString();
+            entry.innerHTML = `[${timestamp}] ${message}`;
+            debugDiv.appendChild(entry);
             entry.scrollIntoView({ behavior: 'smooth' });
-            if (logDiv.children.length > 15) logDiv.removeChild(logDiv.children[0]);
+            if (debugDiv.children.length > 20) debugDiv.removeChild(debugDiv.children[0]);
+            
+            // Also log to main console
+            console.log(`[DEBUG] ${message}`);
         }
         
-        // Combat system - Kill other players
-        async function killPlayer(targetId, targetName) {
+        // Combat system - Kill other players with ragdoll and blood
+        async function killPlayer(targetId, targetName, targetPosition, targetColor) {
+            // Create ragdoll effect at target position
+            const ragdoll = createRagdoll(targetPosition, targetColor, targetName);
+            deadBodies.push(ragdoll);
+            
+            // Create additional blood splatter
+            createBloodSplatter(targetPosition);
+            
             // Remove the player from the game
             removeRemotePlayer(targetId);
             
             // Delete from database
             await supabase.from('players').delete().eq('id', targetId);
             
-            addLog(`💀 YOU KILLED ${targetName}! +$5000 reward!`, 'kill');
+            // Add to kill log
+            const killMessage = `💀 YOU KILLED ${targetName}! +$5000 reward!`;
+            addLog(killMessage, 'kill');
+            addDebugLog(`PLAYER KILLED: ${targetName} was eliminated by ${myUsername}`, 'kill');
+            addDebugLog(`💰 REWARD: +$5000 added to ${myUsername}'s account`, 'kill');
             
             // Add reward money to killer
             playerStats.money += 5000;
+            playerStats.kills++;
             updateUI();
+            
+            // Add death log for the killed player
+            addDebugLog(`⚰️ DEATH: ${targetName} has been slain at position (${targetPosition.x.toFixed(1)}, ${targetPosition.z.toFixed(1)})`, 'death');
         }
         
         async function shoot() {
@@ -658,37 +727,47 @@
             
             // Get camera direction for shooting
             const direction = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
-            const raycaster = new THREE.Raycaster(camera.position, direction, 0, 20);
+            const raycaster = new THREE.Raycaster(camera.position, direction, 0, 25);
             
             // Check for other players
             for (let [id, player] of otherPlayers) {
                 const intersects = raycaster.intersectObject(player.mesh);
                 if (intersects.length > 0) {
-                    // Hit another player - kill them instantly for demo
-                    await killPlayer(id, player.name);
+                    addDebugLog(`🎯 SHOT HIT: ${myUsername} shot ${player.name}`, 'kill');
+                    // Hit another player - kill them
+                    await killPlayer(id, player.name, player.mesh.position, player.color);
                     break;
                 }
             }
             
             // Muzzle flash effect
-            const flash = new THREE.PointLight(0xff6600, 1, 8);
+            const flash = new THREE.PointLight(0xff6600, 1.5, 10);
             flash.position.copy(camera.position);
             scene.add(flash);
             setTimeout(() => scene.remove(flash), 50);
             
             // Recoil effect
-            cameraPitch += 0.03;
+            cameraPitch += 0.05;
             mouseY = cameraPitch;
             setTimeout(() => {
-                cameraPitch -= 0.03;
+                cameraPitch -= 0.05;
                 mouseY = cameraPitch;
             }, 50);
         }
         
         // Handle player death
-        async function die() {
+        async function die(killerName = null) {
             if (isDead) return;
             isDead = true;
+            
+            const deathMessage = killerName ? `You were killed by ${killerName}!` : 'You died!';
+            addDebugLog(`💀 DEATH: ${myUsername} has died - ${deathMessage}`, 'death');
+            
+            // Create ragdoll for local player
+            if (localPlayerMesh) {
+                createRagdoll(localPlayerMesh.position, localPlayerMesh.children[0].material.color.getHexString(), myUsername);
+                createBloodSplatter(localPlayerMesh.position);
+            }
             
             // Remove player from database
             if (myPlayerId) {
@@ -702,9 +781,11 @@
             if (localPlayerMesh) {
                 scene.remove(localPlayerMesh);
                 scene.remove(localLabel);
+                localPlayerMesh = null;
+                localLabel = null;
             }
             
-            addLog('💀 You were killed! Respawn to continue.', 'kill');
+            addLog(`💀 You were killed! ${killerName ? `Killed by ${killerName}` : ''} Respawn to continue.`, 'death');
         }
         
         async function respawn() {
@@ -717,14 +798,16 @@
                 updateUI();
                 document.getElementById('wasted').style.display = 'none';
                 
+                addDebugLog(`🔄 RESPAWN: ${myUsername} has respawned at city center (Cost: $1000)`, 'respawn');
+                addLog('You respawned at the city center!', 'info');
+                
                 // Rejoin the server
                 if (currentServerId) {
                     await joinServer(currentServerId, false);
                 }
-                
-                addLog('You respawned at the city center!', 'info');
             } else {
                 addLog('Not enough money to respawn! Need $1000', 'info');
+                addDebugLog(`❌ RESPAWN FAILED: ${myUsername} doesn't have enough money to respawn`, 'info');
             }
         }
         
@@ -733,12 +816,14 @@
             if (otherPlayers.has(id)) return;
             const mesh = createPlayerModel(color, false);
             mesh.position.copy(position);
+            mesh.userData = { color: color, name: name };
             scene.add(mesh);
             const label = makeLabel(name, '#aaffdd');
             label.position.copy(position);
             label.position.y += 1.6;
             scene.add(label);
-            otherPlayers.set(id, { mesh, label, name, data: { username: name } });
+            otherPlayers.set(id, { mesh, label, name, data: { username: name }, color: color });
+            addDebugLog(`👥 PLAYER JOINED: ${name} joined server "${currentServerId}"`, 'join');
             addLog(`🟢 ${name} joined the server`, 'join');
         }
         
@@ -747,6 +832,7 @@
             if (entry) {
                 scene.remove(entry.mesh);
                 scene.remove(entry.label);
+                addDebugLog(`👋 PLAYER LEFT: ${entry.name} disconnected from server`, 'info');
                 addLog(`🔴 ${entry.name} left the server`, 'info');
                 otherPlayers.delete(id);
             }
@@ -817,6 +903,14 @@
             }
             otherPlayers.clear();
             
+            // Clean up dead bodies
+            deadBodies.forEach(body => {
+                scene.remove(body.group);
+                body.bloodParticles.forEach(particle => scene.remove(particle));
+                scene.remove(body.bloodDecal);
+            });
+            deadBodies = [];
+            
             if (localPlayerMesh) {
                 scene.remove(localPlayerMesh);
                 if (localLabel) scene.remove(localLabel);
@@ -880,6 +974,7 @@
             camera.position.copy(localPlayerMesh.position);
             camera.position.y += 1.6;
             
+            addDebugLog(`🎮 GAME START: ${myUsername} joined server "${currentServerId}" with $${playerStats.money}`, 'respawn');
             addLog(`${isCreate ? 'Created' : 'Joined'} server "${currentServerId}" as ${myUsername}`, 'success');
             addLog(`💰 You have $${playerStats.money} to spend!`, 'info');
             
@@ -950,6 +1045,44 @@
             camera.position.y += 1.6;
         }
         
+        // Mouse lock
+        renderer.domElement.addEventListener('click', () => {
+            renderer.domElement.requestPointerLock();
+        });
+        
+        document.addEventListener('pointerlockchange', lockChange);
+        document.addEventListener('mozpointerlockchange', lockChange);
+        
+        function lockChange() {
+            if (document.pointerLockElement === renderer.domElement) {
+                isPointerLocked = true;
+                document.addEventListener('mousemove', onMouseMove);
+                addDebugLog('🔒 MOUSE LOCKED: Player can now aim and shoot', 'info');
+                addLog('🔒 Mouse locked - You can now aim and shoot!', 'info');
+            } else {
+                isPointerLocked = false;
+                document.removeEventListener('mousemove', onMouseMove);
+                addDebugLog('🔓 MOUSE UNLOCKED: Mouse cursor freed', 'info');
+                addLog('🔓 Mouse unlocked', 'info');
+            }
+        }
+        
+        function onMouseMove(e) {
+            if (!isPointerLocked) return;
+            
+            mouseX += e.movementX * 0.002;
+            mouseY += e.movementY * 0.002;
+            
+            mouseY = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, mouseY));
+            
+            cameraYaw = mouseX;
+            cameraPitch = mouseY;
+            
+            camera.rotation.order = 'YXZ';
+            camera.rotation.y = cameraYaw;
+            camera.rotation.x = cameraPitch;
+        }
+        
         // NPC Interaction
         function interactWithNPC() {
             if (!localPlayerMesh || isDead) return;
@@ -991,6 +1124,23 @@
             setTimeout(() => { ui.style.display = 'none'; }, 8000);
         }
         
+        function updateUI() {
+            document.getElementById('money').innerText = playerStats.money;
+            document.getElementById('health-bar').style.width = `${playerStats.health}%`;
+            document.getElementById('hunger-bar').style.width = `${playerStats.hunger}%`;
+            document.getElementById('thirst-bar').style.width = `${playerStats.thirst}%`;
+        }
+        
+        function addLog(msg, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.innerHTML = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            logDiv.appendChild(entry);
+            entry.scrollIntoView({ behavior: 'smooth' });
+            if (logDiv.children.length > 15) logDiv.removeChild(logDiv.children[0]);
+        }
+        
         window.buyItem = (item, price) => {
             if (playerStats.money >= price) {
                 playerStats.money -= price;
@@ -1000,6 +1150,7 @@
                 if (item === 'weed_seed') inventory.push({ name: 'weed_seed', qty: 1 });
                 updateUI();
                 addLog(`Bought ${item} for $${price}`);
+                addDebugLog(`🛒 PURCHASE: ${myUsername} bought ${item} for $${price}`, 'info');
             } else {
                 addLog('Not enough money!');
             }
@@ -1009,8 +1160,9 @@
             if (playerStats.money >= price) {
                 playerStats.money -= price;
                 currentWeapon = weapon;
-                ammo[weapon] = 999; // Unlimited ammo essentially
+                ammo[weapon] = 999;
                 addLog(`Bought ${weapon}! Unlimited ammo!`);
+                addDebugLog(`🔫 WEAPON PURCHASE: ${myUsername} bought ${weapon} for $${price}`, 'info');
                 updateUI();
             } else {
                 addLog('Not enough money!');
@@ -1021,7 +1173,6 @@
             addLog('Grow weed first by buying seeds from the Weed Dealer!');
         };
         
-        // Phone functions
         window.togglePhone = () => {
             const apps = document.getElementById('phone-apps');
             apps.style.display = apps.style.display === 'flex' ? 'none' : 'flex';
@@ -1047,8 +1198,33 @@
             }
         };
         
+        function createVehicle(color) {
+            const group = new THREE.Group();
+            const body = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.4, 2.2), new THREE.MeshStandardMaterial({ color }));
+            body.position.y = 0.2;
+            body.castShadow = true;
+            group.add(body);
+            
+            const roof = new THREE.Mesh(new THREE.BoxGeometry(1.0, 0.3, 1.4), new THREE.MeshStandardMaterial({ color: 0x888888 }));
+            roof.position.y = 0.55;
+            roof.castShadow = true;
+            group.add(roof);
+            
+            const wheelMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+            const positions = [[-0.6, 0.1, -0.9], [0.6, 0.1, -0.9], [-0.6, 0.1, 0.9], [0.6, 0.1, 0.9]];
+            positions.forEach(pos => {
+                const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.1, 16), wheelMat);
+                wheel.rotation.z = Math.PI / 2;
+                wheel.position.set(pos[0], pos[1], pos[2]);
+                wheel.castShadow = true;
+                group.add(wheel);
+            });
+            
+            return group;
+        }
+        
         window.openInventory = () => {
-            addLog(`📦 Inventory: ${inventory.length} items | Weapon: ${currentWeapon} | Ammo: Unlimited`);
+            addLog(`📦 Inventory: ${inventory.length} items | Weapon: ${currentWeapon} | Ammo: Unlimited | Kills: ${playerStats.kills}`);
         };
         
         window.startWeedJob = () => {
@@ -1107,6 +1283,8 @@
         }
         
         animate();
+        addDebugLog('🎮 GAME INITIALIZED: RP World Multiplayer PVP Arena', 'respawn');
+        addDebugLog('💰 STARTING MONEY: $100,000 - Kill players for rewards!', 'info');
         addLog('✨ Welcome to RP World! Click on game to lock mouse and start playing!', 'info');
         addLog('💰 You start with $100,000! Go buy weapons and hunt other players!', 'info');
         addLog('💀 Kill other players to earn $5,000 rewards!', 'info');
