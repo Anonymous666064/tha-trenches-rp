@@ -1,279 +1,329 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Tha Trenches RP</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Join Tha Trenches RP - Roleplay Game with realistic graphics, vehicles, houses, and gangs.">
+<meta charset="UTF-8">
+<title>Tha Trenches RP</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <style>
-    :root {
-      --bg: #050816;
-      --bg-alt: #0b1020;
-      --accent: #7b5cff;
-      --accent2: #22d3ee;
-      --text: #f5f5f5;
-      --muted: #9ca3af;
-      --card: #111827;
-      --success: #10b981;
-      --warning: #f59e0b;
-      --danger: #ff0077;
-      --live: #ff4b4b;
-    }
+<style>
+:root{
+  --bg:#050507;
+  --card:rgba(255,255,255,0.06);
+  --accent:#6c5cff;
+  --accent2:#00e0ff;
+  --text:#ffffff;
+  --muted:#9aa0aa;
+}
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+*{margin:0;padding:0;box-sizing:border-box;}
 
-    body {
-      background: radial-gradient(circle at top, #1f2937 0, #020617 45%, #000 100%);
-      color: var(--text);
-      font-family: 'Inter', system-ui, -apple-system, sans-serif;
-      min-height: 100vh;
-      line-height: 1.6;
-    }
+body {
+  background: radial-gradient(circle at top, #111, #000);
+  font-family: system-ui, sans-serif;
+  color: var(--text);
+  
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
 
-    header {
-      position: sticky;
-      top: 0;
-      background: rgba(2, 6, 23, 0.95);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid rgba(123, 92, 255, 0.3);
-      z-index: 100;
-      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
-    }
+/* NAV */
+header{
+  position:sticky;
+  top:0;
+  backdrop-filter:blur(15px);
+  background:rgba(0,0,0,0.6);
+  border-bottom:1px solid rgba(255,255,255,0.05);
+}
 
-    .nav {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 1rem 2rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
+.nav{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:1rem;
+  max-width:1200px;
+  margin:auto;
+}
 
-    .logo {
-      font-size: 1.8rem;
-      font-weight: 800;
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      letter-spacing: 1px;
-    }
+.logo{
+  font-weight:900;
+  font-size:1.4rem;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
 
-    .nav-links { display: flex; gap: 1rem; }
+.nav-links{
+  display:flex;
+  gap:10px;
+}
 
-    .nav-links button {
-      background: none;
-      border: none;
-      color: var(--muted);
-      font-size: 0.95rem;
-      font-weight: 500;
-      cursor: pointer;
-      padding: 0.5rem 1rem;
-      border-radius: 30px;
-      transition: all 0.3s ease;
-    }
+.nav-links button{
+  background:none;
+  border:none;
+  color:var(--muted);
+  padding:6px 12px;
+  border-radius:20px;
+  cursor:pointer;
+  transition:.3s;
+}
 
-    .nav-links button.active {
-      color: var(--accent);
-      background: rgba(123, 92, 255, 0.15);
-    }
+.nav-links button:hover{
+  color:white;
+}
 
-    main { max-width: 1200px; margin: 0 auto; padding: 3rem 2rem; }
+.nav-links .active{
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:white;
+}
 
-    .page { display: none; animation: fadeIn 0.5s ease; }
-    .active-page { display: block; }
+main {
+  flex: 1;
+  max-width: 1200px;
+  margin: auto;
+  padding: 2rem 1rem;
+  width: 100%;
+}
 
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.page{display:none;}
+.active-page{display:block;}
 
-    h1 { font-size: 3rem; margin-bottom: 1rem; background: linear-gradient(135deg, #fff, var(--accent2)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+h1{
+  font-size:clamp(2rem,5vw,3rem);
+  margin-bottom:1rem;
+}
 
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-top: 2rem; }
+/* GRID */
+.grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
+  gap:20px;
+}
 
-    .card {
-      background: var(--card);
-      padding: 1.5rem;
-      border-radius: 24px;
-      border: 1px solid rgba(255,255,255,0.1);
-      transition: all 0.3s ease;
-    }
+/* CARD */
+.card{
+  background:var(--card);
+  backdrop-filter:blur(20px);
+  padding:20px;
+  border-radius:20px;
+  border:1px solid rgba(255,255,255,0.08);
+  transition:.3s;
+}
 
-    /* STATUS BADGES */
-    .status-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 5px 15px;
-      border-radius: 50px;
-      font-weight: bold;
-      font-size: 0.8rem;
-      text-transform: uppercase;
-    }
+.card:hover{
+  transform:translateY(-6px);
+  box-shadow:0 10px 40px rgba(0,0,0,0.6);
+}
 
-    .status-live { background: rgba(255, 75, 75, 0.2); color: var(--live); border: 1px solid var(--live); animation: pulse 2s infinite; }
-    .status-idle { background: rgba(245, 158, 11, 0.2); color: var(--warning); border: 1px solid var(--warning); }
-    .status-offline { background: rgba(156, 163, 175, 0.1); color: var(--muted); border: 1px solid var(--muted); }
+/* BUTTON */
+.btn{
+  padding:12px 20px;
+  border:none;
+  border-radius:30px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:white;
+  cursor:pointer;
+  font-weight:600;
+  transition:.3s;
+}
 
-    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
+.btn:hover{
+  transform:scale(1.05);
+}
 
-    /* UTILITY */
-    .btn { padding: 0.75rem 1.5rem; border-radius: 30px; cursor: pointer; transition: all 0.3s ease; text-decoration: none; display: inline-block; font-weight: 600; border: none; }
-    .btn-primary { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: white; }
-    .btn-live { background: var(--live); color: white; }
-    .btn-idle { background: var(--warning); color: black; }
-    .btn-off { background: var(--muted); color: black; }
-    .hidden { display: none; }
+/* HERO */
+.hero{
+  text-align:center;
+  padding:4rem 1rem;
+}
 
-    footer { text-align: center; padding: 2rem; color: var(--muted); border-top: 1px solid rgba(255,255,255,0.1); }
-  </style>
+.hero p{
+  color:var(--muted);
+}
+
+/* GAME MODAL */
+.game-modal{
+  position:fixed;
+  top:0;left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.95);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  z-index:999;
+}
+
+.hidden{display:none;}
+
+.game-container{
+  width:95%;
+  height:95%;
+  border-radius:20px;
+  overflow:hidden;
+  position:relative;
+  background:black;
+}
+
+/* FULLSCREEN ON MOBILE */
+@media(max-width:600px){
+  .game-container{
+    width:100%;
+    height:100%;
+    border-radius:0;
+  }
+}
+
+.game-container iframe{
+  width:100%;
+  height:100%;
+  border:none;
+}
+
+/* CLOSE BUTTON */
+.close-btn{
+  position:absolute;
+  top:10px;
+  right:10px;
+  width:40px;
+  height:40px;
+  border:none;
+  border-radius:50%;
+  background:red;
+  color:white;
+  font-size:20px;
+  cursor:pointer;
+  z-index:10;
+}
+
+footer {
+  text-align: center;
+  padding: 2rem;
+  color: var(--muted);
+  font-size: .9rem;
+}
+.btn1{
+  padding:12px 20px;
+border:none;
+border-radius:30px;
+background:linear-gradient(135deg, var(--accent), var(--accent2));
+color:white;
+cursor:pointer;
+font-weight:600;
+transition:.3s;
+}
+</style>
 </head>
+
 <body>
 
 <header>
-  <nav class="nav">
+  <div class="nav">
     <div class="logo">THA TRENCHES RP</div>
     <div class="nav-links">
       <button onclick="showPage('home')" id="btn-home" class="active">Home</button>
-      <button onclick="showPage('featured')" id="btn-featured">Games</button>
-      <button onclick="showPage('live-page')" id="btn-live-page">Media & Live</button>
-      <button onclick="showPage('staff')" id="btn-staff">Staff</button>
+      <button onclick="showPage('games')" id="btn-games">Games</button>
       <button onclick="showPage('updates')" id="btn-updates">Updates</button>
     </div>
-  </nav>
+  </div>
 </header>
 
 <main>
-  <section id="home" class="page active-page">
-    <div class="card" style="text-align: center; padding: 4rem 2rem;">
-      <div id="home-status-container" style="margin-bottom: 1rem;"></div>
-      <h1>Welcome to Tha Trenches RP</h1>
-      <p style="color: var(--muted);">The most immersive 3D roleplay experience on the web.</p>
-      <a href="game_multiplayer.html" class="btn btn-primary" style="margin-top: 2rem;">▶ PLAY NOW</a>
-    </div>
-  </section>
 
-  <section id="live-page" class="page">
-    <h1>Live Status & Socials</h1>
-    <div class="grid">
-      <div class="card">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-            <h3 style="color: #a970ff;">Twitch</h3>
-            <span id="global-badge" class="status-badge status-offline">Offline</span>
-        </div>
-        <p id="global-status-text" class="card-body">We aren't live right now, but check back soon!</p>
-        <button class="btn btn-primary" style="width: 100%; margin-top: 1rem;" onclick="window.open('https://twitch.tv/thatrenchesrp')">Visit Channel</button>
-      </div>
+<!-- HOME -->
+<section id="home" class="page active-page">
+  <div class="hero">
+    <h1>Tha Trenches RP</h1>
+    <p>Next-level roleplay experience built for the web</p>
+    <button class="btn" onclick="openGame()" style="margin-top:20px;">▶ PLAY NOW</button>
+  </div>
+</section>
 
-      <div class="card">
-        <h3>Platform Status</h3>
-        <ul style="list-style: none; margin-top: 1rem;">
-            <li style="margin-bottom: 10px; display: flex; justify-content: space-between;">
-                <span>Game Server</span> <span style="color: var(--success);">● Online</span>
-            </li>
-            <li style="margin-bottom: 10px; display: flex; justify-content: space-between;">
-                <span>Discord</span> <span style="color: var(--success);">● Active</span>
-            </li>
-        </ul>
-      </div>
-    </div>
-  </section>
-
-  <section id="staff" class="page">
-    <h1>Staff Directory</h1>
-    <div id="staffGrid" class="grid"></div>
-    
-    <div class="card" style="margin-top: 3rem; border: 2px dashed var(--accent);">
-        <h2 style="font-size: 1.5rem;">Admin Control Center</h2>
-        <div id="lockZone">
-            <input type="password" id="adminPassword" placeholder="Admin Password" style="width: 100%; padding: 12px; margin: 15px 0; background: #000; border: 1px solid var(--accent); color: white; border-radius: 8px;">
-            <button class="btn btn-primary" onclick="unlockAdmin()">Access Admin Panel</button>
-        </div>
-
-        <div id="adminPanel" class="hidden">
-            <h3 style="color: var(--accent2); margin-bottom: 1rem;">Site-Wide Live Status Controller</h3>
-            <p style="margin-bottom: 15px; font-size: 0.9rem;">Change your status below to update the Home and Media pages instantly.</p>
-            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                <button class="btn btn-live" onclick="setGlobalStatus('live')">Set to LIVE</button>
-                <button class="btn btn-idle" onclick="setGlobalStatus('idle')">Set to IDLE</button>
-                <button class="btn btn-off" onclick="setGlobalStatus('offline')">Set to OFFLINE</button>
-            </div>
-            <p style="margin-top: 20px; color: var(--muted); font-style: italic;">Note: Changes are session-based. Refreshing the code defaults to Offline.</p>
-        </div>
-    </div>
-  </section>
-
-  <section id="featured" class="page">
-    <h1>Our Games</h1>
+<!-- GAMES -->
+<section id="games" class="page">
+  <h1>Games</h1>
+  <div class="grid">
     <div class="card">
       <h3>Tha Trenches RP</h3>
-      <button class="btn btn-primary" onclick="window.location.href='game_multiplayer.html'">LAUNCH GAME</button>
+      <p style="color:var(--muted);">Open-world multiplayer roleplay</p>
+      <button class="btn" onclick="openGame()" style="margin-top:10px;">Launch</button>
     </div>
-  </section>
+  </div>
+</section>
 
-  <section id="updates" class="page">
-    <h1>Latest Updates</h1>
+<!-- UPDATES -->
+<section id="updates" class="page">
+  <h1>Latest Updates</h1>
+  <div class="grid">
+
     <div class="card">
-        <p>February 26, 2026</p>
-        <h3>Admin Live Status Controller Integrated.</h3>
+      
+      <p style="color:var(--muted);">Apr 2 2026: Project Reconstruction</p>
+      <h3>The Game Is Underway In Another Development loop and we are activly adding more features for perfect gameplay.</h3>
+      <p>To See All New Updates Click The "View TXT" Text so you can see all recent updates and more.</p>
+      <br><br>
+      <button class="btn1" onclick="window.location.href='Updates.txt'">View TXT</button>
     </div>
-  </section>
+
+    <div class="card">
+      
+      <p style="color:var(--muted);">Date : Project Title</p>
+      <h3>New Updates:</h3>
+      <p></p>
+      <br><br>
+      <button class="btn1" onclick="window.location.href='Updates.txt'">View TXT</button>
+    </div>
+
+    <div class="card">
+      
+      <p style="color:var(--muted);">Date : Project Title</p>
+      <h3>New Updates:</h3>
+      <p></p>
+      <br><br>
+      <button class="btn1" onclick="window.location.href='Updates.txt'">View TXT</button>
+    </div>
+
+  </div>
+</section>
+
 </main>
 
 <footer>© 2026 Tha Trenches RP</footer>
 
+<!-- GAME MODAL -->
+<div id="gameModal" class="game-modal hidden">
+  <div class="game-container">
+    <button class="close-btn" onclick="closeGame()">✕</button>
+    <iframe src="game.html"></iframe>
+  </div>
+</div>
+
 <script>
-    const MASTER_PASSWORD = "#";
+// NAVIGATION
+function showPage(id){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active-page"));
+  document.getElementById(id).classList.add("active-page");
 
-    // GLOBAL UPDATE FUNCTION
-    function setGlobalStatus(status) {
-        const badge = document.getElementById('global-badge');
-        const statusText = document.getElementById('global-status-text');
-        const homeContainer = document.getElementById('home-status-container');
+  document.querySelectorAll(".nav-links button").forEach(b=>b.classList.remove("active"));
+  document.getElementById("btn-"+id).classList.add("active");
+}
 
-        if (status === 'live') {
-            badge.className = "status-badge status-live";
-            badge.innerText = "LIVE NOW";
-            statusText.innerText = "Riley Freeman is currently LIVE! Come join the stream.";
-            homeContainer.innerHTML = `<span class="status-badge status-live">● WE ARE LIVE</span>`;
-        } else if (status === 'idle') {
-            badge.className = "status-badge status-idle";
-            badge.innerText = "IDLE / RECORDING";
-            statusText.innerText = "We are currently recording content or working on the server.";
-            homeContainer.innerHTML = `<span class="status-badge status-idle">● IDLE / BUSY</span>`;
-        } else {
-            badge.className = "status-badge status-offline";
-            badge.innerText = "OFFLINE";
-            statusText.innerText = "We aren't live right now, but check back soon!";
-            homeContainer.innerHTML = "";
-        }
-    }
+// GAME MODAL
+function openGame(){
+  document.getElementById("gameModal").classList.remove("hidden");
+}
 
-    function showPage(pageId) {
-        document.querySelectorAll(".page").forEach(p => p.classList.remove("active-page"));
-        document.getElementById(pageId).classList.add("active-page");
-        document.querySelectorAll(".nav-links button").forEach(btn => btn.classList.remove("active"));
-        document.getElementById('btn-' + pageId).classList.add("active");
-        window.scrollTo(0, 0);
-    }
+function closeGame(){
+  document.getElementById("gameModal").classList.add("hidden");
+}
 
-    function unlockAdmin() {
-        if (document.getElementById("adminPassword").value === MASTER_PASSWORD) {
-            document.getElementById("adminPanel").classList.remove("hidden");
-            document.getElementById("lockZone").classList.add("hidden");
-        } else { alert("Access Denied"); }
-    }
-
-    function displayStaff() {
-        const staff = [{ name: "Riley Freeman", gamertag: "ThaTrenchesRP" }, { name: "CO-Owner", gamertag: "N/A" }];
-        const grid = document.getElementById("staffGrid");
-        staff.forEach(s => {
-            grid.innerHTML += `<div class="card"><h3>${s.name}</h3><p>Gamertag: ${s.gamertag}</p></div>`;
-        });
-    }
-
-    window.onload = () => {
-        displayStaff();
-        setGlobalStatus('offline'); // Default start state
-    };
+// BASIC PROTECTION
+document.addEventListener("contextmenu", e=>e.preventDefault());
+document.addEventListener("keydown", function(e){
+  if(e.key==="F12") e.preventDefault();
+  if(e.ctrlKey && e.shiftKey && ["I","J","C"].includes(e.key)) e.preventDefault();
+  if(e.ctrlKey && e.key==="U") e.preventDefault();
+});
 </script>
 
 </body>
