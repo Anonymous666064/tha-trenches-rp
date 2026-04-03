@@ -3,360 +3,107 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
-  <title>Beach Explorer | 3D Island Game</title>
+  <title>Beach Explorer | 2X World + Vehicle Rotation Fix</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      user-select: none;
-    }
-
-    body {
-      overflow: hidden;
-      background: #000;
-      font-family: 'Segoe UI', 'Poppins', system-ui, -apple-system, sans-serif;
-    }
-
+    * { margin:0; padding:0; box-sizing:border-box; user-select:none; }
+    body { overflow:hidden; background:#000; font-family:'Segoe UI',system-ui,sans-serif; }
     #hud {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      z-index: 100;
-      background: rgba(0, 0, 0, 0.65);
-      backdrop-filter: blur(8px);
-      padding: 10px 18px;
-      border-radius: 30px;
-      color: white;
-      font-size: 13px;
-      font-weight: 500;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      pointer-events: none;
-      font-family: monospace;
+      position:absolute; top:20px; left:20px; z-index:100;
+      background:rgba(0,0,0,0.65); backdrop-filter:blur(8px);
+      padding:10px 18px; border-radius:30px; color:white;
+      font-size:13px; font-weight:500; pointer-events:none;
+      border:1px solid rgba(255,255,255,0.2);
     }
-
     #debug {
-      position: absolute;
-      bottom: 20px;
-      left: 20px;
-      z-index: 100;
-      background: rgba(0, 0, 0, 0.6);
-      backdrop-filter: blur(8px);
-      padding: 8px 15px;
-      border-radius: 20px;
-      color: #0f0;
-      font-size: 12px;
-      font-family: monospace;
-      pointer-events: none;
-      border: 1px solid rgba(0, 255, 0, 0.3);
+      position:absolute; bottom:20px; left:20px; z-index:100;
+      background:rgba(0,0,0,0.6); backdrop-filter:blur(8px);
+      padding:8px 15px; border-radius:20px; color:#0f0;
+      font-size:12px; font-family:monospace; pointer-events:none;
+      border:1px solid rgba(0,255,0,0.3);
     }
-
     #moneyDisplay {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      z-index: 100;
-      background: linear-gradient(135deg, rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.6));
-      backdrop-filter: blur(8px);
-      padding: 10px 20px;
-      border-radius: 40px;
-      color: #ffd966;
-      font-weight: bold;
-      font-size: 16px;
-      border: 1px solid rgba(255, 215, 0, 0.5);
-      pointer-events: none;
-      font-family: monospace;
+      position:absolute; top:20px; right:20px; z-index:100;
+      background:linear-gradient(135deg,rgba(0,0,0,0.8),rgba(0,0,0,0.6));
+      backdrop-filter:blur(8px); padding:10px 20px; border-radius:40px;
+      color:#ffd966; font-weight:bold; font-size:16px;
+      border:1px solid rgba(255,215,0,0.5); pointer-events:none;
     }
-
-    .phone-container {
-      position: absolute;
-      bottom: 30px;
-      right: 30px;
-      width: 380px;
-      height: 560px;
-      background: linear-gradient(145deg, #1a1a2e, #16213e);
-      border-radius: 40px;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      backdrop-filter: blur(10px);
-      z-index: 200;
-      display: none;
-      flex-direction: column;
-      overflow: hidden;
-      font-family: 'Segoe UI', system-ui, sans-serif;
+    .vehicle-ui {
+      position:absolute; bottom:30px; right:30px; z-index:100;
+      background:rgba(0,0,0,0.7); backdrop-filter:blur(8px);
+      padding:12px 20px; border-radius:20px; color:white;
+      font-family:monospace; text-align:right; pointer-events:none;
+      border-left:4px solid #ffd966;
     }
-
-    .phone-container.visible {
-      display: flex;
-      animation: slideUp 0.3s ease;
+    .speed { font-size:28px; font-weight:bold; }
+    .fuel { font-size:14px; color:#aaa; }
+    .refuel-panel {
+      position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
+      background:#1a1a2e; border-radius:20px; padding:20px; width:300px;
+      text-align:center; z-index:600; display:none; border:1px solid #ffd966;
     }
-
-    @keyframes slideUp {
-      from { opacity: 0; transform: translateY(30px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .phone-notch {
-      width: 140px;
-      height: 28px;
-      background: #0a0a1a;
-      border-radius: 20px;
-      position: absolute;
-      top: 12px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 10;
-    }
-
-    .phone-header {
-      background: rgba(30, 30, 50, 0.95);
-      padding: 20px 20px 12px 20px;
-      text-align: center;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .phone-header h3 {
-      color: white;
-      font-size: 18px;
-      font-weight: 600;
-    }
-
-    .phone-header p {
-      color: #aaa;
-      font-size: 11px;
-      margin-top: 4px;
-    }
-
-    .phone-content {
-      flex: 1;
-      padding: 20px;
-      overflow-y: auto;
-      color: white;
-    }
-
-    .phone-content::-webkit-scrollbar {
-      width: 4px;
-    }
-
-    .phone-content::-webkit-scrollbar-track {
-      background: #2a2a3a;
-      border-radius: 10px;
-    }
-
-    .phone-content::-webkit-scrollbar-thumb {
-      background: #ffd966;
-      border-radius: 10px;
-    }
-
-    .app-icon {
-      background: linear-gradient(135deg, #2a2a3a, #1e1e2e);
-      border-radius: 20px;
-      padding: 16px;
-      margin: 12px 0;
-      cursor: pointer;
-      text-align: center;
-      transition: all 0.2s ease;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    .app-icon:hover {
-      transform: scale(1.02);
-      background: linear-gradient(135deg, #3a3a4a, #2a2a3a);
-      border-color: rgba(255, 215, 0, 0.3);
-    }
-
-    .app-icon .emoji {
-      font-size: 36px;
-      margin-bottom: 8px;
-    }
-
-    .app-icon .title {
-      font-weight: 600;
-      font-size: 16px;
-      margin-bottom: 4px;
-    }
-
-    .app-icon .subtitle {
-      font-size: 11px;
-      color: #aaa;
-    }
-
-    .back-btn {
-      background: rgba(255, 255, 255, 0.1);
-      border: none;
-      color: white;
-      padding: 8px 16px;
-      border-radius: 25px;
-      cursor: pointer;
-      font-size: 13px;
-      margin-bottom: 15px;
-    }
-
-    .back-btn:hover {
-      background: rgba(255, 255, 255, 0.2);
-    }
-
-    .vehicle-card {
-      background: linear-gradient(135deg, #2a2a3a, #1e1e2e);
-      border-radius: 18px;
-      padding: 15px;
-      margin-bottom: 12px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-    }
-
-    .buy-btn, .spawn-btn {
-      background: linear-gradient(135deg, #4CAF50, #45a049);
-      border: none;
-      color: white;
-      padding: 8px 20px;
-      border-radius: 25px;
-      cursor: pointer;
-      font-weight: bold;
-    }
-
-    .buy-btn:hover, .spawn-btn:hover {
-      transform: scale(1.05);
-    }
-
-    .exit-btn {
-      background: linear-gradient(135deg, #ff4444, #cc0000);
-      border: none;
-      color: white;
-      padding: 12px;
-      border-radius: 25px;
-      cursor: pointer;
-      width: 100%;
-      font-weight: bold;
-      margin-top: 15px;
-    }
-
-    .phone-footer {
-      background: rgba(30, 30, 50, 0.95);
-      padding: 12px;
-      text-align: center;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .home-indicator {
-      width: 40px;
-      height: 4px;
-      background: #555;
-      border-radius: 2px;
-      margin: 0 auto;
-    }
-
-    .auth-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.95);
-      backdrop-filter: blur(12px);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 1000;
-      font-family: 'Segoe UI', system-ui, sans-serif;
-    }
-
-    .auth-box {
-      background: linear-gradient(145deg, #1e1e2e, #16162a);
-      border-radius: 32px;
-      padding: 40px;
-      width: 400px;
-      text-align: center;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .auth-box h2 {
-      color: white;
-      margin-bottom: 25px;
-      font-size: 28px;
-    }
-
-    .auth-box input {
-      width: 100%;
-      padding: 14px;
-      margin-bottom: 15px;
-      border-radius: 30px;
-      border: none;
-      background: #2a2a3a;
-      color: white;
-      font-size: 14px;
-      outline: none;
-    }
-
-    .auth-box input:focus {
-      background: #3a3a4a;
-      box-shadow: 0 0 0 2px rgba(255, 217, 102, 0.3);
-    }
-
-    .auth-btn {
-      width: 100%;
-      padding: 14px;
-      background: linear-gradient(135deg, #ffd966, #ffcc44);
-      border: none;
-      border-radius: 30px;
-      color: #1a1a2e;
-      font-weight: bold;
-      font-size: 16px;
-      cursor: pointer;
-      margin-bottom: 15px;
-    }
-
-    .auth-btn:hover {
-      transform: scale(1.02);
-    }
-
-    .toggle-auth {
-      background: none;
-      border: none;
-      color: #aaa;
-      cursor: pointer;
-      font-size: 13px;
-    }
-
-    .toggle-auth:hover {
-      color: #ffd966;
-    }
-
-    .error-msg {
-      color: #ff6666;
-      font-size: 12px;
-      margin-top: 10px;
-    }
-
+    .refuel-panel button { margin:5px; padding:8px 16px; border-radius:20px; cursor:pointer; background:#ffd966; border:none; }
     .toast {
-      position: fixed;
-      bottom: 100px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(0, 0, 0, 0.85);
-      backdrop-filter: blur(10px);
-      color: white;
-      padding: 10px 24px;
-      border-radius: 40px;
-      font-size: 14px;
-      z-index: 300;
-      animation: fadeInOut 2s ease;
-      pointer-events: none;
-      white-space: nowrap;
+      position:fixed; bottom:100px; left:50%; transform:translateX(-50%);
+      background:rgba(0,0,0,0.85); backdrop-filter:blur(10px);
+      padding:10px 24px; border-radius:40px; color:white;
+      animation:fadeInOut 2s ease; pointer-events:none; z-index:700;
     }
-
     @keyframes fadeInOut {
-      0% { opacity: 0; transform: translateX(-50%) translateY(20px); }
-      15% { opacity: 1; transform: translateX(-50%) translateY(0); }
-      85% { opacity: 1; transform: translateX(-50%) translateY(0); }
-      100% { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+      0%{opacity:0;transform:translateX(-50%) translateY(20px);}
+      15%{opacity:1;transform:translateX(-50%) translateY(0);}
+      85%{opacity:1;transform:translateX(-50%) translateY(0);}
+      100%{opacity:0;transform:translateX(-50%) translateY(-20px);}
     }
+    .phone-container {
+      position:absolute; bottom:30px; right:30px; width:380px; height:560px;
+      background:linear-gradient(145deg,#1a1a2e,#16213e); border-radius:40px;
+      box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.2);
+      backdrop-filter:blur(10px); z-index:200; display:none; flex-direction:column;
+      overflow:hidden; font-family:'Segoe UI',system-ui,sans-serif;
+    }
+    .phone-container.visible { display:flex; animation:slideUp 0.3s ease; }
+    @keyframes slideUp { from{opacity:0;transform:translateY(30px);} to{opacity:1;transform:translateY(0);} }
+    .phone-notch { width:140px; height:28px; background:#0a0a1a; border-radius:20px; position:absolute; top:12px; left:50%; transform:translateX(-50%); z-index:10; }
+    .phone-header { background:rgba(30,30,50,0.95); padding:20px 20px 12px; text-align:center; border-bottom:1px solid rgba(255,255,255,0.1); }
+    .phone-header h3 { color:white; font-size:18px; font-weight:600; }
+    .phone-header p { color:#aaa; font-size:11px; margin-top:4px; }
+    .phone-content { flex:1; padding:20px; overflow-y:auto; color:white; }
+    .phone-content::-webkit-scrollbar { width:4px; }
+    .phone-content::-webkit-scrollbar-track { background:#2a2a3a; border-radius:10px; }
+    .phone-content::-webkit-scrollbar-thumb { background:#ffd966; border-radius:10px; }
+    .app-icon {
+      background:linear-gradient(135deg,#2a2a3a,#1e1e2e); border-radius:20px; padding:16px; margin:12px 0;
+      cursor:pointer; text-align:center; transition:all 0.2s; border:1px solid rgba(255,255,255,0.08);
+    }
+    .app-icon:hover { transform:scale(1.02); background:linear-gradient(135deg,#3a3a4a,#2a2a3a); border-color:rgba(255,215,0,0.3); }
+    .app-icon .emoji { font-size:36px; margin-bottom:8px; }
+    .app-icon .title { font-weight:600; font-size:16px; margin-bottom:4px; }
+    .app-icon .subtitle { font-size:11px; color:#aaa; }
+    .back-btn { background:rgba(255,255,255,0.1); border:none; color:white; padding:8px 16px; border-radius:25px; cursor:pointer; font-size:13px; margin-bottom:15px; }
+    .vehicle-card { background:linear-gradient(135deg,#2a2a3a,#1e1e2e); border-radius:18px; padding:15px; margin-bottom:12px; border:1px solid rgba(255,255,255,0.08); }
+    .buy-btn, .spawn-btn { background:linear-gradient(135deg,#4CAF50,#45a049); border:none; color:white; padding:8px 20px; border-radius:25px; cursor:pointer; font-weight:bold; margin:5px; }
+    .exit-btn { background:linear-gradient(135deg,#ff4444,#cc0000); border:none; color:white; padding:12px; border-radius:25px; cursor:pointer; width:100%; font-weight:bold; margin-top:15px; }
+    .phone-footer { background:rgba(30,30,50,0.95); padding:12px; text-align:center; border-top:1px solid rgba(255,255,255,0.1); }
+    .home-indicator { width:40px; height:4px; background:#555; border-radius:2px; margin:0 auto; }
   </style>
 </head>
 <body>
-  <div id="hud">🎮 WASD Move · 🖱️ Mouse Look · ␣ Jump · ⇧ Run · R Reset | 📱 Press P for Phone</div>
+  <div id="hud">🌍 2X WORLD | WASD · 🖱️ Look · ␣ Jump · ⇧ Run | P:Phone | E:Enter/Exit | R:Refuel | V:Cycle Camera</div>
   <div id="debug"></div>
   <div id="moneyDisplay">💰 $0</div>
+  <div class="vehicle-ui">
+    <div class="speed" id="speedValue">0</div>
+    <span>km/h</span>
+    <div class="fuel" id="fuelValue">Fuel: --</div>
+  </div>
+  <div class="refuel-panel" id="refuelPanel">
+    <h3>⛽ Refuel Vehicle</h3>
+    <p>Current fuel: <span id="currentFuel">0</span>%</p>
+    <p>Cost: $<span id="refuelCost">0</span></p>
+    <button id="refuelConfirm">Refill to 100%</button>
+    <button id="refuelCancel">Cancel</button>
+  </div>
 
   <script type="importmap">
     { "imports": { "three": "https://unpkg.com/three@0.144.0/build/three.module.js" } }
@@ -366,60 +113,87 @@
     import * as THREE from 'three';
     import { GLTFLoader } from 'https://unpkg.com/three@0.144.0/examples/jsm/loaders/GLTFLoader.js';
 
+    // ========== VEHICLE CONFIG (with model rotation fix) ==========
+    const VEHICLE_CONFIGS = {
+      "Test Vehicle": {
+        modelPath: "./models/vehicles/test/scene.gltf",
+        scale: 0.50, price: 0,
+        modelRotationY: 0,   // degrees: rotate model around Y axis (0, 90, 180, 270) to fix orientation
+        fuelCapacity: 100, fuelConsumption: 0.18,
+        maxSpeed: 25.0, reverseSpeed: 10.0, 
+        turnSpeed: 1.8,
+        acceleration: 18.0, braking: 14.0,
+        tiltAccel: 0.15, tiltTurn: 0.09,
+        cameraTPV: { x: 0, y: 2.5, z: 7 },
+        cameraFPV: { x: 0.6, y: 1.7, z: -0.3 }
+      },
+      "Sports Car": {
+        modelPath: "./models/vehicles/sports/scene.gltf",
+        scale: 0.8, price: 0,
+        modelRotationY: 0,
+        fuelCapacity: 80, fuelConsumption: 0.3,
+        maxSpeed: 24.0, reverseSpeed: 10.0,
+        turnSpeed: 1.9,
+        acceleration: 14.0, braking: 18.0,
+        tiltAccel: 0.08, tiltTurn: 0.10,
+        cameraTPV: { x: 0, y: 1.8, z: 6 },
+        cameraFPV: { x: 0, y: 0.6, z: 0.2 }
+      },
+      "Offroad Truck": {
+        modelPath: "./models/vehicles/truck/ford/2010-ford-f-150-svt-raptor/scene.gltf",
+        scale: 0.40, price: 0,
+        modelRotationY: 180,
+        fuelCapacity: 150, fuelConsumption: 0.22,
+        maxSpeed: 14.0, reverseSpeed: 6.0,
+        turnSpeed: 1.2,
+        acceleration: 8.0, braking: 11.0,
+        tiltAccel: 0.05, tiltTurn: 0.07,
+        cameraTPV: { x: 0, y: 2.8, z: 8 },
+        cameraFPV: { x: 0.8, y: 2.5, z: 0.3 }
+      }
+    };
+
+    const CINEMATIC_CONFIG = {
+      baseDistance: 6.0,
+      baseHeight: 2.0,
+      rotationSpeed: 0.005,
+      zoomSpeed: 0.5,
+      minDistance: 2.5,
+      maxDistance: 12.0
+    };
+
+    // ========== GAS PUMPS (scaled positions) ==========
+    const GAS_PUMPS = [
+      { pos: { x: 120, z: 180 }, scale: 1.0 },
+      { pos: { x: -100, z: 220 }, scale: 1.0 }
+    ];
+    let gasPumpMeshes = [];
+
     // ========== SCENE SETUP ==========
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x87ceeb);
-    scene.fog = new THREE.FogExp2(0x87ceeb, 0.002);
-
-    const camera = new THREE.PerspectiveCamera(72, window.innerWidth / window.innerHeight, 0.1, 2000);
-    camera.position.set(0, 5, 12);
-
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    scene.fog = new THREE.FogExp2(0x87ceeb, 0.001);
+    const camera = new THREE.PerspectiveCamera(72, window.innerWidth/window.innerHeight, 0.1, 4000);
+    camera.position.set(0,5,12);
+    const renderer = new THREE.WebGLRenderer({ antialias:true });
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     document.body.appendChild(renderer.domElement);
 
     // Lighting
-    const ambient = new THREE.HemisphereLight(0xebf7ff, 0x332211, 0.7);
-    scene.add(ambient);
+    const ambient = new THREE.HemisphereLight(0xebf7ff,0x332211,0.7); scene.add(ambient);
+    const sun = new THREE.DirectionalLight(0xfff5d1,1.2); sun.position.set(120,200,60); sun.castShadow=true; scene.add(sun);
+    const fill = new THREE.PointLight(0xccaa88,0.4); fill.position.set(0,20,0); scene.add(fill);
 
-    const sun = new THREE.DirectionalLight(0xfff5d1, 1.2);
-    sun.position.set(60, 100, 30);
-    sun.castShadow = true;
-    sun.shadow.mapSize.set(4096, 4096);
-    sun.shadow.camera.near = 1;
-    sun.shadow.camera.far = 600;
-    sun.shadow.camera.left = -200;
-    sun.shadow.camera.right = 200;
-    sun.shadow.camera.top = 200;
-    sun.shadow.camera.bottom = -200;
-    scene.add(sun);
-
-    const fillLight = new THREE.PointLight(0xccaa88, 0.4);
-    fillLight.position.set(0, 10, 0);
-    scene.add(fillLight);
-
-    // ========== TERRAIN ==========
-    const topRadius = 112;
-    const bottomRadius = 328;
+    // ========== DOUBLE-SIZED CONE TERRAIN (grass + beach) ==========
+    const topRadius = 300;      // 2x original 112
+    const bottomRadius = 500;   // 2x original 328
     const topHeight = 2.5;
     const bottomHeight = -2.5;
-    const radialSegments = 256;
-    const heightSegments = 64;
-
-    // Main grass land
-    const mainGroundMat = new THREE.MeshStandardMaterial({ color: 0x5aad5a, roughness: 0.7 });
-    const mainGround = new THREE.Mesh(new THREE.CircleGeometry(topRadius, 128), mainGroundMat);
-    mainGround.rotation.x = -Math.PI / 2;
-    mainGround.position.set(0, 2.5, 0);
-    mainGround.receiveShadow = true;
-    scene.add(mainGround);
-
-    // Beach geometry
-    const beachGeom = new THREE.BufferGeometry();
+    const radialSegments = 180;
+    const heightSegments = 48;
+    const coneGeom = new THREE.BufferGeometry();
     const vertices = [], indices = [], normals = [], uvs = [];
-
     for (let i = 0; i <= heightSegments; i++) {
       const t = i / heightSegments;
       const radius = topRadius * (1 - t) + bottomRadius * t;
@@ -433,506 +207,65 @@
         const nx = Math.cos(angle);
         const nz = Math.sin(angle);
         const ny = (topRadius - bottomRadius) / (bottomHeight - topHeight);
-        const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
-        normals.push(nx / len, ny / len, nz / len);
+        const len = Math.sqrt(nx*nx + ny*ny + nz*nz);
+        normals.push(nx/len, ny/len, nz/len);
       }
     }
-
     for (let i = 0; i < heightSegments; i++) {
       for (let j = 0; j < radialSegments; j++) {
-        const a = i * (radialSegments + 1) + j;
-        const b = i * (radialSegments + 1) + j + 1;
-        const c = (i + 1) * (radialSegments + 1) + j;
-        const d = (i + 1) * (radialSegments + 1) + j + 1;
-        indices.push(a, b, c);
-        indices.push(b, d, c);
+        const a = i*(radialSegments+1)+j;
+        const b = i*(radialSegments+1)+j+1;
+        const c = (i+1)*(radialSegments+1)+j;
+        const d = (i+1)*(radialSegments+1)+j+1;
+        indices.push(a,b,c);
+        indices.push(b,d,c);
       }
     }
+    coneGeom.setAttribute('position', new THREE.BufferAttribute(new Float32Array(vertices),3));
+    coneGeom.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(normals),3));
+    coneGeom.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uvs),2));
+    coneGeom.setIndex(indices);
+    coneGeom.computeVertexNormals();
 
-    beachGeom.setAttribute('position', new THREE.BufferAttribute(new Float32Array(vertices), 3));
-    beachGeom.setAttribute('normal', new THREE.BufferAttribute(new Float32Array(normals), 3));
-    beachGeom.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uvs), 2));
-    beachGeom.setIndex(indices);
-    beachGeom.computeVertexNormals();
-
-    // Create procedural sand texture
-    const canvas = document.createElement('canvas');
-    canvas.width = 512;
-    canvas.height = 512;
-    const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#f0daa8';
-    ctx.fillRect(0, 0, 512, 512);
-    for (let i = 0; i < 3000; i++) {
-      ctx.fillStyle = `rgba(200, 160, 100, ${Math.random() * 0.5})`;
-      ctx.fillRect(Math.random() * 512, Math.random() * 512, 2, 2);
-    }
-    const sandTexture = new THREE.CanvasTexture(canvas);
+    const sandTexturePath = './beach_sand.png';
+    const sandTexture = new THREE.TextureLoader().load(sandTexturePath, undefined, undefined, (err) => console.warn('sand texture fallback', err));
     sandTexture.wrapS = THREE.RepeatWrapping;
     sandTexture.wrapT = THREE.ClampToEdgeWrapping;
-    sandTexture.repeat.set(8, 1);
+    sandTexture.repeat.set(8, 2);
+    const beachMat = new THREE.MeshStandardMaterial({ map: sandTexture, color: 0xf4d79f, roughness: 0.9, side: THREE.DoubleSide });
+    const beachCone = new THREE.Mesh(coneGeom, beachMat);
+    beachCone.castShadow = true;
+    beachCone.receiveShadow = true;
+    scene.add(beachCone);
 
-    const beachMaterial = new THREE.MeshStandardMaterial({
-      map: sandTexture,
-      color: 0xf0daa8,
-      roughness: 0.85,
-      side: THREE.DoubleSide
-    });
+    const grassMat = new THREE.MeshStandardMaterial({ color: 0x5aad5a, roughness: 0.7 });
+    const grassCap = new THREE.Mesh(new THREE.CircleGeometry(topRadius, 128), grassMat);
+    grassCap.rotation.x = -Math.PI/2;
+    grassCap.position.y = topHeight + 0.05;
+    grassCap.receiveShadow = true;
+    scene.add(grassCap);
 
-    const beach = new THREE.Mesh(beachGeom, beachMaterial);
-    beach.castShadow = true;
-    beach.receiveShadow = true;
-    scene.add(beach);
-
-    // Bottom cap
-    const bottomCapMat = new THREE.MeshStandardMaterial({ color: 0xc2a575, roughness: 0.9 });
-    const bottomCap = new THREE.Mesh(new THREE.CircleGeometry(bottomRadius, 128), bottomCapMat);
-    bottomCap.rotation.x = -Math.PI / 2;
-    bottomCap.position.set(0, bottomHeight - 0.1, 0);
+    const bottomMat = new THREE.MeshStandardMaterial({ color: 0xc2a575, roughness: 0.9 });
+    const bottomCap = new THREE.Mesh(new THREE.CircleGeometry(bottomRadius, 128), bottomMat);
+    bottomCap.rotation.x = -Math.PI/2;
+    bottomCap.position.y = bottomHeight - 0.1;
     bottomCap.receiveShadow = true;
     scene.add(bottomCap);
 
-    // Ocean
-    const waterMaterial = new THREE.MeshStandardMaterial({ color: 0x3a86c8, transparent: true, opacity: 0.5, roughness: 0.2, metalness: 0.3 });
-    const waterPlane = new THREE.Mesh(new THREE.PlaneGeometry(1200, 1200), waterMaterial);
-    waterPlane.rotation.x = -Math.PI / 2;
-    waterPlane.position.set(0, bottomHeight - 0.2, 0);
+    // Double-sized water planes
+    const waterMat = new THREE.MeshStandardMaterial({ color: 0x3a86c8, transparent: true, opacity: 0.6, roughness: 0.2, metalness: 0.3 });
+    const waterPlane = new THREE.Mesh(new THREE.PlaneGeometry(2400, 2400), waterMat);
+    waterPlane.rotation.x = -Math.PI/2;
+    waterPlane.position.y = bottomHeight - 0.3;
     scene.add(waterPlane);
+    const farWaterMat = new THREE.MeshStandardMaterial({ color: 0x2a6aa8, transparent: true, opacity: 0.4 });
+    const farWater = new THREE.Mesh(new THREE.PlaneGeometry(4000, 4000), farWaterMat);
+    farWater.rotation.x = -Math.PI/2;
+    farWater.position.y = bottomHeight - 0.5;
+    scene.add(farWater);
 
-    const seaFloorMat = new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 0.95 });
-    const seaFloor = new THREE.Mesh(new THREE.PlaneGeometry(1500, 1500), seaFloorMat);
-    seaFloor.rotation.x = -Math.PI / 2;
-    seaFloor.position.set(0, bottomHeight - 4, 0);
-    seaFloor.receiveShadow = true;
-    scene.add(seaFloor);
-
-    // ========== PLAYER ==========
-    const player = new THREE.Group();
-    const bodyMat = new THREE.MeshStandardMaterial({ color: 0xff6b6a, emissive: 0x441100, emissiveIntensity: 0.1 });
-    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.35, 0.85, 10, 12), bodyMat);
-    body.castShadow = true;
-    player.add(body);
-    const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.55, 0.12, 8), new THREE.MeshStandardMaterial({ color: 0xdd8844 }));
-    hat.position.y = 0.7;
-    hat.castShadow = true;
-    player.add(hat);
-    player.position.set(0, 3.2, topRadius - 15);
-    scene.add(player);
-
-    // ========== ACCOUNT SYSTEM ==========
-    let currentUser = null;
-    let playerMoney = 100000;
-    let ownedVehicles = ['Test Vehicle'];
-    let vehicleModel = null;
-    let isDriving = false;
-    let drivingInterval = null;
-
-    function showToast(message, isError = false) {
-      const toast = document.createElement('div');
-      toast.className = 'toast';
-      toast.style.background = isError ? 'rgba(255, 68, 68, 0.9)' : 'rgba(0, 0, 0, 0.85)';
-      toast.textContent = message;
-      document.body.appendChild(toast);
-      setTimeout(() => toast.remove(), 2000);
-    }
-
-    function updateMoneyDisplay() {
-      const moneyElem = document.getElementById('moneyDisplay');
-      if (moneyElem) {
-        moneyElem.innerHTML = `👤 ${currentUser || 'Guest'} | 💰 $${playerMoney.toLocaleString()}`;
-      }
-    }
-
-    function saveUserData() {
-      if (!currentUser) return;
-      const users = JSON.parse(localStorage.getItem('beachExplorerUsers') || '{}');
-      if (users[currentUser]) {
-        users[currentUser].money = playerMoney;
-        users[currentUser].ownedVehicles = ownedVehicles;
-        localStorage.setItem('beachExplorerUsers', JSON.stringify(users));
-        localStorage.setItem('lastUser', currentUser);
-      }
-    }
-
-    function createAccount(username, password) {
-      const users = JSON.parse(localStorage.getItem('beachExplorerUsers') || '{}');
-      if (users[username]) return { success: false, error: 'Username already exists!' };
-      users[username] = {
-        password: btoa(password),
-        money: 100000,
-        ownedVehicles: ['Test Vehicle'],
-        createdAt: Date.now()
-      };
-      localStorage.setItem('beachExplorerUsers', JSON.stringify(users));
-      return { success: true };
-    }
-
-    function loginAccount(username, password) {
-      const users = JSON.parse(localStorage.getItem('beachExplorerUsers') || '{}');
-      const user = users[username];
-      if (!user) return { success: false, error: 'Username not found!' };
-      if (user.password !== btoa(password)) return { success: false, error: 'Incorrect password!' };
-      currentUser = username;
-      playerMoney = user.money;
-      ownedVehicles = user.ownedVehicles || ['Test Vehicle'];
-      updateMoneyDisplay();
-      saveUserData();
-      return { success: true };
-    }
-
-    function logoutAccount() {
-      if (currentUser) saveUserData();
-      currentUser = null;
-      localStorage.removeItem('lastUser');
-      playerMoney = 100000;
-      ownedVehicles = ['Test Vehicle'];
-      updateMoneyDisplay();
-    }
-
-    function loadLastUser() {
-      const lastUser = localStorage.getItem('lastUser');
-      if (lastUser) {
-        const users = JSON.parse(localStorage.getItem('beachExplorerUsers') || '{}');
-        if (users[lastUser]) {
-          currentUser = lastUser;
-          playerMoney = users[lastUser].money;
-          ownedVehicles = users[lastUser].ownedVehicles || ['Test Vehicle'];
-          updateMoneyDisplay();
-          return true;
-        }
-      }
-      return false;
-    }
-
-    // ========== VEHICLE SYSTEM ==========
-    const gltfLoader = new GLTFLoader();
-
-    function spawnVehicle() {
-      if (vehicleModel) {
-        scene.remove(vehicleModel);
-        vehicleModel = null;
-      }
-      
-      const spawnX = player.position.x + 4;
-      const spawnZ = player.position.z + 4;
-      const spawnY = surfaceHeightAt(spawnX, spawnZ) + 0.5;
-      
-      gltfLoader.load('./models/vehicles/test/scene.gltf', (gltf) => {
-        vehicleModel = gltf.scene;
-        vehicleModel.position.set(spawnX, spawnY, spawnZ);
-        vehicleModel.rotation.y = player.rotation.y;
-        vehicleModel.castShadow = true;
-        vehicleModel.receiveShadow = true;
-        scene.add(vehicleModel);
-        showToast('🚗 Vehicle spawned! Press E to enter');
-      }, undefined, (error) => {
-        console.warn('GLTF load failed, using fallback', error);
-        const fallbackMat = new THREE.MeshStandardMaterial({ color: 0xff4444, metalness: 0.6, roughness: 0.3 });
-        vehicleModel = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.8, 2.8), fallbackMat);
-        vehicleModel.position.set(spawnX, spawnY, spawnZ);
-        vehicleModel.castShadow = true;
-        scene.add(vehicleModel);
-        showToast('🚗 Vehicle spawned (fallback mode)');
-      });
-    }
-
-    function enterVehicle() {
-      if (!vehicleModel || isDriving) return;
-      const dist = Math.hypot(player.position.x - vehicleModel.position.x, player.position.z - vehicleModel.position.z);
-      if (dist < 3) {
-        isDriving = true;
-        player.visible = false;
-        showToast('🚗 Driving mode - Press E to exit');
-        
-        if (drivingInterval) clearInterval(drivingInterval);
-        drivingInterval = setInterval(() => {
-          if (!isDriving) {
-            if (drivingInterval) clearInterval(drivingInterval);
-            drivingInterval = null;
-            return;
-          }
-          if (controls.w) {
-            vehicleModel.position.x += Math.sin(vehicleModel.rotation.y) * 0.6;
-            vehicleModel.position.z += Math.cos(vehicleModel.rotation.y) * 0.6;
-          }
-          if (controls.s) {
-            vehicleModel.position.x -= Math.sin(vehicleModel.rotation.y) * 0.3;
-            vehicleModel.position.z -= Math.cos(vehicleModel.rotation.y) * 0.3;
-          }
-          if (controls.a) vehicleModel.rotation.y -= 0.05;
-          if (controls.d) vehicleModel.rotation.y += 0.05;
-          
-          camera.position.x = vehicleModel.position.x - Math.sin(vehicleModel.rotation.y) * 7;
-          camera.position.z = vehicleModel.position.z - Math.cos(vehicleModel.rotation.y) * 7;
-          camera.position.y = vehicleModel.position.y + 2.5;
-          camera.lookAt(vehicleModel.position);
-        }, 16);
-      }
-    }
-
-    function exitVehicle() {
-      if (isDriving && vehicleModel) {
-        isDriving = false;
-        if (drivingInterval) { clearInterval(drivingInterval); drivingInterval = null; }
-        player.visible = true;
-        player.position.set(vehicleModel.position.x, vehicleModel.position.y + 1.2, vehicleModel.position.z);
-        player.rotation.y = vehicleModel.rotation.y;
-        showToast('🚶 Exited vehicle');
-      }
-    }
-
-    // ========== AUTH UI ==========
-    const authOverlay = document.createElement('div');
-    authOverlay.className = 'auth-overlay';
-    let currentAuthMode = 'login';
-
-    function buildAndShowAuth() {
-      authOverlay.innerHTML = `
-        <div class="auth-box">
-          <div style="font-size: 48px; margin-bottom: 10px;">🏝️</div>
-          <h2>${currentAuthMode === 'login' ? 'Welcome Back' : 'Create Account'}</h2>
-          <input type="text" id="authUsername" placeholder="Username" autocomplete="off">
-          <input type="password" id="authPassword" placeholder="Password">
-          <button class="auth-btn" id="authSubmitBtn">${currentAuthMode === 'login' ? 'Login' : 'Sign Up'}</button>
-          <button class="toggle-auth" id="authToggleBtn">${currentAuthMode === 'login' ? 'Need an account? Sign up' : 'Already have an account? Login'}</button>
-          <div class="error-msg" id="authError"></div>
-        </div>
-      `;
-      
-      // Add event listeners after DOM is created
-      setTimeout(() => {
-        const submitBtn = document.getElementById('authSubmitBtn');
-        const toggleBtn = document.getElementById('authToggleBtn');
-        const usernameInput = document.getElementById('authUsername');
-        const passwordInput = document.getElementById('authPassword');
-        const errorDiv = document.getElementById('authError');
-        
-        if (submitBtn) {
-          submitBtn.onclick = () => {
-            const username = usernameInput ? usernameInput.value.trim() : '';
-            const password = passwordInput ? passwordInput.value.trim() : '';
-            if (!username || !password) {
-              if (errorDiv) errorDiv.innerText = 'Please fill in all fields';
-              return;
-            }
-            if (currentAuthMode === 'login') {
-              const result = loginAccount(username, password);
-              if (result.success) {
-                authOverlay.style.display = 'none';
-                showToast(`Welcome back, ${username}!`);
-                updateMoneyDisplay();
-                updatePhoneUser();
-              } else {
-                if (errorDiv) errorDiv.innerText = result.error;
-              }
-            } else {
-              const result = createAccount(username, password);
-              if (result.success) {
-                loginAccount(username, password);
-                authOverlay.style.display = 'none';
-                showToast(`Account created! Welcome, ${username}!`);
-                updateMoneyDisplay();
-                updatePhoneUser();
-              } else {
-                if (errorDiv) errorDiv.innerText = result.error;
-              }
-            }
-          };
-        }
-        
-        if (toggleBtn) {
-          toggleBtn.onclick = () => {
-            currentAuthMode = currentAuthMode === 'login' ? 'signup' : 'login';
-            buildAndShowAuth();
-          };
-        }
-      }, 10);
-    }
-    
-    buildAndShowAuth();
-    document.body.appendChild(authOverlay);
-    
-    if (!loadLastUser()) {
-      authOverlay.style.display = 'flex';
-    } else {
-      authOverlay.style.display = 'none';
-      updateMoneyDisplay();
-    }
-
-    // ========== PHONE UI ==========
-    const phoneContainer = document.createElement('div');
-    phoneContainer.className = 'phone-container';
-    phoneContainer.innerHTML = `
-      <div class="phone-notch"></div>
-      <div class="phone-header">
-        <h3>📱 BEACH EXPLORER</h3>
-        <p id="phoneUser">${currentUser || 'Guest'} • Level 1</p>
-      </div>
-      <div class="phone-content" id="phoneContent"></div>
-      <div class="phone-footer">
-        <div class="home-indicator"></div>
-      </div>
-    `;
-    document.body.appendChild(phoneContainer);
-
-    function updatePhoneUser() {
-      const phoneUserElem = document.getElementById('phoneUser');
-      if (phoneUserElem) phoneUserElem.innerText = `${currentUser || 'Guest'} • Level 1`;
-    }
-
-    function renderMainMenu() {
-      return `
-        <div class="app-icon" data-app="dealership">
-          <div class="emoji">🚗</div>
-          <div class="title">Vehicle Dealership</div>
-          <div class="subtitle">Buy new vehicles</div>
-        </div>
-        <div class="app-icon" data-app="garage">
-          <div class="emoji">🏠</div>
-          <div class="title">My Garage</div>
-          <div class="subtitle">Spawn owned vehicles</div>
-        </div>
-        <div class="app-icon" data-app="profile">
-          <div class="emoji">👤</div>
-          <div class="title">Profile</div>
-          <div class="subtitle">Account & stats</div>
-        </div>
-      `;
-    }
-
-    function renderDealership() {
-      return `
-        <button class="back-btn" data-view="main">← Back</button>
-        <h3 style="margin-bottom: 15px;">🚗 Dealership</h3>
-        <div class="vehicle-card" data-vehicle="Test Vehicle" data-price="25000">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <div>
-              <div style="font-size: 18px; font-weight: bold;">🚙 Test Vehicle</div>
-              <div style="color: #ffd966;">💰 $25,000</div>
-            </div>
-            <button class="buy-btn">BUY</button>
-          </div>
-        </div>
-        <div style="margin-top: 15px; font-size: 12px; color: #aaa; text-align: center;">More vehicles coming soon!</div>
-      `;
-    }
-
-    function renderGarage() {
-      let vehiclesHtml = '';
-      ownedVehicles.forEach(vehicle => {
-        vehiclesHtml += `
-          <div class="vehicle-card">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div><strong>🚙 ${vehicle}</strong></div>
-              <button class="spawn-btn" data-vehicle="${vehicle}">SPAWN</button>
-            </div>
-          </div>
-        `;
-      });
-      return `
-        <button class="back-btn" data-view="main">← Back</button>
-        <h3 style="margin-bottom: 15px;">🏠 My Garage</h3>
-        <div id="garageList">${vehiclesHtml || '<div style="text-align:center; color:#aaa;">No vehicles owned</div>'}</div>
-        <button class="exit-btn" id="exitVehicleBtn">Exit Vehicle</button>
-      `;
-    }
-
-    function renderProfile() {
-      return `
-        <button class="back-btn" data-view="main">← Back</button>
-        <h3 style="margin-bottom: 15px;">👤 Profile</h3>
-        <div style="background: rgba(255,255,255,0.05); border-radius: 18px; padding: 15px; margin-bottom: 15px;">
-          <div><strong>Username:</strong> ${currentUser || 'Guest'}</div>
-          <div><strong>Balance:</strong> 💰 $${playerMoney.toLocaleString()}</div>
-          <div><strong>Vehicles:</strong> ${ownedVehicles.length}</div>
-        </div>
-        <button class="exit-btn" id="logoutBtn" style="background: linear-gradient(135deg, #ff4444, #cc0000);">Logout</button>
-      `;
-    }
-
-    function showAppView(view) {
-      const content = document.getElementById('phoneContent');
-      if (!content) return;
-      
-      if (view === 'main') content.innerHTML = renderMainMenu();
-      else if (view === 'dealership') content.innerHTML = renderDealership();
-      else if (view === 'garage') content.innerHTML = renderGarage();
-      else if (view === 'profile') content.innerHTML = renderProfile();
-      
-      updatePhoneUser();
-      
-      // Attach event listeners
-      document.querySelectorAll('.app-icon, [data-app]').forEach(el => {
-        if (el.classList && el.classList.contains('app-icon')) {
-          el.addEventListener('click', () => showAppView(el.getAttribute('data-app')));
-        }
-      });
-      document.querySelectorAll('.back-btn').forEach(btn => {
-        btn.addEventListener('click', () => showAppView('main'));
-      });
-      document.querySelectorAll('.buy-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const card = btn.closest('.vehicle-card');
-          if (card) {
-            const vehicleName = card.getAttribute('data-vehicle');
-            const price = parseInt(card.getAttribute('data-price'));
-            if (playerMoney >= price) {
-              if (!ownedVehicles.includes(vehicleName)) {
-                playerMoney -= price;
-                ownedVehicles.push(vehicleName);
-                saveUserData();
-                updateMoneyDisplay();
-                showToast(`🎉 Purchased ${vehicleName}!`);
-                showAppView('main');
-              } else {
-                showToast('You already own this vehicle!', true);
-              }
-            } else {
-              showToast(`Need $${price.toLocaleString()} more!`, true);
-            }
-          }
-        });
-      });
-      document.querySelectorAll('.spawn-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          spawnVehicle();
-          showToast('Vehicle spawned near you!');
-          phoneContainer.classList.remove('visible');
-          phoneVisible = false;
-        });
-      });
-      const exitBtn = document.getElementById('exitVehicleBtn');
-      if (exitBtn) exitBtn.addEventListener('click', () => { exitVehicle(); showToast('Exited vehicle'); });
-      const logoutBtn = document.getElementById('logoutBtn');
-      if (logoutBtn) logoutBtn.addEventListener('click', () => {
-        logoutAccount();
-        authOverlay.style.display = 'flex';
-        phoneContainer.classList.remove('visible');
-        phoneVisible = false;
-        showToast('Logged out');
-        updatePhoneUser();
-        updateMoneyDisplay();
-      });
-    }
-
-    let phoneVisible = false;
-    function togglePhone() {
-      phoneVisible = !phoneVisible;
-      if (phoneVisible) {
-        showAppView('main');
-        phoneContainer.classList.add('visible');
-        if (document.pointerLockElement === renderer.domElement) document.exitPointerLock();
-      } else {
-        phoneContainer.classList.remove('visible');
-      }
-    }
-
-    // ========== GAME CONTROLS ==========
-    const controls = { w: false, s: false, a: false, d: false, shift: false, jump: false };
-    let yaw = 0, pitch = 0;
-    const velocity = new THREE.Vector3();
-    let onGround = true;
-
-    function surfaceHeightAt(x, z) {
+    // ========== BASE TERRAIN HEIGHT ==========
+    function baseSurfaceHeight(x, z) {
       const r = Math.hypot(x, z);
       if (r <= topRadius) return topHeight;
       if (r >= bottomRadius) return bottomHeight;
@@ -940,116 +273,486 @@
       return topHeight * (1 - t) + bottomHeight * t;
     }
 
-    function isInWater(x, z) { return Math.hypot(x, z) > bottomRadius + 5; }
-
-    window.addEventListener('keydown', (e) => {
-      if (authOverlay.style.display === 'flex') return;
-      if (e.key === 'p' || e.key === 'P') { e.preventDefault(); togglePhone(); }
-      if (e.key === 'e' || e.key === 'E') { e.preventDefault(); if (isDriving) exitVehicle(); else enterVehicle(); }
-      if (e.key === 'w') controls.w = true;
-      if (e.key === 's') controls.s = true;
-      if (e.key === 'a') controls.a = true;
-      if (e.key === 'd') controls.d = true;
-      if (e.key === 'Shift') controls.shift = true;
-      if (e.key === ' ') controls.jump = true;
-      if (e.key === 'r' || e.key === 'R') { player.position.set(0, 3.2, topRadius - 15); velocity.set(0, 0, 0); }
-    });
-
-    window.addEventListener('keyup', (e) => {
-      if (e.key === 'w') controls.w = false;
-      if (e.key === 's') controls.s = false;
-      if (e.key === 'a') controls.a = false;
-      if (e.key === 'd') controls.d = false;
-      if (e.key === 'Shift') controls.shift = false;
-      if (e.key === ' ') controls.jump = false;
-    });
-
-    renderer.domElement.addEventListener('click', () => {
-      if (authOverlay.style.display !== 'flex' && !phoneVisible) renderer.domElement.requestPointerLock();
-    });
-
-    window.addEventListener('mousemove', (e) => {
-      if (!phoneVisible && document.pointerLockElement === renderer.domElement && !isDriving) {
-        yaw -= e.movementX * 0.002;
-        pitch -= e.movementY * 0.002;
-        pitch = Math.max(-Math.PI / 2 + 0.1, Math.min(Math.PI / 2 - 0.1, pitch));
+    // ========== GRID CITY ROADS (no outer ring, fits inside grass) ==========
+    const ROAD_OFFSET = 0.12;
+    const ROAD_WIDTH = 20;           // wide lanes
+    const BLOCK_SIZE = 60;           // 2x original
+    const GRID_MIN = -210;           // leaves 14 units grass border on each side (since topRadius=224)
+    const GRID_MAX = 210;
+    
+    function isOnRoad(x, z) {
+      const r = Math.hypot(x, z);
+      if (r > topRadius) return false; // beach has no roads
+      // Main grid roads
+      for (let line = GRID_MIN; line <= GRID_MAX; line += BLOCK_SIZE) {
+        if (Math.abs(x - line) < ROAD_WIDTH/2) return true;
+        if (Math.abs(z - line) < ROAD_WIDTH/2) return true;
       }
-    });
-
-    // ========== ANIMATION LOOP ==========
-    let time = 0;
-    const tempVec = new THREE.Vector3();
-
-    function animate() {
-      requestAnimationFrame(animate);
-      const dt = 0.016;
-      time += dt;
-
-      if (!phoneVisible && !isDriving && authOverlay.style.display !== 'flex') {
-        const input = new THREE.Vector3();
-        if (controls.w) input.z -= 1;
-        if (controls.s) input.z += 1;
-        if (controls.a) input.x -= 1;
-        if (controls.d) input.x += 1;
-        if (input.lengthSq() > 0) input.normalize();
-
-        const speed = controls.shift ? 12 : 6;
-        tempVec.copy(input).applyAxisAngle(new THREE.Vector3(0, 1, 0), yaw).multiplyScalar(speed);
-        velocity.x = tempVec.x;
-        velocity.z = tempVec.z;
-
-        const inWaterFlag = isInWater(player.position.x, player.position.z);
-        const groundY = surfaceHeightAt(player.position.x, player.position.z);
-
-        if (inWaterFlag) {
-          velocity.y += (-1.5 - player.position.y) * 1.5 * dt;
-          velocity.y = THREE.MathUtils.clamp(velocity.y, -4, 6);
-          if (controls.jump) velocity.y = 5;
-          onGround = false;
-        } else {
-          velocity.y += -20 * dt;
-          if (controls.jump && onGround) { velocity.y = 8.5; onGround = false; }
-        }
-
-        player.position.addScaledVector(velocity, dt);
-        const footHeight = groundY + 1.3;
-        if (!inWaterFlag && player.position.y <= footHeight) {
-          player.position.y = footHeight;
-          velocity.y = 0;
-          onGround = true;
-        }
-        if (player.position.y < -10) { player.position.y = -10; velocity.y = 0; }
-
-        player.rotation.y = yaw;
-        const targetCam = new THREE.Vector3(
-          player.position.x + Math.sin(yaw) * 7,
-          player.position.y + 3.5,
-          player.position.z + Math.cos(yaw) * 8.5
-        );
-        camera.position.lerp(targetCam, 0.08);
-        camera.lookAt(player.position.x, player.position.y + 1.3, player.position.z);
+      return false;
+    }
+    
+    function getRoadBlendFactor(x, z) {
+      let minDistToRoad = 999;
+      for (let line = GRID_MIN; line <= GRID_MAX; line += BLOCK_SIZE) {
+        minDistToRoad = Math.min(minDistToRoad, Math.abs(x - line));
+        minDistToRoad = Math.min(minDistToRoad, Math.abs(z - line));
       }
-
-      waterPlane.position.y = bottomHeight - 0.2 + Math.sin(time * 1.1) * 0.06;
-      fillLight.position.x = Math.sin(time * 0.3) * 3;
-      if (!isDriving) body.rotation.x = Math.sin(time * 2.5) * 0.05;
-
-      const inWaterFlag = isInWater(player.position.x, player.position.z);
-      document.getElementById('debug').innerHTML = `📍 ${player.position.x.toFixed(1)}, ${player.position.z.toFixed(1)}<br>🌊 ${inWaterFlag ? 'In Water' : 'On Land'} | 🚗 ${isDriving ? 'Driving' : 'Walking'} | 📱 Press P`;
+      const blendZone = 4.0;
+      if (minDistToRoad < ROAD_WIDTH/2) return 1.0;
+      if (minDistToRoad < ROAD_WIDTH/2 + blendZone) {
+        return 1.0 - (minDistToRoad - ROAD_WIDTH/2) / blendZone;
+      }
+      return 0.0;
+    }
+    
+    function surfaceHeight(x, z) {
+      let h = baseSurfaceHeight(x, z);
+      const onRoad = isOnRoad(x, z);
+      if (onRoad) {
+        h += ROAD_OFFSET;
+      } else {
+        const blend = getRoadBlendFactor(x, z);
+        if (blend > 0) {
+          h += ROAD_OFFSET * blend;
+        }
+      }
+      return h;
+    }
+    
+    function getTerrainNormal(x, z) {
+      const eps = 0.8;
+      const h = surfaceHeight(x, z);
+      const hx = surfaceHeight(x + eps, z);
+      const hz = surfaceHeight(x, z + eps);
+      const dx = hx - h;
+      const dz = hz - h;
+      const smooth = new THREE.Vector3(-dx, eps, -dz).normalize();
+      const baseNorm = (() => {
+        const bh = baseSurfaceHeight(x,z);
+        const bhx = baseSurfaceHeight(x+eps,z);
+        const bhz = baseSurfaceHeight(x,z+eps);
+        return new THREE.Vector3(-(bhx-bh), eps, -(bhz-bh)).normalize();
+      })();
+      const blend = getRoadBlendFactor(x, z);
+      if (blend > 0 && blend < 1) {
+        return smooth.clone().lerp(baseNorm, 1 - blend);
+      }
+      return smooth;
+    }
+    
+    function buildGridRoads() {
+      const asphaltMat = new THREE.MeshStandardMaterial({ color: 0x2c2e3a, roughness: 0.6, metalness: 0.1 });
+      const lineMat = new THREE.MeshStandardMaterial({ color: 0xffdd88 });
       
-      renderer.render(scene, camera);
+      function addRoadSegment(x1, z1, x2, z2, width) {
+        const centerX = (x1 + x2) / 2, centerZ = (z1 + z2) / 2;
+        const length = Math.hypot(x2 - x1, z2 - z1);
+        const angle = Math.atan2(z2 - z1, x2 - x1);
+        const baseH = baseSurfaceHeight(centerX, centerZ);
+        const finalH = baseH + ROAD_OFFSET - 0.02;
+        const geom = new THREE.BoxGeometry(length, 0.12, width);
+        const mesh = new THREE.Mesh(geom, asphaltMat);
+        mesh.position.set(centerX, finalH, centerZ);
+        mesh.rotation.y = angle;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        scene.add(mesh);
+        const lineGeom = new THREE.BoxGeometry(length, 0.1, 0.6);
+        const line = new THREE.Mesh(lineGeom, lineMat);
+        line.position.set(centerX, finalH + 0.08, centerZ);
+        line.rotation.y = angle;
+        scene.add(line);
+      }
+      
+      for (let line = GRID_MIN; line <= GRID_MAX; line += BLOCK_SIZE) {
+        addRoadSegment(GRID_MIN - 15, line, GRID_MAX + 15, line, ROAD_WIDTH);
+        addRoadSegment(line, GRID_MIN - 15, line, GRID_MAX + 15, ROAD_WIDTH);
+      }
+    }
+    
+    buildGridRoads();
+    
+    // ========== PLAYER ==========
+    const player = new THREE.Group();
+    const bodyMesh = new THREE.Mesh(new THREE.CapsuleGeometry(0.35,0.85,10,12), new THREE.MeshStandardMaterial({ color:0xff6b6a }));
+    bodyMesh.castShadow=true; player.add(bodyMesh);
+    const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.45,0.55,0.12,8), new THREE.MeshStandardMaterial({ color:0xdd8844 }));
+    hat.position.y=0.7; hat.castShadow=true; player.add(hat);
+    player.position.set(0, surfaceHeight(0,0)+1.3, topRadius - 30);
+    scene.add(player);
+
+    // ========== ECONOMY ==========
+    let currentUser = "Player";
+    let playerMoney = 100000;
+    let ownedVehicles = ['Test Vehicle', 'Sports Car', 'Offroad Truck'];
+    function updateMoneyDisplay() { document.getElementById('moneyDisplay').innerHTML = `👤 ${currentUser} | 💰 $${playerMoney.toLocaleString()}`; }
+    updateMoneyDisplay();
+
+    // ========== VEHICLE SYSTEM (with rotation fix) ==========
+    let spawnedVehicles = [];
+    let currentVehicle = null, currentVehicleConfig = null;
+    let currentVehicleFuel = 0, currentVehicleMaxFuel = 100;
+    let isDriving = false;
+    let currentSpeed = 0, targetSpeed = 0;
+    const MAX_VEHICLES = 5;
+    const gltfLoader = new GLTFLoader();
+
+    let footCameraMode = "TPV";
+    let vehicleCameraMode = "TPV";
+    let cinematicAngle = 0, cinematicDistance = CINEMATIC_CONFIG.baseDistance, cinematicHeight = CINEMATIC_CONFIG.baseHeight;
+    let cameraYaw = 0, cameraPitch = 0;
+
+    function showToast(msg, isErr=false) {
+      const t = document.createElement('div'); t.className = 'toast';
+      t.style.background = isErr ? 'rgba(255,68,68,0.9)' : 'rgba(0,0,0,0.85)';
+      t.innerText = msg; document.body.appendChild(t);
+      setTimeout(() => t.remove(), 2000);
     }
 
-    animate();
+    function spawnVehicle(vehicleName, customPos=null) {
+      if (spawnedVehicles.length >= MAX_VEHICLES) { showToast(`Max ${MAX_VEHICLES} vehicles`, true); return; }
+      const config = VEHICLE_CONFIGS[vehicleName];
+      if (!config) return;
+      const x = customPos ? customPos.x : player.position.x + (Math.random()*16-8);
+      const z = customPos ? customPos.z : player.position.z + (Math.random()*16-8);
+      const groundY = surfaceHeight(x, z);
+      const startY = groundY + 15;
+      const onLoad = (model) => {
+        model.scale.set(config.scale, config.scale, config.scale);
+        // Apply model rotation fix (around Y axis)
+        if (config.modelRotationY !== undefined && config.modelRotationY !== 0) {
+          model.rotation.y = config.modelRotationY * Math.PI / 180;
+        }
+        model.castShadow = true;
+        const group = new THREE.Group();
+        group.add(model);
+        group.position.set(x, startY, z);
+        group.userData = {
+          vehicleName, config,
+          fuel: config.fuelCapacity,
+          velocity: new THREE.Vector3(0, -4, 0),
+          angularVel: 0,
+          tiltX: 0, tiltZ: 0,
+          landed: false
+        };
+        scene.add(group);
+        spawnedVehicles.push({ model: group, config, name: vehicleName });
+        if (config.modelRotationY !== 0) {
+          showToast(`${vehicleName} spawned with ${config.modelRotationY}° rotation fix`);
+        } else {
+          showToast(`${vehicleName} spawned`);
+        }
+      };
+      gltfLoader.load(config.modelPath, (gltf) => onLoad(gltf.scene), undefined, () => {
+        const fallback = new THREE.Mesh(new THREE.BoxGeometry(1.6,0.8,2.8), new THREE.MeshStandardMaterial({ color:0xff4444 }));
+        onLoad(fallback);
+      });
+    }
 
-    window.addEventListener('resize', () => {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
+    function updateAllVehiclesPhysics(dt) {
+      for (let v of spawnedVehicles) {
+        const group = v.model;
+        const data = group.userData;
+        data.velocity.y += -20 * dt;
+        group.position.x += data.velocity.x * dt;
+        group.position.z += data.velocity.z * dt;
+        group.position.y += data.velocity.y * dt;
+        const groundY = surfaceHeight(group.position.x, group.position.z);
+        const groundNormal = getTerrainNormal(group.position.x, group.position.z);
+        const vehicleBottom = group.position.y - 0.5;
+        if (vehicleBottom <= groundY) {
+          group.position.y = groundY + 0.5;
+          data.velocity.y = 0;
+          data.velocity.x *= 0.98;
+          data.velocity.z *= 0.98;
+          data.landed = true;
+          const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0), groundNormal);
+          const euler = new THREE.Euler().setFromQuaternion(quat, 'XYZ');
+          group.rotation.x = euler.x;
+          group.rotation.z = euler.z;
+        } else {
+          data.landed = false;
+          group.rotation.x *= 0.99;
+          group.rotation.z *= 0.99;
+        }
+      }
+    }
+
+    function updateDriving(deltaTime) {
+      if (!isDriving || !currentVehicle) return;
+      const dt = Math.min(deltaTime, 0.033);
+      const config = currentVehicleConfig;
+      const data = currentVehicle.userData;
+      
+      let rawTurn = (controls.a ? -1 : 0) + (controls.d ? 1 : 0);
+      let turnInput = -rawTurn;
+      let speedFactor = Math.abs(currentSpeed) / config.maxSpeed;
+      let dynamicTurnSpeed = config.turnSpeed * (1 - speedFactor * 0.55);
+      dynamicTurnSpeed = Math.max(0.6, dynamicTurnSpeed);
+      let angularDelta = turnInput * dynamicTurnSpeed * dt;
+      currentVehicle.rotation.y += angularDelta;
+      
+      let driveInput = 0;
+      if (controls.w) driveInput = 1;
+      else if (controls.s) driveInput = -1;
+      
+      let targetSpd = 0;
+      if (driveInput > 0) targetSpd = config.maxSpeed;
+      else if (driveInput < 0) targetSpd = -config.reverseSpeed;
+      
+      let accelRate = (driveInput !== 0 && Math.sign(targetSpd) === Math.sign(currentSpeed)) ? config.acceleration : config.braking;
+      currentSpeed += (targetSpd - currentSpeed) * Math.min(1.0, accelRate * dt);
+      if (Math.abs(currentSpeed) < 0.2 && driveInput === 0) currentSpeed = 0;
+      
+      if (Math.abs(currentSpeed) > 0.8) {
+        let consumption = config.fuelConsumption * (Math.abs(currentSpeed) / config.maxSpeed) * dt;
+        currentVehicleFuel -= consumption;
+        if (currentVehicleFuel <= 0) {
+          currentVehicleFuel = 0;
+          currentSpeed = 0;
+          showToast("Out of fuel! Refuel at gas pump.", true);
+        }
+        data.fuel = currentVehicleFuel;
+      }
+      
+      const forward = new THREE.Vector3(Math.sin(currentVehicle.rotation.y), 0, Math.cos(currentVehicle.rotation.y));
+      data.velocity.x += forward.x * currentSpeed * dt;
+      data.velocity.z += forward.z * currentSpeed * dt;
+      data.velocity.x *= (1 - 1.5 * dt);
+      data.velocity.z *= (1 - 1.5 * dt);
+      currentVehicle.position.x += data.velocity.x * dt;
+      currentVehicle.position.z += data.velocity.z * dt;
+      
+      const groundY = surfaceHeight(currentVehicle.position.x, currentVehicle.position.z);
+      const groundNormal = getTerrainNormal(currentVehicle.position.x, currentVehicle.position.z);
+      const vehicleBottom = currentVehicle.position.y - 0.5;
+      if (vehicleBottom <= groundY) {
+        currentVehicle.position.y = groundY + 0.5;
+        data.velocity.y = 0;
+        const quat = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0), groundNormal);
+        const euler = new THREE.Euler().setFromQuaternion(quat, 'XYZ');
+        let targetTiltX = 0, targetTiltZ = 0;
+        if (currentSpeed > 1) targetTiltX = config.tiltAccel * (currentSpeed / config.maxSpeed) * 0.5;
+        else if (currentSpeed < -1) targetTiltX = -config.tiltAccel * (Math.abs(currentSpeed) / config.reverseSpeed) * 0.5;
+        if (turnInput !== 0 && Math.abs(currentSpeed) > 1) {
+          targetTiltZ = -turnInput * config.tiltTurn * (Math.abs(currentSpeed) / config.maxSpeed) * 0.5;
+        }
+        data.tiltX += (targetTiltX - data.tiltX) * 0.15;
+        data.tiltZ += (targetTiltZ - data.tiltZ) * 0.15;
+        currentVehicle.rotation.x = euler.x + data.tiltX;
+        currentVehicle.rotation.z = euler.z + data.tiltZ;
+      } else {
+        data.tiltX *= 0.98;
+        data.tiltZ *= 0.98;
+        currentVehicle.rotation.x += data.tiltX * dt;
+        currentVehicle.rotation.z += data.tiltZ * dt;
+      }
+      
+      let speedKmh = Math.floor(Math.abs(currentSpeed) * 5);
+      document.getElementById('speedValue').innerHTML = speedKmh;
+      document.getElementById('fuelValue').innerHTML = `Fuel: ${Math.max(0, Math.floor(currentVehicleFuel))}%`;
+      updateDrivingCamera();
+    }
+    
+    function updateDrivingCamera() {
+      if (!currentVehicle) return;
+      const targetPos = currentVehicle.position;
+      if (vehicleCameraMode === "TPV") {
+        const offset = currentVehicleConfig.cameraTPV;
+        const forward = new THREE.Vector3(Math.sin(currentVehicle.rotation.y), 0, Math.cos(currentVehicle.rotation.y));
+        const right = new THREE.Vector3(Math.cos(currentVehicle.rotation.y), 0, -Math.sin(currentVehicle.rotation.y));
+        let idealPos = targetPos.clone();
+        idealPos.x += right.x * offset.x + forward.x * offset.z;
+        idealPos.y += offset.y;
+        idealPos.z += right.z * offset.x + forward.z * offset.z;
+        const radius = idealPos.distanceTo(targetPos);
+        const dx = Math.sin(cameraYaw) * Math.cos(cameraPitch) * radius;
+        const dz = Math.cos(cameraYaw) * Math.cos(cameraPitch) * radius;
+        const dy = Math.sin(cameraPitch) * radius;
+        camera.position.set(targetPos.x + dx, targetPos.y + dy + offset.y, targetPos.z + dz);
+        camera.lookAt(targetPos);
+      } else if (vehicleCameraMode === "FPV") {
+        const offset = currentVehicleConfig.cameraFPV;
+        const forward = new THREE.Vector3(Math.sin(currentVehicle.rotation.y), 0, Math.cos(currentVehicle.rotation.y));
+        const right = new THREE.Vector3(Math.cos(currentVehicle.rotation.y), 0, -Math.sin(currentVehicle.rotation.y));
+        const up = new THREE.Vector3(0, 1, 0);
+        let eyePos = targetPos.clone();
+        eyePos.x += right.x * offset.x + up.x * offset.y + forward.x * offset.z;
+        eyePos.y += right.y * offset.x + up.y * offset.y + forward.y * offset.z;
+        eyePos.z += right.z * offset.x + up.z * offset.y + forward.z * offset.z;
+        camera.position.copy(eyePos);
+        const lookDir = new THREE.Vector3(0,0,-1).applyEuler(new THREE.Euler(cameraPitch, cameraYaw, 0));
+        camera.lookAt(eyePos.clone().add(lookDir));
+      } else if (vehicleCameraMode === "CINEMATIC") {
+        const rad = cinematicAngle;
+        camera.position.set(targetPos.x + Math.sin(rad)*cinematicDistance, targetPos.y + cinematicHeight, targetPos.z + Math.cos(rad)*cinematicDistance);
+        camera.lookAt(targetPos);
+      }
+    }
+    
+    function enterVehicle(vehicleObj) {
+      if (isDriving) exitVehicle();
+      isDriving = true;
+      currentVehicle = vehicleObj.model;
+      currentVehicleConfig = vehicleObj.config;
+      currentVehicleFuel = currentVehicle.userData.fuel;
+      currentVehicleMaxFuel = vehicleObj.config.fuelCapacity;
+      currentSpeed = 0;
+      targetSpeed = 0;
+      player.visible = false;
+      cameraYaw = 0; cameraPitch = 0;
+      cinematicAngle = currentVehicle.rotation.y;
+      cinematicDistance = CINEMATIC_CONFIG.baseDistance;
+      cinematicHeight = CINEMATIC_CONFIG.baseHeight;
+      vehicleCameraMode = "TPV";
+      showToast(`Driving ${vehicleObj.name}`);
+    }
+    
+    function exitVehicle() {
+      if (!isDriving) return;
+      isDriving = false;
+      player.visible = true;
+      if (currentVehicle) {
+        player.position.set(currentVehicle.position.x, currentVehicle.position.y+1.2, currentVehicle.position.z);
+        player.rotation.y = currentVehicle.rotation.y;
+      }
+      currentVehicle = null;
+      currentVehicleConfig = null;
+      document.getElementById('speedValue').innerHTML = "0";
+      document.getElementById('fuelValue').innerHTML = "Fuel: --";
+    }
+    
+    function tryRefuel() {
+      if (!isDriving || !currentVehicle) return false;
+      for (let pump of gasPumpMeshes) {
+        if (Math.hypot(currentVehicle.position.x - pump.position.x, currentVehicle.position.z - pump.position.z) < 5) {
+          const needed = currentVehicleMaxFuel - currentVehicleFuel;
+          const cost = needed * 2;
+          document.getElementById('currentFuel').innerText = Math.floor(currentVehicleFuel);
+          document.getElementById('refuelCost').innerText = cost;
+          document.getElementById('refuelPanel').style.display = 'block';
+          const confirmHandler = () => {
+            if (playerMoney >= cost) {
+              playerMoney -= cost;
+              currentVehicleFuel = currentVehicleMaxFuel;
+              currentVehicle.userData.fuel = currentVehicleFuel;
+              updateMoneyDisplay();
+              showToast(`Refueled! $${cost} paid.`);
+            } else showToast("Not enough money!", true);
+            document.getElementById('refuelPanel').style.display = 'none';
+            cleanup();
+          };
+          const cancelHandler = () => {
+            document.getElementById('refuelPanel').style.display = 'none';
+            cleanup();
+          };
+          const cleanup = () => {
+            document.getElementById('refuelConfirm').removeEventListener('click', confirmHandler);
+            document.getElementById('refuelCancel').removeEventListener('click', cancelHandler);
+          };
+          document.getElementById('refuelConfirm').onclick = confirmHandler;
+          document.getElementById('refuelCancel').onclick = cancelHandler;
+          return true;
+        }
+      }
+      return false;
+    }
+    
+    function spawnGasPumps() {
+      GAS_PUMPS.forEach(pump => {
+        const mat = new THREE.MeshStandardMaterial({ color: 0xccaa77 });
+        const mesh = new THREE.Mesh(new THREE.BoxGeometry(1.5,2,1.5), mat);
+        mesh.position.set(pump.pos.x, surfaceHeight(pump.pos.x, pump.pos.z)+0.8, pump.pos.z);
+        mesh.scale.set(pump.scale, pump.scale, pump.scale);
+        mesh.castShadow = true;
+        scene.add(mesh);
+        gasPumpMeshes.push(mesh);
+      });
+    }
+    
+    // ========== PLAYER MOVEMENT ==========
+    const controls = { w:false,s:false,a:false,d:false,shift:false,jump:false };
+    let yaw = 0, pitch = 0, velocityY = 0, onGround = true;
+    function updatePlayerMovement(dt) {
+      if (isDriving) return;
+      const speed = controls.shift ? 12 : 6;
+      let move = new THREE.Vector3();
+      if (controls.w) move.z -=1;
+      if (controls.s) move.z +=1;
+      if (controls.a) move.x -=1;
+      if (controls.d) move.x +=1;
+      if (move.lengthSq()>0) move.normalize();
+      move.applyAxisAngle(new THREE.Vector3(0,1,0), yaw);
+      player.position.x += move.x * speed * dt;
+      player.position.z += move.z * speed * dt;
+      const groundY = surfaceHeight(player.position.x, player.position.z) + 1.3;
+      velocityY += -20 * dt;
+      player.position.y += velocityY * dt;
+      if (player.position.y <= groundY) {
+        player.position.y = groundY;
+        velocityY = 0;
+        onGround = true;
+        if (controls.jump) { velocityY = 8.5; onGround = false; }
+      }
+      if (footCameraMode === "TPV") {
+        const targetCam = new THREE.Vector3(player.position.x + Math.sin(yaw)*7, player.position.y + 3.5, player.position.z + Math.cos(yaw)*8.5);
+        camera.position.lerp(targetCam, 0.08);
+        camera.lookAt(player.position.x, player.position.y+1.3, player.position.z);
+      } else {
+        const eyePos = new THREE.Vector3(player.position.x, player.position.y+0.8, player.position.z);
+        camera.position.lerp(eyePos, 0.08);
+        const lookDir = new THREE.Vector3(0,0,-1).applyEuler(new THREE.Euler(pitch, yaw, 0));
+        camera.lookAt(eyePos.clone().add(lookDir));
+      }
+    }
+    
+    // ========== PHONE UI ==========
+    const phoneContainer = document.createElement('div');
+    phoneContainer.className = 'phone-container';
+    phoneContainer.innerHTML = `<div class="phone-notch"></div><div class="phone-header"><h3>📱 BEACH EXPLORER</h3><p id="phoneUser">${currentUser} • Level 1</p></div><div class="phone-content" id="phoneContent"></div><div class="phone-footer"><div class="home-indicator"></div></div>`;
+    document.body.appendChild(phoneContainer);
+    function renderDealership() { let html = `<button class="back-btn" data-view="main">← Back</button><h3>🚗 Dealership</h3>`; for (const [name, config] of Object.entries(VEHICLE_CONFIGS)) { const owned = ownedVehicles.includes(name); html += `<div class="vehicle-card" data-vehicle="${name}"><div style="display:flex; justify-content:space-between;"><div><strong>🚙 ${name}</strong><br><span style="color:#ffd966;">💰 $${config.price}</span><br><span style="font-size:10px;">Rot: ${config.modelRotationY}°</span></div>${owned ? '<span style="color:#4CAF50;">✓ OWNED</span>' : `<button class="buy-btn">BUY (FREE)</button>`}</div></div>`; } return html; }
+    function renderGarage() { let vehiclesHtml = ''; ownedVehicles.forEach(vehicle => { const rot = VEHICLE_CONFIGS[vehicle]?.modelRotationY || 0; vehiclesHtml += `<div class="vehicle-card"><div style="display:flex; justify-content:space-between;"><div><strong>🚙 ${vehicle}</strong><br><span style="font-size:10px;">Rotation: ${rot}°</span></div><button class="spawn-btn" data-vehicle="${vehicle}">SPAWN</button></div></div>`; }); return `<button class="back-btn" data-view="main">← Back</button><h3>🏠 My Garage</h3>${vehiclesHtml}<button class="exit-btn" id="exitVehicleBtn">Exit Current Vehicle</button>`; }
+    function renderMainMenu() { return `<div class="app-icon" data-app="dealership"><div class="emoji">💰</div><div class="title">Dealership</div><div class="subtitle">Buy vehicles (FREE)</div></div><div class="app-icon" data-app="garage"><div class="emoji">🚗</div><div class="title">My Garage</div><div class="subtitle">Spawn vehicles</div></div>`; }
+    function showAppView(view) { const content = document.getElementById('phoneContent'); if (!content) return; if (view === 'main') content.innerHTML = renderMainMenu(); else if (view === 'dealership') content.innerHTML = renderDealership(); else if (view === 'garage') content.innerHTML = renderGarage(); document.querySelectorAll('.app-icon, [data-app]').forEach(el => { if (el.classList.contains('app-icon')) el.addEventListener('click', () => showAppView(el.getAttribute('data-app'))); }); document.querySelectorAll('.back-btn').forEach(btn => btn.addEventListener('click', () => showAppView('main'))); document.querySelectorAll('.buy-btn').forEach(btn => btn.addEventListener('click', (e) => { const card = btn.closest('.vehicle-card'); const vehicleName = card.getAttribute('data-vehicle'); if (!ownedVehicles.includes(vehicleName)) { ownedVehicles.push(vehicleName); updateMoneyDisplay(); showToast(`🎉 ${vehicleName} added to garage! (FREE)`); showAppView('garage'); } else showToast('Already owned', true); })); document.querySelectorAll('.spawn-btn').forEach(btn => btn.addEventListener('click', () => { const vehicle = btn.getAttribute('data-vehicle'); spawnVehicle(vehicle); phoneContainer.classList.remove('visible'); phoneVisible = false; })); const exitBtn = document.getElementById('exitVehicleBtn'); if (exitBtn) exitBtn.addEventListener('click', () => { exitVehicle(); showToast('Exited vehicle'); }); }
+    let phoneVisible = false;
+    function togglePhone() { phoneVisible = !phoneVisible; if (phoneVisible) { showAppView('main'); phoneContainer.classList.add('visible'); if (document.pointerLockElement === renderer.domElement) document.exitPointerLock(); } else phoneContainer.classList.remove('visible'); }
+    
+    // ========== EVENT LISTENERS ==========
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'p' || e.key === 'P') { e.preventDefault(); togglePhone(); }
+      if (e.key === 'v' || e.key === 'V') { e.preventDefault(); if (isDriving) { if (vehicleCameraMode === "TPV") vehicleCameraMode = "FPV"; else if (vehicleCameraMode === "FPV") vehicleCameraMode = "CINEMATIC"; else vehicleCameraMode = "TPV"; showToast(`Camera: ${vehicleCameraMode}`); } else { footCameraMode = footCameraMode === "TPV" ? "FPV" : "TPV"; showToast(`On-foot camera: ${footCameraMode}`); } }
+      if (e.key === 'e' || e.key === 'E') { e.preventDefault(); if (isDriving) exitVehicle(); else { let nearest = null, minDist = 6; for (let v of spawnedVehicles) { const dist = Math.hypot(player.position.x - v.model.position.x, player.position.z - v.model.position.z); if (dist < minDist) { minDist = dist; nearest = v; } } if (nearest) enterVehicle(nearest); } }
+      if (e.key === 'r' || e.key === 'R') { if (isDriving && tryRefuel()) e.preventDefault(); }
+      if (e.key === 'w') controls.w = true; if (e.key === 's') controls.s = true; if (e.key === 'a') controls.a = true; if (e.key === 'd') controls.d = true; if (e.key === 'Shift') controls.shift = true; if (e.key === ' ') controls.jump = true; if (e.key === 'r' && !isDriving) { player.position.set(0, surfaceHeight(0,0)+1.3, topRadius - 30); velocityY=0; }
     });
-
-    // Spawn initial vehicle
-    setTimeout(() => spawnVehicle(), 1000);
+    window.addEventListener('keyup', (e) => { if (e.key === 'w') controls.w = false; if (e.key === 's') controls.s = false; if (e.key === 'a') controls.a = false; if (e.key === 'd') controls.d = false; if (e.key === 'Shift') controls.shift = false; if (e.key === ' ') controls.jump = false; });
+    renderer.domElement.addEventListener('click', () => { if (!phoneVisible) renderer.domElement.requestPointerLock(); });
+    window.addEventListener('mousemove', (e) => { if (!phoneVisible && document.pointerLockElement === renderer.domElement) { if (isDriving && (vehicleCameraMode === "TPV" || vehicleCameraMode === "FPV")) { cameraYaw -= e.movementX * 0.002; cameraPitch -= e.movementY * 0.002; cameraPitch = Math.max(-Math.PI/2 + 0.2, Math.min(Math.PI/2 - 0.2, cameraPitch)); } else if (isDriving && vehicleCameraMode === "CINEMATIC") { cinematicAngle -= e.movementX * 0.005; cinematicHeight += e.movementY * 0.005; cinematicHeight = Math.max(0.5, Math.min(5.0, cinematicHeight)); } else if (!isDriving) { yaw -= e.movementX * 0.002; pitch -= e.movementY * 0.002; pitch = Math.max(-Math.PI/2+0.2, Math.min(Math.PI/2-0.2, pitch)); } } });
+    window.addEventListener('wheel', (e) => { if (isDriving && vehicleCameraMode === "CINEMATIC") { cinematicDistance -= e.deltaY * 0.01 * CINEMATIC_CONFIG.zoomSpeed; cinematicDistance = Math.max(CINEMATIC_CONFIG.minDistance, Math.min(CINEMATIC_CONFIG.maxDistance, cinematicDistance)); } });
+    
+    // ========== ANIMATION LOOP ==========
+    let lastTime = performance.now();
+    function animate() {
+      const now = performance.now();
+      let dt = Math.min(0.033, (now - lastTime) / 1000);
+      if (dt <= 0) { lastTime = now; requestAnimationFrame(animate); return; }
+      lastTime = now;
+      updateAllVehiclesPhysics(dt);
+      updatePlayerMovement(dt);
+      if (isDriving) updateDriving(dt);
+      const waterTime = performance.now() * 0.002;
+      waterPlane.position.y = bottomHeight - 0.3 + Math.sin(waterTime) * 0.08;
+      farWater.position.y = bottomHeight - 0.5 + Math.sin(waterTime * 0.7) * 0.05;
+      const camMode = isDriving ? `🚗 ${vehicleCameraMode}` : `👤 ${footCameraMode}`;
+      document.getElementById('debug').innerHTML = `📍 ${player.position.x.toFixed(1)}, ${player.position.y.toFixed(1)}, ${player.position.z.toFixed(1)}<br>🌍 2X WORLD (Grass radius ${topRadius}) | ${isDriving ? 'Driving' : 'Walking'} | ${camMode} | V to cycle | Rotation fix: set modelRotationY in config`;
+      renderer.render(scene, camera);
+      requestAnimationFrame(animate);
+    }
+    animate();
+    window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+    spawnGasPumps();
+    showToast("World is 2x larger! Grass radius = 224, beach radius = 656. Vehicle rotation fix: edit modelRotationY (degrees) in VEHICLE_CONFIGS (0,90,180,270). Enjoy!", false);
   </script>
 </body>
 </html>
