@@ -5,117 +5,212 @@
 <title>Tha Trenches RP</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<!-- Google Font -->
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;800&display=swap" rel="stylesheet">
+
 <style>
 :root{
   --bg:#050507;
   --card:rgba(255,255,255,0.06);
   --accent:#6c5cff;
   --accent2:#00e0ff;
+  --neon:#00f7ff;
   --text:#ffffff;
   --muted:#9aa0aa;
 }
 
-*{margin:0;padding:0;box-sizing:border-box;}
-
-body {
-  background: radial-gradient(circle at top, #111, #000);
-  font-family: system-ui, sans-serif;
-  color: var(--text);
-  
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+*{
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
+  font-family:'Orbitron',sans-serif;
 }
 
-/* NAV */
+body{
+  background:#000;
+  color:var(--text);
+  overflow-x:hidden;
+}
+
+/* ===============================
+   🌇 MIAMI PARALLAX BACKGROUND
+=================================*/
+.background{
+  position:fixed;
+  inset:0;
+  z-index:-10;
+  overflow:hidden;
+  background:linear-gradient(to top,#0a0a1f,#1a1a40,#ff5e62,#ff9966);
+}
+
+.sun{
+  position:absolute;
+  bottom:15%;
+  left:50%;
+  transform:translateX(-50%);
+  width:300px;
+  height:300px;
+  background:radial-gradient(circle,#ff9966,#ff5e62,transparent);
+  border-radius:50%;
+  filter:blur(20px);
+}
+
+.skyline{
+  position:absolute;
+  bottom:120px;
+  width:200%;
+  height:220px;
+  background:#000;
+  opacity:0.85;
+  clip-path:polygon(
+    0% 100%,3% 60%,6% 85%,10% 55%,14% 75%,18% 40%,
+    22% 90%,26% 60%,30% 80%,34% 45%,38% 70%,
+    42% 50%,46% 95%,50% 60%,54% 80%,58% 40%,
+    62% 85%,66% 55%,70% 90%,74% 60%,78% 75%,
+    82% 50%,86% 80%,90% 45%,94% 70%,100% 100%
+  );
+  animation:parallax 60s linear infinite;
+}
+
+@keyframes parallax{
+  from{transform:translateX(0);}
+  to{transform:translateX(-50%);}
+}
+
+.ocean{
+  position:absolute;
+  bottom:0;
+  width:200%;
+  height:140px;
+  background:linear-gradient(to top,#001f3f,#003366);
+  border-radius:45%;
+  animation:wave 12s linear infinite;
+}
+
+@keyframes wave{
+  from{transform:translateX(0);}
+  to{transform:translateX(-50%);}
+}
+
+.palm{
+  position:absolute;
+  bottom:0;
+  width:180px;
+  transform-origin:bottom center;
+}
+
+.palm.left{
+  left:3%;
+  animation:swayLeft 6s ease-in-out infinite;
+}
+
+.palm.right{
+  right:3%;
+  animation:swayRight 7s ease-in-out infinite;
+}
+
+@keyframes swayLeft{
+  0%,100%{transform:rotate(-2deg);}
+  50%{transform:rotate(2deg);}
+}
+
+@keyframes swayRight{
+  0%,100%{transform:rotate(2deg);}
+  50%{transform:rotate(-2deg);}
+}
+
+/* ===============================
+   NAVBAR
+=================================*/
 header{
   position:sticky;
   top:0;
-  backdrop-filter:blur(15px);
   background:rgba(0,0,0,0.6);
-  border-bottom:1px solid rgba(255,255,255,0.05);
+  backdrop-filter:blur(12px);
+  z-index:1000;
+  border-bottom:1px solid rgba(255,255,255,0.1);
 }
 
 .nav{
+  max-width:1200px;
+  margin:auto;
+  padding:1rem;
   display:flex;
   justify-content:space-between;
   align-items:center;
-  padding:1rem;
-  max-width:1200px;
-  margin:auto;
 }
 
 .logo{
-  font-weight:900;
   font-size:1.4rem;
-  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  font-weight:800;
+  background:linear-gradient(135deg,#00f7ff,#ff00ff);
   -webkit-background-clip:text;
   -webkit-text-fill-color:transparent;
-}
-
-.nav-links{
-  display:flex;
-  gap:10px;
 }
 
 .nav-links button{
   background:none;
   border:none;
   color:var(--muted);
-  padding:6px 12px;
+  padding:8px 16px;
   border-radius:20px;
   cursor:pointer;
-  transition:.3s;
+  transition:0.3s;
 }
 
-.nav-links button:hover{
-  color:white;
-}
-
+.nav-links button:hover,
 .nav-links .active{
-  background:linear-gradient(135deg,var(--accent),var(--accent2));
   color:white;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  box-shadow:0 0 10px var(--accent2);
 }
 
-main {
-  flex: 1;
-  max-width: 1200px;
-  margin: auto;
-  padding: 2rem 1rem;
-  width: 100%;
+/* ===============================
+   HERO SECTION
+=================================*/
+.hero{
+  text-align:center;
+  padding:5rem 1rem;
 }
 
-.page{display:none;}
-.active-page{display:block;}
-
-h1{
-  font-size:clamp(2rem,5vw,3rem);
-  margin-bottom:1rem;
+.hero p{
+  color:var(--muted);
 }
 
-/* GRID */
+.hero-desc{
+  max-width:700px;
+  margin:auto;
+  margin-top:15px;
+  color:#ddd;
+}
+
+/* ===============================
+   GRID & CARDS
+=================================*/
 .grid{
+  max-width:1200px;
+  margin:auto;
+  padding:2rem 1rem;
   display:grid;
   grid-template-columns:repeat(auto-fit,minmax(250px,1fr));
   gap:20px;
 }
 
-/* CARD */
 .card{
   background:var(--card);
   backdrop-filter:blur(20px);
   padding:20px;
   border-radius:20px;
   border:1px solid rgba(255,255,255,0.08);
-  transition:.3s;
+  transition:0.3s;
 }
 
 .card:hover{
-  transform:translateY(-6px);
-  box-shadow:0 10px 40px rgba(0,0,0,0.6);
+  transform:translateY(-8px);
+  box-shadow:0 0 25px rgba(0,224,255,0.4);
 }
 
-/* BUTTON */
+/* Buttons */
 .btn{
   padding:12px 20px;
   border:none;
@@ -124,206 +219,372 @@ h1{
   color:white;
   cursor:pointer;
   font-weight:600;
-  transition:.3s;
+  transition:0.3s;
 }
 
 .btn:hover{
   transform:scale(1.05);
+  box-shadow:0 0 15px var(--accent2);
 }
 
-/* HERO */
-.hero{
-  text-align:center;
-  padding:4rem 1rem;
-}
-
-.hero p{
-  color:var(--muted);
-}
-
-/* GAME MODAL */
-.game-modal{
+/* ===============================
+   SIDEBAR ACCOUNT MENU
+=================================*/
+.sidebar{
   position:fixed;
-  top:0;left:0;
-  width:100%;
+  right:-300px;
+  top:0;
+  width:300px;
   height:100%;
-  background:rgba(0,0,0,0.95);
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  z-index:999;
+  background:#111;
+  padding:20px;
+  transition:0.3s;
+  z-index:2000;
 }
 
-.hidden{display:none;}
-
-.game-container{
-  width:95%;
-  height:95%;
-  border-radius:20px;
-  overflow:hidden;
-  position:relative;
-  background:black;
+.sidebar.active{
+  right:0;
 }
 
-/* FULLSCREEN ON MOBILE */
-@media(max-width:600px){
-  .game-container{
-    width:100%;
-    height:100%;
-    border-radius:0;
-  }
-}
-
-.game-container iframe{
-  width:100%;
-  height:100%;
-  border:none;
-}
-
-/* CLOSE BUTTON */
-.close-btn{
+.close-sidebar{
   position:absolute;
   top:10px;
   right:10px;
-  width:40px;
-  height:40px;
-  border:none;
-  border-radius:50%;
   background:red;
   color:white;
-  font-size:20px;
+  border:none;
+  padding:5px 10px;
+  border-radius:50%;
+  cursor:pointer;
+}
+
+/* ===============================
+   LOGIN MODAL
+=================================*/
+.modal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.85);
+  display:none;
+  justify-content:center;
+  align-items:center;
+  z-index:2500;
+}
+
+.modal-box{
+  background:#111;
+  padding:30px;
+  border-radius:15px;
+  text-align:center;
+  width:300px;
+}
+
+/* ===============================
+   GAME MODAL
+=================================*/
+.game-modal{
+  position:fixed;
+  inset:0;
+  background:black;
+  display:none;
+  z-index:3000;
+}
+
+.game-modal iframe{
+  width:100%;
+  height:100%;
+  border:none;
+}
+
+.close-btn{
+  position:absolute;
+  top:15px;
+  right:15px;
+  background:red;
+  border:none;
+  color:white;
+  font-size:18px;
+  padding:10px 14px;
+  border-radius:50%;
   cursor:pointer;
   z-index:10;
 }
 
-footer {
-  text-align: center;
-  padding: 2rem;
-  color: var(--muted);
-  font-size: .9rem;
+/* Loader */
+.loader{
+  position:absolute;
+  inset:0;
+  background:black;
+  display:flex;
+  flex-direction:column;
+  justify-content:center;
+  align-items:center;
 }
-.btn1{
-  padding:12px 20px;
-border:none;
-border-radius:30px;
-background:linear-gradient(135deg, var(--accent), var(--accent2));
-color:white;
-cursor:pointer;
-font-weight:600;
-transition:.3s;
+
+.spinner{
+  border:5px solid #222;
+  border-top:5px solid #00e0ff;
+  border-radius:50%;
+  width:60px;
+  height:60px;
+  animation:spin 1s linear infinite;
+}
+
+@keyframes spin{
+  to{transform:rotate(360deg);}
+}
+
+/* ===============================
+   TERMS & PRIVACY MODAL
+=================================*/
+#termsModal{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.85);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  z-index:4000;
+}
+
+#termsModal .modal-box{
+  width:400px;
+  padding:25px;
+  text-align:center;
+  border-radius:15px;
+  background:#111;
+}
+
+#termsModal .modal-box button{
+  margin:10px;
+}
+
+/* Footer */
+footer{
+  text-align:center;
+  padding:2rem;
+  color:var(--muted);
 }
 </style>
 </head>
 
 <body>
 
+<!-- 🌴 Background -->
+<div class="background">
+  <div class="sun"></div>
+  <div class="skyline"></div>
+  <div class="ocean"></div>
+
+  <!-- Palm Trees -->
+  <svg class="palm left" viewBox="0 0 200 400">
+    <rect x="95" y="100" width="10" height="300" fill="#6d4c41"/>
+    <path d="M100 100 Q40 60 10 20" stroke="#2ecc71" stroke-width="6" fill="none"/>
+    <path d="M100 100 Q160 60 190 20" stroke="#2ecc71" stroke-width="6" fill="none"/>
+    <path d="M100 100 Q50 100 10 80" stroke="#27ae60" stroke-width="6" fill="none"/>
+    <path d="M100 100 Q150 100 190 80" stroke="#27ae60" stroke-width="6" fill="none"/>
+  </svg>
+
+  <svg class="palm right" viewBox="0 0 200 400">
+    <rect x="95" y="100" width="10" height="300" fill="#6d4c41"/>
+    <path d="M100 100 Q40 60 10 20" stroke="#2ecc71" stroke-width="6" fill="none"/>
+    <path d="M100 100 Q160 60 190 20" stroke="#2ecc71" stroke-width="6" fill="none"/>
+    <path d="M100 100 Q50 100 10 80" stroke="#27ae60" stroke-width="6" fill="none"/>
+    <path d="M100 100 Q150 100 190 80" stroke="#27ae60" stroke-width="6" fill="none"/>
+  </svg>
+</div>
+
+<!-- NAVBAR -->
 <header>
   <div class="nav">
     <div class="logo">THA TRENCHES RP</div>
     <div class="nav-links">
-      <button onclick="showPage('home')" id="btn-home" class="active">Home</button>
-      <button onclick="showPage('games')" id="btn-games">Games</button>
-      <button onclick="showPage('updates')" id="btn-updates">Updates</button>
+      <button onclick="openGame()">Play</button>
+      <button onclick="openLogin()">Login</button>
+      <button onclick="toggleSidebar()">Account</button>
     </div>
   </div>
 </header>
 
-<main>
+<!-- HERO -->
+<section class="hero">
+  <h1>Tha Trenches RP: Miami RP</h1>
+  <p>Next-level roleplay experience built for the web</p>
+  <p class="hero-desc">
+    Explore a dynamic Miami-inspired open world filled with immersive gameplay,
+    evolving storylines, and endless opportunities to build your empire.
+  </p>
+  <button class="btn" onclick="openGame()">▶ PLAY NOW</button>
+</section>
 
-<!-- HOME -->
-<section id="home" class="page active-page">
-  <div class="hero">
-    <h1>Tha Trenches RP</h1>
-    <p>Next-level roleplay experience built for the web</p>
-    <button class="btn" onclick="openGame()" style="margin-top:20px;">▶ PLAY NOW</button>
+<!-- CONTENT CARDS -->
+<section class="grid">
+  <div class="card">
+    <h3>Launch the Game</h3>
+    <p>Jump into the immersive Miami-based roleplay experience.</p>
+    <button class="btn" onclick="openGame()">Play Now</button>
+  </div>
+
+  <div class="card">
+    <h3>Community Discord</h3>
+    <p>See the live chat from our server.</p>
+    <iframe 
+      src="https://discord.com/widget?id=1454735017413443699&theme=dark"
+      width="100%" height="350" frameborder="0"
+      allowtransparency="true"
+      sandbox="allow-popups allow-popups-to-escape-sandbox allow-same-origin allow-scripts">
+    </iframe>
+  </div>
+
+  <div class="card">
+    <h3>Latest Updates</h3>
+    <p>Stay informed with the latest development news.</p>
+    <a class="btn" href="Updates.txt">View Updates</a>
   </div>
 </section>
 
-<!-- GAMES -->
-<section id="games" class="page">
-  <h1>Games</h1>
-  <div class="grid">
-    <div class="card">
-      <h3>Tha Trenches RP</h3>
-      <p style="color:var(--muted);">Open-world multiplayer roleplay</p>
-      <button class="btn" onclick="openGame()" style="margin-top:10px;">Launch</button>
-    </div>
-  </div>
-</section>
-
-<!-- UPDATES -->
-<section id="updates" class="page">
-  <h1>Latest Updates</h1>
-  <div class="grid">
-
-    <div class="card">
-      
-      <p style="color:var(--muted);">Apr 2 2026: Project Reconstruction</p>
-      <h3>The Game Is Underway In Another Development loop and we are activly adding more features for perfect gameplay.</h3>
-      <p>To See All New Updates Click The "View TXT" Text so you can see all recent updates and more.</p>
-      <br><br>
-      <button class="btn1" onclick="window.location.href='Updates.txt'">View TXT</button>
-    </div>
-
-    <div class="card">
-      
-      <p style="color:var(--muted);">Date : Project Title</p>
-      <h3>New Updates:</h3>
-      <p></p>
-      <br><br>
-      <button class="btn1" onclick="window.location.href='Updates.txt'">View TXT</button>
-    </div>
-
-    <div class="card">
-      
-      <p style="color:var(--muted);">Date : Project Title</p>
-      <h3>New Updates:</h3>
-      <p></p>
-      <br><br>
-      <button class="btn1" onclick="window.location.href='Updates.txt'">View TXT</button>
-    </div>
-
-  </div>
-</section>
-
-</main>
-
-<footer>© 2026 Tha Trenches RP</footer>
-
-<!-- GAME MODAL -->
-<div id="gameModal" class="game-modal hidden">
-  <div class="game-container">
-    <button class="close-btn" onclick="closeGame()">✕</button>
-    <iframe src="game_multiplayer.html"></iframe>
+<!-- LOGIN MODAL -->
+<div class="modal" id="loginModal">
+  <div class="modal-box">
+    <h2>Login</h2>
+    <input id="username" placeholder="Username"><br><br>
+    <input id="password" type="password" placeholder="Password"><br><br>
+    <button class="btn" onclick="login()">Login</button>
   </div>
 </div>
 
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+  <button class="close-sidebar" onclick="toggleSidebar()">✕</button>
+  <h2>Account</h2>
+  <p id="userDisplay">Not logged in</p>
+  <button class="btn" onclick="logout()">Logout</button>
+</div>
+
+<!-- GAME MODAL -->
+<div id="gameModal" class="game-modal">
+  <button class="close-btn" onclick="closeGame()">✕</button>
+
+  <div class="loader" id="loader">
+    <div class="spinner"></div>
+    <p id="loadingText">Loading Tha Trenches RP...</p>
+  </div>
+
+  <iframe id="gameFrame" data-src="game5.html"></iframe>
+</div>
+
+<!-- TERMS & PRIVACY POPUP -->
+<div id="termsModal">
+  <div class="modal-box">
+    <h2>Terms & Privacy Policy</h2>
+    <p>By entering this site you agree to our Terms of Service and Privacy Policy.</p>
+    <button class="btn" onclick="acceptTerms()">Accept</button>
+    <button class="btn" onclick="declineTerms()">Decline</button>
+  </div>
+</div>
+
+<footer>© 2026 Tha Trenches RP</footer>
+
 <script>
-// NAVIGATION
-function showPage(id){
-  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active-page"));
-  document.getElementById(id).classList.add("active-page");
-
-  document.querySelectorAll(".nav-links button").forEach(b=>b.classList.remove("active"));
-  document.getElementById("btn-"+id).classList.add("active");
+/* ===============================
+   LOGIN SYSTEM
+=================================*/
+function openLogin(){
+  document.getElementById("loginModal").style.display="flex";
 }
 
-// GAME MODAL
+function login(){
+  const username=document.getElementById("username").value;
+  if(username){
+    localStorage.setItem("user",username);
+    document.getElementById("userDisplay").innerText="Welcome, "+username;
+    document.getElementById("loginModal").style.display="none";
+  }
+}
+
+function logout(){
+  localStorage.removeItem("user");
+  document.getElementById("userDisplay").innerText="Not logged in";
+}
+
+window.onload=function(){
+  const user=localStorage.getItem("user");
+  if(user){
+    document.getElementById("userDisplay").innerText="Welcome, "+user;
+  }
+
+  // Always show Terms popup
+  document.getElementById("termsModal").style.display="flex";
+};
+
+/* ===============================
+   SIDEBAR
+=================================*/
+function toggleSidebar(){
+  document.getElementById("sidebar").classList.toggle("active");
+}
+
+/* ===============================
+   GAME MODAL & LOADING TIPS
+=================================*/
+const modal=document.getElementById("gameModal");
+const loader=document.getElementById("loader");
+const frame=document.getElementById("gameFrame");
+
+const tips=[
+  "Tip: Build your empire in Miami.",
+  "Tip: Follow the rules to avoid penalties.",
+  "Update: New vehicles are coming soon.",
+  "Hint: Explore the city for hidden opportunities.",
+  "Coming Soon: Expanded districts and missions.",
+  "Customize your character to stand out in the city."
+];
+
+let tipIndex=0;
+let tipInterval;
+
+function startTips(){
+  document.getElementById("loadingText").innerText=tips[0];
+  tipInterval=setInterval(()=>{
+    tipIndex=(tipIndex+1)%tips.length;
+    document.getElementById("loadingText").innerText=tips[tipIndex];
+  },5000);
+}
+
+function stopTips(){
+  clearInterval(tipInterval);
+}
+
 function openGame(){
-  document.getElementById("gameModal").classList.remove("hidden");
+  modal.style.display="block";
+  loader.style.display="flex";
+  frame.style.opacity="0";
+  startTips();
+  frame.src="game5.html";
 }
+
+frame.onload=function(){
+  loader.style.display="none";
+  frame.style.opacity="1";
+  stopTips();
+};
 
 function closeGame(){
-  document.getElementById("gameModal").classList.add("hidden");
+  modal.style.display="none";
+  frame.src="";
+  stopTips();
 }
 
-// BASIC PROTECTION
-document.addEventListener("contextmenu", e=>e.preventDefault());
-document.addEventListener("keydown", function(e){
-  if(e.key==="F12") e.preventDefault();
-  if(e.ctrlKey && e.shiftKey && ["I","J","C"].includes(e.key)) e.preventDefault();
-  if(e.ctrlKey && e.key==="U") e.preventDefault();
-});
+/* ===============================
+   TERMS & PRIVACY
+=================================*/
+function acceptTerms(){
+  document.getElementById("termsModal").style.display="none";
+}
+
+function declineTerms(){
+  alert("You must accept our Terms and Privacy to use this site.");
+}
 </script>
 
 </body>
